@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-950 text-slate-300 antialiased;
+    background-image:
+      radial-gradient(60% 50% at 50% -10%, rgba(79, 70, 229, 0.18), transparent 60%),
+      radial-gradient(40% 35% at 100% 0%, rgba(34, 211, 238, 0.1), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-brand-500/30 text-white;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-white;
+    text-wrap: balance;
+  }
+
+  /* Respect reduced-motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  /* Visible focus ring for keyboard users */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-400 ring-offset-2 ring-offset-ink-950;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-white via-brand-200 to-accent-cyan bg-clip-text text-transparent;
+  }
+
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-brand-300 to-accent-cyan bg-clip-text text-transparent;
+  }
+
+  /* Glassy card surface */
+  .surface {
+    @apply rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-sm;
+  }
+
+  .surface-hover {
+    @apply transition duration-300 hover:border-brand-400/40 hover:bg-white/[0.05];
+  }
+
+  /* Eyebrow / pill label */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-brand-200;
+  }
+
+  .section-spacing {
+    @apply py-20 sm:py-28;
+  }
+
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent;
+  }
+}
+
+/* Faint dotted background helper used on hero/section accents */
+.bg-dotgrid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(60% 60% at 50% 40%, black, transparent 75%);
+}
