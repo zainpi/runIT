@@ -3,7 +3,7 @@
   // Must match the existing Worker that serves runs-it.com.
   "name": "runit",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2024-12-30",
+  "compatibility_date": "2025-03-25",
   "compatibility_flags": [
     "nodejs_compat",
     "global_fetch_strictly_public"
@@ -19,6 +19,10 @@
       "service": "runit"
     }
   ],
+  // Enable Next.js <Image> optimization on Cloudflare.
+  "images": {
+    "binding": "IMAGES"
+  },
   // Keep the production custom domain attached to this Worker.
   "routes": [
     {
