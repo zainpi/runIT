@@ -23,13 +23,15 @@ export const site = {
   },
 } as const;
 
-export type NavLink = { label: string; href: string };
+export type NavLink = { label: string; href: string; external?: boolean };
 
 export const mainNav: NavLink[] = [
   { label: "Services", href: "/services" },
   { label: "Case Studies", href: "/case-studies" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
+  // Static landing page served by the Cloudflare Worker, outside Next's router.
+  { label: "Ancient Horizon", href: "/ancient-horizon", external: true },
 ];
 
 export const footerNav: { title: string; links: NavLink[] }[] = [

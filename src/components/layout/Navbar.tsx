@@ -51,21 +51,28 @@ export function Navbar() {
         <Logo />
 
         <div className="hidden items-center gap-1 md:flex">
-          {mainNav.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={[
-                "rounded-full px-4 py-2 text-sm transition-colors",
-                isActive(link.href)
-                  ? "text-white"
-                  : "text-slate-400 hover:text-white",
-              ].join(" ")}
-              aria-current={isActive(link.href) ? "page" : undefined}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {mainNav.map((link) => {
+            const cls = [
+              "rounded-full px-4 py-2 text-sm transition-colors",
+              isActive(link.href)
+                ? "text-white"
+                : "text-slate-400 hover:text-white",
+            ].join(" ");
+            return link.external ? (
+              <a key={link.href} href={link.href} className={cls}>
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cls}
+                aria-current={isActive(link.href) ? "page" : undefined}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="hidden md:block">
@@ -119,20 +126,23 @@ export function Navbar() {
           ].join(" ")}
         >
           <div className="flex flex-col gap-1 border-t border-white/10 py-4">
-            {mainNav.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={[
-                  "rounded-xl px-4 py-3 text-base transition-colors",
-                  isActive(link.href)
-                    ? "bg-white/[0.06] text-white"
-                    : "text-slate-300 hover:bg-white/[0.04] hover:text-white",
-                ].join(" ")}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {mainNav.map((link) => {
+              const cls = [
+                "rounded-xl px-4 py-3 text-base transition-colors",
+                isActive(link.href)
+                  ? "bg-white/[0.06] text-white"
+                  : "text-slate-300 hover:bg-white/[0.04] hover:text-white",
+              ].join(" ");
+              return link.external ? (
+                <a key={link.href} href={link.href} className={cls}>
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} href={link.href} className={cls}>
+                  {link.label}
+                </Link>
+              );
+            })}
             <ButtonLink href="/book" size="lg" className="mt-3 w-full" withArrow>
               Book a Free Call
             </ButtonLink>

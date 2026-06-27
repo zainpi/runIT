@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ancient Horizon — Idle auto-battle RPG with heart</title>
+<link rel="canonical" href="https://runs-it.com/ancient-horizon/"><meta property="og:url" content="https://runs-it.com/ancient-horizon/">
+<meta name="description" content="Ancient Horizon is a charming idle auto-battle RPG. Your party keeps fighting even while you're away. Fair, transparent gacha with visible pity, deep progression, prestige, dungeons and world bosses. Coming soon to iOS & Android.">
+<meta name="theme-color" content="#6b4423">
+<link rel="icon" type="image/svg+xml" href="/ancient-horizon/img/icon.svg">
+<link rel="apple-touch-icon" href="/ancient-horizon/img/apple-touch-icon.png">
+<!-- Open Graph / social -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Ancient Horizon — Idle auto-battle RPG with heart">
+<meta property="og:description" content="Your party keeps fighting even while you're away. Fair gacha, deep progression, real offline progress. Coming soon to iOS & Android.">
+<meta property="og:image" content="https://runs-it.com/ancient-horizon/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ancient Horizon — Idle auto-battle RPG with heart">
+<meta name="twitter:description" content="Your party keeps fighting even while you're away. Fair gacha, deep progression, real offline progress.">
+<meta name="twitter:image" content="https://runs-it.com/ancient-horizon/img/og.png">
+<style>
+@font-face{
+  font-family:'Pixel';
+  src:url('/ancient-horizon/fonts/monogram.ttf') format('truetype');
+  font-display:swap;
+}
+:root{
+  --parch:#f3e7c9; --parch2:#e8d3a8; --parch3:#e0c88e; --parch-edge:#d4b88a;
+  --wood:#6b4423; --wood2:#8a5a2b; --wood-dark:#3f2812; --ink:#3a2410; --ink2:#5a3a1c;
+  --gold:#c9a059; --gold2:#d49a30; --gold-lt:#f0c870;
+  --green:#5fa233; --green2:#7ab648; --green-dk:#36571f; --green-lt:#8ed05a;
+  --red:#d8584a; --red-dk:#6e1d16; --blue:#6fb0e0; --purple:#a877d6;
+  --shadow:rgba(40,22,8,.28);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;
+  color:var(--ink);
+  background:#caa45e;
+  background-image:
+    radial-gradient(circle at 20% 0%, #e7cf9f 0%, transparent 45%),
+    radial-gradient(circle at 90% 10%, #e2c88f 0%, transparent 40%),
+    linear-gradient(#e6cf9c,#d8bd84);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.pixel{font-family:'Pixel','Trebuchet MS',monospace;letter-spacing:.5px;}
+img{image-rendering:pixelated;display:block;-webkit-user-drag:none;user-select:none}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+section{position:relative}
+
+/* ---------- buttons ---------- */
+.btn{font-family:'Pixel',monospace;font-size:20px;letter-spacing:.5px;display:inline-flex;align-items:center;gap:10px;
+  padding:14px 26px;border-radius:10px;cursor:pointer;border:3px solid var(--ink2);
+  background:linear-gradient(var(--parch),var(--parch3));color:var(--ink);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.45),0 4px 0 var(--ink);transition:transform .08s, filter .15s}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(3px);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 1px 0 var(--ink)}
+.btn--green{background:linear-gradient(var(--green2),var(--green));border-color:var(--green-dk);color:#0f2d09;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 4px 0 var(--green-dk)}
+.btn--green:active{box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 1px 0 var(--green-dk)}
+.store{display:inline-flex;align-items:center;gap:12px;background:linear-gradient(#4a3320,#2f2012);color:#f3e7c9;
+  border:3px solid var(--wood-dark);border-radius:12px;padding:9px 18px;box-shadow:0 4px 0 #1d1308;position:relative;cursor:default}
+.store svg{width:26px;height:26px;flex:none;fill:#f3e7c9}
+.store small{display:block;font-size:11px;letter-spacing:1.5px;opacity:.8;text-transform:uppercase;font-family:'Trebuchet MS',sans-serif}
+.store b{font-family:'Pixel',monospace;font-size:18px;font-weight:400;letter-spacing:.5px}
+.store .soon{position:absolute;top:-10px;right:-8px;background:var(--gold-lt);color:#3a1f0a;border:2px solid var(--gold2);
+  font-family:'Pixel',monospace;font-size:11px;padding:1px 8px;border-radius:9px;box-shadow:0 2px 0 #9c6a18}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:50;background:linear-gradient(var(--wood2),var(--wood));
+  border-bottom:4px solid var(--wood-dark);box-shadow:inset 0 2px 0 #a87b4c,0 3px 10px rgba(0,0,0,.2)}
+.nav .wrap{display:flex;align-items:center;gap:18px;height:64px}
+.brand{display:flex;align-items:center;gap:11px;color:#f3e7c9}
+.brand img{width:38px;height:38px;border:2px solid var(--wood-dark);border-radius:8px;background:#bfe0f0}
+.brand b{font-family:'Pixel',monospace;font-size:23px;font-weight:400;letter-spacing:.5px;text-shadow:2px 2px 0 #2a1808}
+.nav nav{margin-left:auto;display:flex;align-items:center;gap:6px}
+.nav nav a{font-family:'Pixel',monospace;font-size:18px;color:#f3e7c9;padding:8px 14px;border-radius:8px}
+.nav nav a:hover{background:rgba(255,255,255,.12)}
+.nav .btn{font-size:17px;padding:9px 18px}
+.burger{display:none;margin-left:auto;background:none;border:none;cursor:pointer;padding:8px}
+.burger span{display:block;width:26px;height:3px;background:#f3e7c9;margin:5px 0;border-radius:2px}
+
+/* ---------- hero ---------- */
+.hero{padding:64px 0 56px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;z-index:0;
+  background:url('/ancient-horizon/img/forest_bg.png') center/cover;opacity:.22;
+  -webkit-mask-image:linear-gradient(#000,transparent);mask-image:linear-gradient(#000,transparent)}
+.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.hero h1{font-family:'Pixel',monospace;font-weight:400;line-height:.96;font-size:clamp(48px,8vw,88px);
+  color:#fff;letter-spacing:1px;
+  text-shadow:0 3px 0 var(--gold2),0 6px 0 var(--ink),4px 9px 0 rgba(0,0,0,.25)}
+.hero h1 .l2{color:var(--gold-lt)}
+.tagline{font-family:'Pixel',monospace;font-size:clamp(20px,2.6vw,27px);color:var(--ink);margin:18px 0 8px}
+.lede{font-size:18px;max-width:30em;color:#4a3420}
+.cta-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:26px;align-items:center}
+.stores{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}
+.byline{margin-top:20px;font-size:14px;color:#5e482c;display:flex;align-items:center;gap:8px}
+.byline img{width:18px;height:18px;display:inline-block}
+.hero-art{position:relative}
+.frame{border:7px solid var(--ink2);border-radius:14px;background:var(--ink2);
+  box-shadow:inset 0 0 0 3px var(--gold),0 16px 30px rgba(40,22,8,.4);overflow:hidden;transform:rotate(-2deg)}
+.frame img{width:100%;height:auto}
+.hero-art .float{position:absolute;width:84px;height:auto;filter:drop-shadow(0 8px 6px rgba(0,0,0,.4));animation:bob 3.2s ease-in-out infinite}
+.hero-art .m1{right:-14px;top:-26px;transform:scaleX(-1)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+/* ---------- trust strip ---------- */
+.trust{background:linear-gradient(var(--ink),#241608);border-top:4px solid var(--gold2);border-bottom:4px solid var(--wood-dark)}
+.trust .wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 30px;padding:16px 22px}
+.trust span{font-family:'Pixel',monospace;font-size:18px;color:var(--parch);display:flex;align-items:center;gap:9px}
+.trust span::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--green-lt);box-shadow:0 0 8px var(--green-lt)}
+
+/* ---------- section heading ---------- */
+.head{text-align:center;max-width:42em;margin:0 auto 42px}
+.head h2{font-family:'Pixel',monospace;font-weight:400;font-size:clamp(32px,5vw,46px);color:var(--ink);
+  text-shadow:2px 2px 0 rgba(255,255,255,.4)}
+.head p{font-size:17px;color:#5a4226;margin-top:10px}
+.kicker{font-family:'Pixel',monospace;font-size:17px;color:#7a5a2a;letter-spacing:2px;text-transform:uppercase}
+
+/* ---------- features ---------- */
+.features{padding:70px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.card{background:linear-gradient(var(--parch),var(--parch2));border:4px solid var(--ink2);border-radius:14px;padding:24px 22px;
+  box-shadow:inset 0 0 0 2px var(--gold),0 6px 0 var(--shadow);transition:transform .12s}
+.card:hover{transform:translateY(-4px)}
+.card .ico{width:60px;height:60px;display:flex;align-items:center;justify-content:center;
+  background:var(--parch);border:3px solid var(--ink2);border-radius:12px;box-shadow:inset 0 0 0 2px var(--gold);margin-bottom:14px}
+.card .ico img{width:34px;height:auto}
+.card h3{font-family:'Pixel',monospace;font-weight:400;font-size:23px;color:var(--ink);margin-bottom:7px}
+.card p{font-size:15.5px;color:#523c22}
+.card.span2{grid-column:span 2}
+
+/* ---------- fair play band ---------- */
+.fair{padding:64px 0}
+.fair-box{background:linear-gradient(#2a1c40,#1c1230);border:5px solid var(--ink2);border-radius:18px;
+  box-shadow:inset 0 0 0 3px var(--gold),0 10px 0 var(--shadow);overflow:hidden;
+  display:grid;grid-template-columns:1.1fr .9fr;gap:0;align-items:center}
+.fair-box .txt{padding:42px 40px;color:#efe6ff}
+.fair-box .kicker{color:#cdb6e8}
+.fair-box h2{font-family:'Pixel',monospace;font-weight:400;font-size:clamp(30px,4.4vw,42px);color:#fff;margin:6px 0 14px;text-shadow:0 3px 0 #4a2c6e}
+.fair-box p{color:#e0d3f4;font-size:16.5px;max-width:34em}
+.promise{list-style:none;margin:20px 0 0;display:flex;flex-direction:column;gap:12px}
+.promise li{display:flex;gap:12px;align-items:flex-start;font-size:16px;color:#f3ecff}
+.promise .chk{flex:none;width:26px;height:26px;border-radius:7px;background:linear-gradient(var(--green2),var(--green));
+  border:2px solid var(--green-dk);display:flex;align-items:center;justify-content:center;font-family:'Pixel';color:#0f2d09;font-size:18px;box-shadow:0 2px 0 var(--green-dk)}
+.fair-box .shot{padding:26px;display:flex;align-items:center;justify-content:center}
+.fair-box .shot img{width:100%;border:5px solid var(--ink2);border-radius:12px;box-shadow:inset 0 0 0 2px var(--gold),0 10px 22px rgba(0,0,0,.45)}
+
+/* ---------- screenshots ---------- */
+.screens{padding:70px 0}
+.shots{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.shot-card{background:linear-gradient(var(--parch),var(--parch2));border:4px solid var(--ink2);border-radius:14px;padding:12px;
+  box-shadow:inset 0 0 0 2px var(--gold),0 6px 0 var(--shadow);cursor:zoom-in}
+.shot-card img{width:100%;border:3px solid var(--ink2);border-radius:8px}
+.shot-card .cap{display:flex;align-items:center;gap:10px;padding:12px 6px 4px}
+.shot-card .cap b{font-family:'Pixel',monospace;font-weight:400;font-size:21px;color:var(--ink)}
+.shot-card .cap span{font-size:14px;color:#6a4f2c}
+.tag{margin-left:auto;font-family:'Pixel';font-size:13px;color:#0f2d09;background:var(--green-lt);
+  border:2px solid var(--green-dk);border-radius:9px;padding:2px 9px}
+
+/* ---------- wishlist CTA ---------- */
+.cta{padding:30px 0 76px}
+.cta-box{background:linear-gradient(var(--wood2),var(--wood));border:5px solid var(--wood-dark);border-radius:20px;
+  box-shadow:inset 0 2px 0 #a87b4c,0 10px 0 var(--shadow);padding:48px 32px;text-align:center;position:relative;overflow:hidden}
+.cta-box::after{content:"";position:absolute;inset:0;background:url('/ancient-horizon/img/forest_bg.png') center/cover;opacity:.12;pointer-events:none}
+.cta-box>*{position:relative;z-index:1}
+.cta-box h2{font-family:'Pixel',monospace;font-weight:400;font-size:clamp(30px,5vw,44px);color:#fff;text-shadow:0 3px 0 var(--wood-dark)}
+.cta-box p{color:#f6ebd2;margin:12px auto 26px;max-width:34em;font-size:17px}
+.signup{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:560px;margin:0 auto}
+.signup input{flex:1;min-width:240px;font-family:'Trebuchet MS',sans-serif;font-size:17px;padding:14px 18px;
+  border:3px solid var(--ink2);border-radius:10px;background:var(--parch);color:var(--ink);box-shadow:inset 0 2px 4px rgba(90,58,28,.35)}
+.signup input:focus{outline:3px solid var(--gold-lt);outline-offset:1px}
+.note{margin-top:14px;font-size:13px;color:#f0e2c4;opacity:.85}
+.ok{display:none;margin-top:18px;font-family:'Pixel';font-size:22px;color:#eaffd6;text-shadow:0 2px 0 var(--green-dk)}
+.cta .stores{justify-content:center;margin-top:24px}
+
+/* ---------- footer ---------- */
+footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5px solid var(--gold2);padding:52px 0 26px}
+.fcols{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px}
+.fbrand .brand b{color:#f3e7c9}
+.fbrand p{margin-top:14px;font-size:14.5px;color:#c9b48a;max-width:30em}
+.fcol h4{font-family:'Pixel',monospace;font-weight:400;font-size:19px;color:var(--gold-lt);margin-bottom:12px;letter-spacing:.5px}
+.fcol a{display:block;font-size:15px;color:#d9c39b;padding:5px 0}
+.fcol a:hover{color:#fff}
+.legal{border-top:1px solid #4a3a22;margin-top:34px;padding-top:20px;display:flex;flex-wrap:wrap;gap:8px 20px;
+  justify-content:space-between;align-items:center;font-size:13px;color:#b09a72}
+.legal .pixel{font-size:15px;color:#c9b48a}
+
+/* ---------- lightbox ---------- */
+.lb{display:none;position:fixed;inset:0;z-index:100;background:rgba(20,12,4,.9);align-items:center;justify-content:center;padding:30px;cursor:zoom-out}
+.lb.open{display:flex}
+.lb img{max-width:96vw;max-height:92vh;border:6px solid var(--ink2);border-radius:12px;box-shadow:inset 0 0 0 3px var(--gold),0 20px 50px #000}
+.lb .x{position:absolute;top:18px;right:24px;font-family:'Pixel';font-size:30px;color:#f3e7c9;cursor:pointer}
+
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.hero-art .float{animation:none}}
+.no-js .reveal{opacity:1;transform:none}
+
+/* ---------- responsive ---------- */
+@media(max-width:860px){
+  .nav nav{display:none;position:absolute;top:64px;left:0;right:0;flex-direction:column;gap:0;
+    background:var(--wood);border-bottom:4px solid var(--wood-dark);padding:8px 0}
+  .nav nav.show{display:flex}
+  .nav nav a{border-radius:0;padding:13px 22px}
+  .nav nav .btn{margin:8px 22px}
+  .burger{display:block}
+  .hero .wrap{grid-template-columns:1fr;gap:36px}
+  .hero-art{order:-1;max-width:520px;margin:0 auto}
+  .grid{grid-template-columns:1fr 1fr}
+  .card.span2{grid-column:span 2}
+  .fair-box{grid-template-columns:1fr}
+  .fair-box .shot{padding:0 26px 30px}
+  .shots{grid-template-columns:1fr}
+  .fcols{grid-template-columns:1fr 1fr}
+}
+@media(max-width:540px){
+  .grid{grid-template-columns:1fr}
+  .card.span2{grid-column:span 1}
+  .fcols{grid-template-columns:1fr}
+  .trust .wrap{gap:8px 18px}
+  .trust span{font-size:15px}
+}
+</style>
+<noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="/ancient-horizon/img/icon.svg" alt="Ancient Horizon mascot"><b>Ancient Horizon</b></a>
+    <button class="burger" aria-label="Menu" onclick="document.getElementById('menu').classList.toggle('show')">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="menu">
+      <a href="#features" onclick="closeMenu()">Features</a>
+      <a href="#fair" onclick="closeMenu()">Fair Play</a>
+      <a href="#screens" onclick="closeMenu()">Screens</a>
+      <a class="btn btn--green" href="#wishlist" onclick="closeMenu()">Wishlist</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-copy">
+      <h1>Ancient<br><span class="l2">Horizon</span></h1>
+      <p class="tagline">Idle your way to glory — an auto-battle RPG with heart.</p>
+      <p class="lede">Your party keeps fighting even while you're away. Pull powerful gear, master your skill tree, climb the world-boss ladder, and come back to stacks of loot. A cosy, original world built to respect your time and your wallet.</p>
+      <div class="cta-row">
+        <a class="btn btn--green" href="#wishlist">🔔 Get notified at launch</a>
+      </div>
+      <div class="stores">
+        <span class="store"><span class="soon">Soon</span>
+          <svg viewBox="0 0 384 512"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+          <span><small>Coming soon to</small><b>App Store</b></span>
+        </span>
+        <span class="store"><span class="soon">Soon</span>
+          <svg viewBox="0 0 512 512"><path d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"/></svg>
+          <span><small>Coming soon to</small><b>Google Play</b></span>
+        </span>
+      </div>
+      <div class="byline"><img src="/ancient-horizon/img/icons/Heart.png" alt="">Hand-built by a two-person indie studio.</div>
+    </div>
+    <div class="hero-art">
+      <img class="float m1" src="/ancient-horizon/img/mushroom.png" alt="">
+      <div class="frame"><img src="/ancient-horizon/screenshots/battle.png" alt="Ancient Horizon battle gameplay" width="1280" height="720"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRUST STRIP ============ -->
+<div class="trust">
+  <div class="wrap">
+    <span class="pixel">Auto-battle, always on</span>
+    <span class="pixel">Real offline progress</span>
+    <span class="pixel">Fair, visible pity</span>
+    <span class="pixel">No pay-to-win</span>
+  </div>
+</div>
+
+<!-- ============ FEATURES ============ -->
+<section class="features" id="features">
+  <div class="wrap">
+    <div class="head reveal">
+      <div class="kicker">What's inside</div>
+      <h2>Easy to start, hard to put down</h2>
+      <p>A full idle RPG that runs while you live your life — then rewards every time you check back in.</p>
+    </div>
+    <div class="grid">
+      <div class="card reveal"><div class="ico"><img src="/ancient-horizon/img/icons/Sword.png" alt=""></div>
+        <h3>Auto-battle, always on</h3>
+        <p>Tap to fight or let auto-battle carry the party through a hand-crafted world of original creatures. Offline gains are real progress — never a consolation prize.</p></div>
+      <div class="card reveal"><div class="ico"><img src="/ancient-horizon/img/icons/Diamond-porple.png" alt=""></div>
+        <h3>Fair, exciting gacha</h3>
+        <p>Summon weapons, armor and abilities across seven rarities. Every banner shows its real odds and a visible pity counter that guarantees a top-tier reward.</p></div>
+      <div class="card reveal"><div class="ico"><img src="/ancient-horizon/img/icons/Star.png" alt=""></div>
+        <h3>Deep progression</h3>
+        <p>An upgrade shop, a tabbed passive skill tree, gear stars, armor refinement, a six-slot ability bar, and a class that fits your playstyle.</p></div>
+      <div class="card reveal"><div class="ico"><img src="/ancient-horizon/img/icons/Crown1.png" alt=""></div>
+        <h3>Prestige &amp; push further</h3>
+        <p>Reset for compounding relic bonuses and blast back through content far faster than before. Every run feels at least three times quicker.</p></div>
+      <div class="card reveal"><div class="ico"><img src="/ancient-horizon/img/icons/Skull.png" alt=""></div>
+        <h3>Dungeons &amp; world bosses</h3>
+        <p>Spend keys on dungeon runs and take down elites, commanders and world bosses across an ever-expanding ten-world map.</p></div>
+      <div class="card reveal"><div class="ico"><img src="/ancient-horizon/img/icons/Trophy1.png" alt=""></div>
+        <h3>Play together</h3>
+        <p>Join a guild, climb weekly leaderboards and chat with other players — all server-validated, so the rankings are always honest.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAIR PLAY ============ -->
+<section class="fair" id="fair">
+  <div class="wrap">
+    <div class="fair-box reveal">
+      <div class="txt">
+        <div class="kicker">The fair-play promise</div>
+        <h2>RNG that actually feels fair</h2>
+        <p>Bad gacha is the number-one complaint in this genre, so we built ours the opposite way: exciting, transparent and never predatory.</p>
+        <ul class="promise">
+          <li><span class="chk">✓</span><span><b>Published odds match real odds</b> — in-game and in the store listing. No hidden math.</span></li>
+          <li><span class="chk">✓</span><span><b>Hard pity is guaranteed and visible.</b> A top-rarity reward by pull 100, with the counter always on screen.</span></li>
+          <li><span class="chk">✓</span><span><b>Free players clear everything.</b> Premium currency is also earnable — nothing mandatory is locked behind a wallet.</span></li>
+        </ul>
+      </div>
+      <div class="shot"><img src="/ancient-horizon/screenshots/summon.png" alt="Summon banner showing real odds and a visible pity counter"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREENSHOTS ============ -->
+<section class="screens" id="screens">
+  <div class="wrap">
+    <div class="head reveal">
+      <div class="kicker">Take a look</div>
+      <h2>See it in motion</h2>
+      <p>Landscape gameplay, cosy pixel art, and a UI that stays out of your way.</p>
+    </div>
+    <div class="shots">
+      <div class="shot-card reveal" onclick="lightbox('/ancient-horizon/screenshots/battle.png')">
+        <img src="/ancient-horizon/screenshots/battle.png" alt="Battle screen" loading="lazy">
+        <div class="cap"><b>Auto-Battle</b><span>Forest world, live HUD</span><span class="tag">Combat</span></div>
+      </div>
+      <div class="shot-card reveal" onclick="lightbox('/ancient-horizon/screenshots/summon.png')">
+        <img src="/ancient-horizon/screenshots/summon.png" alt="Summon / gacha screen" loading="lazy">
+        <div class="cap"><b>Summon</b><span>Odds &amp; pity, up front</span><span class="tag">Gacha</span></div>
+      </div>
+      <div class="shot-card reveal" onclick="lightbox('/ancient-horizon/screenshots/gear.png')">
+        <img src="/ancient-horizon/screenshots/gear.png" alt="Gear / equipment screen" loading="lazy">
+        <div class="cap"><b>Equipment</b><span>Paper-doll &amp; inventory</span><span class="tag">Loot</span></div>
+      </div>
+      <div class="shot-card reveal" onclick="lightbox('/ancient-horizon/screenshots/upgrade.png')">
+        <img src="/ancient-horizon/screenshots/upgrade.png" alt="Upgrade screen" loading="lazy">
+        <div class="cap"><b>Upgrade</b><span>Hero, tower &amp; idle stats</span><span class="tag">Progress</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WISHLIST CTA ============ -->
+<section class="cta" id="wishlist">
+  <div class="wrap">
+    <div class="cta-box reveal">
+      <h2>Be first through the gate</h2>
+      <p>Drop your email and we'll let you know the moment Ancient Horizon launches. No spam — just one launch-day note.</p>
+      <!--
+        EMAIL SIGNUP: this form runs client-side only (shows a thank-you).
+        To collect real emails, point action= at a provider, e.g.:
+          • Formspree:  action="https://formspree.io/f/XXXX" method="POST"
+          • Mailchimp:  use your embedded form action URL
+          • Netlify:    add  netlify  to the <form>  (deploy on Netlify)
+        and remove the onsubmit return handler below.
+      -->
+      <form class="signup" onsubmit="return signup(event)" novalidate>
+        <input type="email" name="email" placeholder="you@example.com" aria-label="Email address" required>
+        <button class="btn btn--green" type="submit">Notify me</button>
+      </form>
+      <div class="ok" id="ok">🎉 You're on the list — see you at launch!</div>
+      <p class="note">We'll only use your address to tell you when the game is out.</p>
+      <div class="stores">
+        <span class="store"><span class="soon">Soon</span>
+          <svg viewBox="0 0 384 512"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+          <span><small>Coming soon to</small><b>App Store</b></span>
+        </span>
+        <span class="store"><span class="soon">Soon</span>
+          <svg viewBox="0 0 512 512"><path d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"/></svg>
+          <span><small>Coming soon to</small><b>Google Play</b></span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="fcols">
+      <div class="fbrand">
+        <a class="brand" href="#top"><img src="/ancient-horizon/img/icon.svg" alt=""><b>Ancient Horizon</b></a>
+        <p>A cosy idle auto-battle RPG with fair, transparent gacha and progression deep enough to optimise for weeks. Coming soon to iOS &amp; Android.</p>
+      </div>
+      <div class="fcol">
+        <h4>Game</h4>
+        <a href="#features">Features</a>
+        <a href="#fair">Fair Play</a>
+        <a href="#screens">Screenshots</a>
+        <a href="#wishlist">Wishlist</a>
+      </div>
+      <div class="fcol">
+        <h4>Legal</h4>
+        <a href="/ancient-horizon/privacy.html">Privacy Policy</a>
+        <a href="/ancient-horizon/terms.html">Terms of Service</a>
+        <a href="/ancient-horizon/terms.html#gacha">Gacha Odds</a>
+      </div>
+      <div class="fcol">
+        <h4>Connect</h4>
+        <a href="#wishlist">Newsletter</a>
+        <a href="#" rel="nofollow">Discord</a>
+        <a href="#" rel="nofollow">X / Twitter</a>
+        <a href="mailto:hello@ancienthorizon.game">Email us</a>
+      </div>
+    </div>
+    <div class="legal">
+      <span class="pixel">© 2026 Ancient Horizon</span>
+      <span>In-app purchases optional. Randomised item odds are disclosed in-game and in our Terms. Not affiliated with any platform holder.</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ LIGHTBOX ============ -->
+<div class="lb" id="lb" onclick="this.classList.remove('open')">
+  <span class="x">✕</span><img id="lbimg" src="" alt="">
+</div>
+
+<script>
+function closeMenu(){document.getElementById('menu').classList.remove('show');}
+function lightbox(src){var lb=document.getElementById('lb');document.getElementById('lbimg').src=src;lb.classList.add('open');}
+function signup(e){
+  e.preventDefault();
+  var f=e.target, email=f.email.value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){f.email.focus();f.email.style.outline='3px solid #d8584a';return false;}
+  /* TODO: send `email` to your provider here (fetch to Formspree/Mailchimp/etc.) */
+  f.style.display='none';
+  document.getElementById('ok').style.display='block';
+  return false;
+}
+/* scroll reveal */
+var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+/* close lightbox on Esc */
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('lb').classList.remove('open');});
+</script>
+</body>
+</html>
