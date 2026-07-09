@@ -175,6 +175,7 @@ section{position:relative}
 .signup input:focus{outline:3px solid var(--gold-lt);outline-offset:1px}
 .note{margin-top:14px;font-size:13px;color:#f0e2c4;opacity:.85}
 .ok{display:none;margin-top:18px;font-family:'Pixel';font-size:22px;color:#eaffd6;text-shadow:0 2px 0 var(--green-dk)}
+.err{display:none;margin-top:14px;font-size:15px;font-weight:700;color:#ffd9d3}
 .cta .stores{justify-content:center;margin-top:24px}
 
 /* ---------- footer ---------- */
@@ -370,17 +371,18 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
       <h2>Be first through the gate</h2>
       <p>Drop your email and we'll let you know the moment The Last Echo : Idle RPG launches. No spam — just one launch-day note.</p>
       <!--
-        EMAIL SIGNUP: this form runs client-side only (shows a thank-you).
-        To collect real emails, point action= at a provider, e.g.:
-          • Formspree:  action="https://formspree.io/f/XXXX" method="POST"
-          • Mailchimp:  use your embedded form action URL
-          • Netlify:    add  netlify  to the <form>  (deploy on Netlify)
-        and remove the onsubmit return handler below.
+        EMAIL SIGNUP → Formspree (AJAX). The action=/method= below is the no-JS
+        fallback; signup() intercepts and POSTs via fetch so we keep the inline
+        thank-you instead of Formspree's redirect page. Change the form ID in the
+        action to repoint to a different Formspree form.
       -->
-      <form class="signup" onsubmit="return signup(event)" novalidate>
+      <form class="signup" action="https://formspree.io/f/mojoodqe" method="POST"
+            onsubmit="return signup(event)" novalidate>
         <input type="email" name="email" placeholder="you@example.com" aria-label="Email address" required>
+        <input type="hidden" name="_subject" value="New launch-list signup — The Last Echo">
         <button class="btn btn--green" type="submit">Notify me</button>
       </form>
+      <div class="err" id="err" role="alert"></div>
       <div class="ok" id="ok">🎉 You're on the list — see you at launch!</div>
       <p class="note">We'll only use your address to tell you when the game is out.</p>
       <div class="stores">
@@ -444,11 +446,27 @@ function closeMenu(){document.getElementById('menu').classList.remove('show');}
 function lightbox(src){var lb=document.getElementById('lb');document.getElementById('lbimg').src=src;lb.classList.add('open');}
 function signup(e){
   e.preventDefault();
-  var f=e.target, email=f.email.value.trim();
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){f.email.focus();f.email.style.outline='3px solid #d8584a';return false;}
-  /* TODO: send `email` to your provider here (fetch to Formspree/Mailchimp/etc.) */
-  f.style.display='none';
-  document.getElementById('ok').style.display='block';
+  var f=e.target, email=f.email.value.trim(), btn=f.querySelector('button'),
+      err=document.getElementById('err');
+  err.style.display='none'; f.email.style.outline='';
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+    f.email.focus(); f.email.style.outline='3px solid #d8584a'; return false;
+  }
+  var label=btn.textContent; btn.disabled=true; btn.textContent='Sending…';
+  function fail(text){
+    btn.disabled=false; btn.textContent=label;
+    f.email.style.outline='3px solid #d8584a';
+    err.textContent=text||'Something went wrong — please try again.'; err.style.display='block';
+  }
+  fetch(f.action,{method:'POST',body:new FormData(f),headers:{'Accept':'application/json'}})
+    .then(function(res){
+      if(res.ok){ f.style.display='none'; document.getElementById('ok').style.display='block'; return; }
+      return res.json().then(function(d){
+        var m=(d&&d.errors&&d.errors.length)?d.errors.map(function(x){return x.message;}).join(', '):null;
+        fail(m);
+      }).catch(function(){ fail(); });
+    })
+    .catch(function(){ fail('Network error — please check your connection and try again.'); });
   return false;
 }
 /* scroll reveal */
