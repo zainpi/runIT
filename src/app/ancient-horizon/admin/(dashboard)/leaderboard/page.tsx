@@ -55,7 +55,7 @@ export default function LeaderboardPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Leaderboard (weekly, top 100)</h1>
+        <h1 className="pixel text-2xl font-normal text-[#3a2410]">Leaderboard (weekly, top 100)</h1>
         <Btn onClick={rebuild} disabled={busy}>
           {busy ? "Rebuilding…" : "Rebuild now"}
         </Btn>
@@ -66,17 +66,17 @@ export default function LeaderboardPage() {
         {!rows ? (
           <Spinner />
         ) : rows.length === 0 ? (
-          <div className="py-8 text-center text-sm text-slate-500">
+          <div className="py-8 text-center text-sm text-[#7a5c36]">
             Leaderboard is empty — press “Rebuild now”.
           </div>
         ) : (
           <Table head={["#", "Player", "Guild", "Stage", "Combat power"]}>
             {rows.map((r) => (
-              <tr key={r.player_id} className="hover:bg-white/[.03]">
-                <Td className="font-mono text-slate-400">{r.rank}</Td>
-                <Td className="font-medium text-slate-200">
+              <tr key={r.player_id} className="hover:bg-[#6b4423]/[.06]">
+                <Td className="font-mono text-[#5a4226]">{r.rank}</Td>
+                <Td className="font-medium text-[#3a2410]">
                   {r.display_name}
-                  <span className="text-slate-500">#{r.display_tag}</span>
+                  <span className="text-[#7a5c36]">#{r.display_tag}</span>
                 </Td>
                 <Td>{r.guild_tag ? `[${r.guild_tag}]` : "—"}</Td>
                 <Td>{r.stage_world}-{r.stage_num}</Td>

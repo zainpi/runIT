@@ -36,16 +36,16 @@ function MiniBars({ data, label }: { data: DayCount[]; label: string }) {
   const max = Math.max(1, ...data.map((d) => d.count));
   return (
     <div>
-      <div className="mb-2 text-xs uppercase tracking-wider text-slate-500">{label}</div>
+      <div className="mb-2 text-xs uppercase tracking-wider text-[#7a5c36]">{label}</div>
       {data.length === 0 ? (
-        <div className="text-sm text-slate-500">No data in the last 30 days.</div>
+        <div className="text-sm text-[#7a5c36]">No data in the last 30 days.</div>
       ) : (
         <div className="flex h-24 items-end gap-1">
           {data.map((d) => (
             <div
               key={d.day}
               title={`${d.day}: ${d.count}`}
-              className="flex-1 rounded-t bg-brand-500/60 hover:bg-brand-400"
+              className="flex-1 rounded-t bg-[#6b4423]/70 hover:bg-[#8a5a2b]"
               style={{ height: `${Math.max(4, (d.count / max) * 100)}%` }}
             />
           ))}
@@ -69,7 +69,7 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold text-white">Overview</h1>
+        <h1 className="pixel text-2xl font-normal text-[#3a2410]">Overview</h1>
         {stats.maintenance ? (
           <Badge tone="warn">Maintenance mode is ON</Badge>
         ) : (

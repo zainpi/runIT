@@ -79,7 +79,7 @@ export default function ChatPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Chat</h1>
+        <h1 className="pixel text-2xl font-normal text-[#3a2410]">Chat</h1>
         <Btn small kind="ghost" onClick={load}>Refresh</Btn>
       </div>
       <ErrorNote error={error} />
@@ -88,23 +88,23 @@ export default function ChatPage() {
         {!rows ? (
           <Spinner />
         ) : rows.length === 0 ? (
-          <div className="py-8 text-center text-sm text-slate-500">No messages.</div>
+          <div className="py-8 text-center text-sm text-[#7a5c36]">No messages.</div>
         ) : (
           <>
-            <ul className="divide-y divide-white/5">
+            <ul className="divide-y divide-[#6b4423]/10">
               {rows.map((m) => (
                 <li key={m.id} className="flex items-start gap-3 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                      <span className="font-medium text-slate-300">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#7a5c36]">
+                      <span className="font-medium text-[#4a3218]">
                         {m.display_name ?? "?"}
-                        <span className="text-slate-500">#{m.display_tag ?? "????"}</span>
+                        <span className="text-[#7a5c36]">#{m.display_tag ?? "????"}</span>
                       </span>
                       <Badge tone={m.channel === "world" ? "brand" : "neutral"}>{m.channel}</Badge>
                       {m.sender_flagged && <Badge tone="bad">flagged</Badge>}
                       <span>{fmtDate(m.created_at)}</span>
                     </div>
-                    <div className="mt-0.5 break-words text-sm text-slate-200">{m.content}</div>
+                    <div className="mt-0.5 break-words text-sm text-[#3a2410]">{m.content}</div>
                   </div>
                   <div className="flex shrink-0 gap-1.5">
                     <Btn small kind="danger" onClick={() => remove(m.id)}>Delete</Btn>

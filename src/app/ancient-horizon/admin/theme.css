@@ -1,0 +1,35 @@
+/* The Last Echo : Idle RPG admin theme — mirrors public/ancient-horizon/redeem/index.html */
+@font-face {
+  font-family: "Pixel";
+  src: url("/ancient-horizon/fonts/monogram.ttf") format("truetype");
+  font-display: swap;
+}
+
+.ah-admin {
+  min-height: 100vh;
+  color: #3a2410;
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  background: #caa45e;
+  background-image:
+    radial-gradient(circle at 20% 0%, #e7cf9f 0, transparent 45%),
+    linear-gradient(#e6cf9c, #d8bd84);
+  background-attachment: fixed;
+}
+
+.ah-admin .pixel,
+.ah-admin h1,
+.ah-admin h2 {
+  font-family: "Pixel", monospace;
+  letter-spacing: 0.5px;
+  font-weight: 400;
+}
+
+.ah-admin ::selection {
+  background: rgba(212, 154, 48, 0.4);
+  color: #3a2410;
+}
+
+.ah-admin :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(212, 154, 48, 0.45);
+}

@@ -16,19 +16,22 @@ export default async function AdminDashboardLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/admin/login");
+  if (!user) redirect("/ancient-horizon/admin/login");
 
   // Server-side admin check (the DB re-checks on every RPC regardless).
   const { data: status } = await supabase.rpc("get_app_status");
   if (!status?.is_admin) {
     return (
       <main className="flex min-h-screen items-center justify-center px-5">
-        <div className="max-w-sm rounded-2xl border border-white/10 bg-ink-800/70 p-8 text-center">
-          <h1 className="text-lg font-semibold text-white">Not authorized</h1>
-          <p className="mt-2 text-sm text-slate-400">
+        <div className="max-w-sm rounded-2xl border-4 border-[#5a3a1c] bg-gradient-to-b from-[#f3e7c9] to-[#e8d3a8] p-8 text-center shadow-[inset_0_0_0_2px_#c9a059,0_10px_0_rgba(40,22,8,.22)]">
+          <h1 className="pixel text-2xl text-[#3a2410]">Not authorized</h1>
+          <p className="mt-2 text-sm text-[#5a4226]">
             {user.email ?? user.id} is signed in but is not on the admin allowlist.
           </p>
-          <a href="/admin/login" className="mt-4 inline-block text-sm text-brand-300 hover:underline">
+          <a
+            href="/ancient-horizon/admin/login"
+            className="pixel mt-4 inline-block text-lg text-[#3f7a24] underline"
+          >
             Use a different account
           </a>
         </div>

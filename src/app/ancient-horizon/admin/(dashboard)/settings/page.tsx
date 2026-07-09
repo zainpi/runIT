@@ -52,7 +52,7 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-xl font-semibold text-white">Settings</h1>
+      <h1 className="pixel text-2xl font-normal text-[#3a2410]">Settings</h1>
       <ErrorNote error={error} />
       <OkNote msg={ok} />
 
@@ -61,7 +61,7 @@ export default function SettingsPage() {
           <Spinner />
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm text-slate-300">
+            <div className="flex items-center gap-2 text-sm text-[#4a3218]">
               Current status:
               {status.maintenance ? (
                 <Badge tone="warn">MAINTENANCE — players locked out</Badge>
@@ -69,7 +69,7 @@ export default function SettingsPage() {
                 <Badge tone="good">Live</Badge>
               )}
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[#7a5c36]">
               Enforced by RLS in the database (008): during maintenance, non-admin sessions are
               denied gameplay data regardless of client. Admin accounts keep full access.
             </p>
@@ -83,8 +83,8 @@ export default function SettingsPage() {
               !confirming ? (
                 <Btn kind="danger" onClick={() => setConfirming(true)}>Enable maintenance…</Btn>
               ) : (
-                <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-                  <div className="text-sm text-amber-300">
+                <div className="space-y-2 rounded-lg border border-[#d49a30] bg-[#d49a30]/15 p-3">
+                  <div className="text-sm text-[#7a5410]">
                     This locks every non-admin player out of the game. Continue?
                   </div>
                   <div className="flex gap-2">
@@ -105,10 +105,10 @@ export default function SettingsPage() {
       </Card>
 
       <Card title="Security notes">
-        <ul className="list-inside list-disc space-y-1 text-sm text-slate-400">
+        <ul className="list-inside list-disc space-y-1 text-sm text-[#5a4226]">
           <li>This dashboard ships only the publishable key — no service key exists in the website.</li>
-          <li>Every admin action re-checks <code className="text-slate-300">is_admin()</code> inside the database; the UI gate is convenience only.</li>
-          <li>Admins are managed in the <code className="text-slate-300">admins</code> table (Supabase SQL editor, service role).</li>
+          <li>Every admin action re-checks <code className="text-[#4a3218]">is_admin()</code> inside the database; the UI gate is convenience only.</li>
+          <li>Admins are managed in the <code className="text-[#4a3218]">admins</code> table (Supabase SQL editor, service role).</li>
           <li>Use a strong unique password + enable MFA on the Supabase account itself.</li>
         </ul>
       </Card>

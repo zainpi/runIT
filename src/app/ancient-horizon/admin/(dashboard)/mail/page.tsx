@@ -106,7 +106,7 @@ export default function MailPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-white">Mail & Rewards</h1>
+      <h1 className="pixel text-2xl font-normal text-[#3a2410]">Mail & Rewards</h1>
       <ErrorNote error={error} />
       <OkNote msg={ok} />
 
@@ -122,14 +122,14 @@ export default function MailPage() {
             />
           </div>
           <div className="space-y-2">
-            <div className="text-xs uppercase tracking-wider text-slate-500">Attached rewards (optional)</div>
+            <div className="text-xs uppercase tracking-wider text-[#7a5c36]">Attached rewards (optional)</div>
             <div className="grid grid-cols-2 gap-2">
               <Input placeholder="Gems" type="number" min={0} value={gems} onChange={(e) => setGems(e.target.value)} />
               <Input placeholder="Gold" type="number" min={0} value={gold} onChange={(e) => setGold(e.target.value)} />
               <Input placeholder="Daily tickets" type="number" min={0} value={daily} onChange={(e) => setDaily(e.target.value)} />
               <Input placeholder="Weekly tickets" type="number" min={0} value={weekly} onChange={(e) => setWeekly(e.target.value)} />
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-[#7a5c36]">
               {rewardPreview ? `reward_json: ${JSON.stringify(rewardPreview)}` : "No reward attached — plain message."}
             </div>
             {!confirming ? (
@@ -137,8 +137,8 @@ export default function MailPage() {
                 {isBroadcast ? "Send to everyone…" : "Send to one player…"}
               </Btn>
             ) : (
-              <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-                <div className="text-sm text-amber-300">
+              <div className="space-y-2 rounded-lg border border-[#d49a30] bg-[#d49a30]/15 p-3">
+                <div className="text-sm text-[#7a5410]">
                   {isBroadcast
                     ? "This sends the mail (and rewards) to EVERY player. Are you sure?"
                     : `Send to player ${recipient.trim()}?`}
@@ -162,14 +162,14 @@ export default function MailPage() {
           <>
             <Table head={["When", "To", "Subject", "Reward", "Status", ""]}>
               {rows.map((m) => (
-                <tr key={m.id} className="hover:bg-white/[.03]">
+                <tr key={m.id} className="hover:bg-[#6b4423]/[.06]">
                   <Td className="whitespace-nowrap text-xs">{fmtDate(m.created_at)}</Td>
                   <Td className="text-xs">
                     {m.display_name ? `${m.display_name}#${m.display_tag}` : m.recipient_id.slice(0, 8)}
                   </Td>
                   <Td>
-                    <div className="font-medium text-slate-200">{m.subject}</div>
-                    <div className="max-w-md truncate text-xs text-slate-500">{m.body}</div>
+                    <div className="font-medium text-[#3a2410]">{m.subject}</div>
+                    <div className="max-w-md truncate text-xs text-[#7a5c36]">{m.body}</div>
                   </Td>
                   <Td className="text-xs">{m.reward_json ? JSON.stringify(m.reward_json) : "—"}</Td>
                   <Td>
@@ -183,7 +183,7 @@ export default function MailPage() {
                 </tr>
               ))}
             </Table>
-            <div className="mt-3 flex items-center justify-between text-sm text-slate-400">
+            <div className="mt-3 flex items-center justify-between text-sm text-[#5a4226]">
               <Btn small kind="ghost" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>← Prev</Btn>
               <span>{offset + 1}–{Math.min(offset + PAGE, total)} of {fmtNum(total)}</span>
               <Btn small kind="ghost" disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next →</Btn>

@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Redeem a Code — The Last Echo : Idle RPG</title>
+<title>Redeem a Code — Ancient Horizon</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#6b4423">
 <link rel="canonical" href="https://runs-it.com/ancient-horizon/redeem/">
@@ -92,7 +92,7 @@ input.otp{font-family:'Pixel',monospace;font-size:24px;letter-spacing:10px;text-
 </style></head><body>
 
 <header class="nav"><div class="in">
-  <a class="brand" href="/ancient-horizon/index.html"><img src="/ancient-horizon/img/icon.svg" alt=""><b>The Last Echo : Idle RPG</b></a>
+  <a class="brand" href="/ancient-horizon/index.html"><img src="/ancient-horizon/img/icon.svg" alt=""><b>Ancient Horizon</b></a>
   <a class="back" href="/ancient-horizon/index.html">← Back to site</a>
 </div></header>
 
@@ -132,7 +132,7 @@ input.otp{font-family:'Pixel',monospace;font-size:24px;letter-spacing:10px;text-
     <section id="step-redeem" class="step">
       <h2>Redeem</h2>
       <p class="whoami">Signed in as <b id="redeem-email"></b> · <button id="signout-btn" class="linkbtn">Sign out</button></p>
-      <p class="hint">Type or paste your reward code. The reward is delivered to your in-game <b>Mail</b> — open The Last Echo : Idle RPG and tap Claim.</p>
+      <p class="hint">Type or paste your reward code. The reward is delivered to your in-game <b>Mail</b> — open Ancient Horizon and tap Claim.</p>
       <label for="code">Reward code</label>
       <input id="code" class="code" type="text" autocomplete="off" spellcheck="false" maxlength="32" placeholder="ENTER-CODE">
       <button id="redeem-btn" class="btn">Redeem Code</button>
@@ -146,7 +146,7 @@ input.otp{font-family:'Pixel',monospace;font-size:24px;letter-spacing:10px;text-
 <aside id="reward-box" class="rewardbox" aria-live="polite">
   <h3><img src="/ancient-horizon/img/icons/Email1.png" alt="">Sent to your inbox</h3>
   <div id="reward-list"></div>
-  <p class="footnote">Open <b>Mail</b> in The Last Echo : Idle RPG and tap <b>Claim</b> to collect it.</p>
+  <p class="footnote">Open <b>Mail</b> in Ancient Horizon and tap <b>Claim</b> to collect it.</p>
 </aside>
 </div>
 
@@ -195,7 +195,7 @@ async function sendCode(){
   }else{
     const d=r.data||{};const detail=d.error_description||d.msg||d.message||"";
     if(/signup|not allowed|disabled|not found/i.test(detail))
-      msg("email-msg","We couldn't find a runsID for that email. Create one in The Last Echo : Idle RPG first, then come back.");
+      msg("email-msg","We couldn't find a runsID for that email. Create one in Ancient Horizon first, then come back.");
     else msg("email-msg","Couldn't send a code right now"+(detail?" — "+detail:"."));
   }
 }

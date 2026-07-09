@@ -3,19 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Last Echo : Idle RPG — auto-battle RPG with heart</title>
+<title>Ancient Horizon — Idle auto-battle RPG with heart</title>
 <link rel="canonical" href="https://runs-it.com/ancient-horizon/"><meta property="og:url" content="https://runs-it.com/ancient-horizon/">
-<meta name="description" content="The Last Echo : Idle RPG is a charming idle auto-battle RPG. Your party keeps fighting even while you're away. Fair, transparent gacha with visible pity, deep progression, prestige, dungeons and world bosses. Coming soon to iOS & Android.">
+<meta name="description" content="Ancient Horizon is a charming idle auto-battle RPG. Your party keeps fighting even while you're away. Fair, transparent gacha with visible pity, deep progression, prestige, dungeons and world bosses. Coming soon to iOS & Android.">
 <meta name="theme-color" content="#6b4423">
 <link rel="icon" type="image/svg+xml" href="/ancient-horizon/img/icon.svg">
 <link rel="apple-touch-icon" href="/ancient-horizon/img/apple-touch-icon.png">
 <!-- Open Graph / social -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="The Last Echo : Idle RPG — auto-battle RPG with heart">
+<meta property="og:title" content="Ancient Horizon — Idle auto-battle RPG with heart">
 <meta property="og:description" content="Your party keeps fighting even while you're away. Fair gacha, deep progression, real offline progress. Coming soon to iOS & Android.">
 <meta property="og:image" content="https://runs-it.com/ancient-horizon/img/og.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="The Last Echo : Idle RPG — auto-battle RPG with heart">
+<meta name="twitter:title" content="Ancient Horizon — Idle auto-battle RPG with heart">
 <meta name="twitter:description" content="Your party keeps fighting even while you're away. Fair gacha, deep progression, real offline progress.">
 <meta name="twitter:image" content="https://runs-it.com/ancient-horizon/img/og.png">
 <style>
@@ -232,7 +232,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
 <!-- ============ NAV ============ -->
 <header class="nav">
   <div class="wrap">
-    <a class="brand" href="#top"><img src="/ancient-horizon/img/icon.svg" alt="The Last Echo : Idle RPG mascot"><b>The Last Echo : Idle RPG</b></a>
+    <a class="brand" href="#top"><img src="/ancient-horizon/img/icon.svg" alt="Ancient Horizon mascot"><b>Ancient Horizon</b></a>
     <button class="burger" aria-label="Menu" onclick="document.getElementById('menu').classList.toggle('show')">
       <span></span><span></span><span></span>
     </button>
@@ -269,7 +269,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
     </div>
     <div class="hero-art">
       <img class="float m1" src="/ancient-horizon/img/mushroom.png" alt="">
-      <div class="frame"><img src="/ancient-horizon/screenshots/battle.png" alt="The Last Echo : Idle RPG battle gameplay" width="1280" height="720"></div>
+      <div class="frame"><img src="/ancient-horizon/screenshots/battle.png" alt="Ancient Horizon battle gameplay" width="1280" height="720"></div>
     </div>
   </div>
 </section>
@@ -368,7 +368,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
   <div class="wrap">
     <div class="cta-box reveal">
       <h2>Be first through the gate</h2>
-      <p>Drop your email and we'll let you know the moment The Last Echo : Idle RPG launches. No spam — just one launch-day note.</p>
+      <p>Drop your email and we'll let you know the moment Ancient Horizon launches. No spam — just one launch-day note.</p>
       <!--
         EMAIL SIGNUP: this form runs client-side only (shows a thank-you).
         To collect real emails, point action= at a provider, e.g.:
@@ -402,7 +402,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
   <div class="wrap">
     <div class="fcols">
       <div class="fbrand">
-        <a class="brand" href="#top"><img src="/ancient-horizon/img/icon.svg" alt=""><b>The Last Echo : Idle RPG</b></a>
+        <a class="brand" href="#top"><img src="/ancient-horizon/img/icon.svg" alt=""><b>Ancient Horizon</b></a>
         <p>A cosy idle auto-battle RPG with fair, transparent gacha and progression deep enough to optimise for weeks. Coming soon to iOS &amp; Android.</p>
       </div>
       <div class="fcol">
@@ -428,7 +428,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
       </div>
     </div>
     <div class="legal">
-      <span class="pixel">© 2026 The Last Echo : Idle RPG</span>
+      <span class="pixel">© 2026 Ancient Horizon</span>
       <span>In-app purchases optional. Randomised item odds are disclosed in-game and in our Terms. Not affiliated with any platform holder.</span>
     </div>
   </div>

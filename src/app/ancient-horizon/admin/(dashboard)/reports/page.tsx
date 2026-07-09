@@ -61,23 +61,23 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-white">Player reports</h1>
+      <h1 className="pixel text-2xl font-normal text-[#3a2410]">Player reports</h1>
       <ErrorNote error={error} />
       <OkNote msg={ok} />
       <Card>
         {!rows ? (
           <Spinner />
         ) : rows.length === 0 ? (
-          <div className="py-8 text-center text-sm text-slate-500">No open reports. 🎉</div>
+          <div className="py-8 text-center text-sm text-[#7a5c36]">No open reports. 🎉</div>
         ) : (
           <Table head={["When", "Reported", "By", "Reason", "Message", ""]}>
             {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-white/[.03]">
+              <tr key={r.id} className="hover:bg-[#6b4423]/[.06]">
                 <Td className="whitespace-nowrap text-xs">{fmtDate(r.created_at)}</Td>
                 <Td>
-                  <span className="font-medium text-slate-200">
+                  <span className="font-medium text-[#3a2410]">
                     {r.reported_name ?? "?"}
-                    <span className="text-slate-500">#{r.reported_tag ?? "????"}</span>
+                    <span className="text-[#7a5c36]">#{r.reported_tag ?? "????"}</span>
                   </span>
                   {r.reported_flagged && (
                     <div className="mt-0.5"><Badge tone="bad">flagged</Badge></div>
@@ -87,7 +87,7 @@ export default function ReportsPage() {
                   {r.reporter_name ?? "?"}#{r.reporter_tag ?? "????"}
                 </Td>
                 <Td className="max-w-xs text-xs">{r.reason}</Td>
-                <Td className="max-w-xs text-xs italic text-slate-400">
+                <Td className="max-w-xs text-xs italic text-[#5a4226]">
                   {r.message_content ?? "—"}
                 </Td>
                 <Td>

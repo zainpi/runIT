@@ -135,7 +135,7 @@ export default function PlayersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-white">Players</h1>
+      <h1 className="pixel text-2xl font-normal text-[#3a2410]">Players</h1>
       <div className="flex flex-wrap items-center gap-2">
         <form
           className="flex flex-1 gap-2"
@@ -159,7 +159,7 @@ export default function PlayersPage() {
             setOffset(0);
             setSort(e.target.value);
           }}
-          className="rounded-lg border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-[#8a5a2b] bg-[#fbf2dc] px-3 py-2 text-sm text-[#3a2410]"
         >
           <option value="created_at">Newest</option>
           <option value="updated_at">Recently active</option>
@@ -178,11 +178,11 @@ export default function PlayersPage() {
           <>
             <Table head={["Player", "Account", "Stage", "CP", "Guild", "Last login", "Joined", ""]}>
               {rows.map((p) => (
-                <tr key={p.id} className="hover:bg-white/[.03]">
+                <tr key={p.id} className="hover:bg-[#6b4423]/[.06]">
                   <Td>
-                    <button className="text-left text-brand-300 hover:underline" onClick={() => openDetail(p)}>
+                    <button className="text-left text-[#3f7a24] hover:underline" onClick={() => openDetail(p)}>
                       {p.display_name}
-                      <span className="text-slate-500">#{p.display_tag}</span>
+                      <span className="text-[#7a5c36]">#{p.display_tag}</span>
                     </button>
                     {p.flagged && (
                       <div className="mt-0.5">
@@ -190,7 +190,7 @@ export default function PlayersPage() {
                       </div>
                     )}
                   </Td>
-                  <Td className="max-w-[180px] truncate text-xs text-slate-400">
+                  <Td className="max-w-[180px] truncate text-xs text-[#5a4226]">
                     {p.is_guest ? <Badge>guest</Badge> : p.email}
                   </Td>
                   <Td>
@@ -208,7 +208,7 @@ export default function PlayersPage() {
                 </tr>
               ))}
             </Table>
-            <div className="mt-3 flex items-center justify-between text-sm text-slate-400">
+            <div className="mt-3 flex items-center justify-between text-sm text-[#5a4226]">
               <Btn small kind="ghost" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>
                 ← Prev
               </Btn>
@@ -237,18 +237,18 @@ export default function PlayersPage() {
           ) : (
             <div className="grid gap-5 lg:grid-cols-2">
               <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-2 text-slate-300">
-                  <div><span className="text-slate-500">UUID:</span> <span className="break-all text-xs">{selected.id}</span></div>
-                  <div><span className="text-slate-500">Email:</span> {detail.email ?? "guest"}</div>
-                  <div><span className="text-slate-500">Mail:</span> {detail.mail_count}</div>
-                  <div><span className="text-slate-500">Chat msgs:</span> {detail.chat_count}</div>
-                  <div><span className="text-slate-500">Reports against:</span> {detail.reports_against}</div>
-                  <div><span className="text-slate-500">Cloud save:</span> {detail.has_cloud_save ? "yes" : "no"}</div>
-                  <div><span className="text-slate-500">2× speed until:</span> {fmtDate(detail.entitlements?.speed_access_until)}</div>
-                  <div><span className="text-slate-500">Referral used:</span> {detail.referral?.code ?? "—"}</div>
+                <div className="grid grid-cols-2 gap-2 text-[#4a3218]">
+                  <div><span className="text-[#7a5c36]">UUID:</span> <span className="break-all text-xs">{selected.id}</span></div>
+                  <div><span className="text-[#7a5c36]">Email:</span> {detail.email ?? "guest"}</div>
+                  <div><span className="text-[#7a5c36]">Mail:</span> {detail.mail_count}</div>
+                  <div><span className="text-[#7a5c36]">Chat msgs:</span> {detail.chat_count}</div>
+                  <div><span className="text-[#7a5c36]">Reports against:</span> {detail.reports_against}</div>
+                  <div><span className="text-[#7a5c36]">Cloud save:</span> {detail.has_cloud_save ? "yes" : "no"}</div>
+                  <div><span className="text-[#7a5c36]">2× speed until:</span> {fmtDate(detail.entitlements?.speed_access_until)}</div>
+                  <div><span className="text-[#7a5c36]">Referral used:</span> {detail.referral?.code ?? "—"}</div>
                 </div>
                 {detail.flagged && (
-                  <div className="text-red-400">
+                  <div className="text-[#8a2a20]">
                     Flagged {fmtDate(detail.flagged.flagged_at)}: {detail.flagged.flag_reason}
                   </div>
                 )}
@@ -259,11 +259,11 @@ export default function PlayersPage() {
                   </div>
                 )}
                 <div>
-                  <div className="mb-1 text-xs uppercase tracking-wider text-slate-500">Recent logins</div>
+                  <div className="mb-1 text-xs uppercase tracking-wider text-[#7a5c36]">Recent logins</div>
                   {detail.logins.length === 0 ? (
-                    <div className="text-slate-500">None recorded.</div>
+                    <div className="text-[#7a5c36]">None recorded.</div>
                   ) : (
-                    <ul className="space-y-0.5 text-xs text-slate-400">
+                    <ul className="space-y-0.5 text-xs text-[#5a4226]">
                       {detail.logins.slice(0, 8).map((l, i) => (
                         <li key={i}>
                           {fmtDate(l.occurred_at)} — {l.provider ?? "?"} / {l.platform ?? "?"} {l.app_version ?? ""}
@@ -273,11 +273,11 @@ export default function PlayersPage() {
                   )}
                 </div>
                 <div>
-                  <div className="mb-1 text-xs uppercase tracking-wider text-slate-500">Code redemptions</div>
+                  <div className="mb-1 text-xs uppercase tracking-wider text-[#7a5c36]">Code redemptions</div>
                   {detail.redemptions.length === 0 ? (
-                    <div className="text-slate-500">None.</div>
+                    <div className="text-[#7a5c36]">None.</div>
                   ) : (
-                    <ul className="space-y-0.5 text-xs text-slate-400">
+                    <ul className="space-y-0.5 text-xs text-[#5a4226]">
                       {detail.redemptions.map((r) => (
                         <li key={r.code}>{r.code} — {fmtDate(r.redeemed_at)}</li>
                       ))}
@@ -286,7 +286,7 @@ export default function PlayersPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="text-xs uppercase tracking-wider text-slate-500">Send mail to this player</div>
+                <div className="text-xs uppercase tracking-wider text-[#7a5c36]">Send mail to this player</div>
                 <Input placeholder="Subject" maxLength={100} value={mailSubject} onChange={(e) => setMailSubject(e.target.value)} />
                 <TextArea placeholder="Body" rows={3} maxLength={2000} value={mailBody} onChange={(e) => setMailBody(e.target.value)} />
                 <Input placeholder="Gems reward (optional)" type="number" min={0} value={mailGems} onChange={(e) => setMailGems(e.target.value)} />

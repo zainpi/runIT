@@ -121,14 +121,14 @@ export default function CodesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-white">Codes</h1>
+      <h1 className="pixel text-2xl font-normal text-[#3a2410]">Codes</h1>
       <div className="flex gap-2">
         {(["redeem", "referral"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              tab === t ? "bg-brand-600/20 text-brand-200" : "text-slate-400 hover:bg-white/5"
+              tab === t ? "bg-[#6b4423] text-[#f3e7c9]" : "text-[#5a4226] hover:bg-[#6b4423]/10"
             }`}
           >
             {t === "redeem" ? "Redeem codes" : "Referral codes"}
@@ -168,8 +168,8 @@ export default function CodesPage() {
           ) : (
             <Table head={["Code", "Rewards", "Uses", "Expires", "Status", ""]}>
               {redeem.map((c) => (
-                <tr key={c.code} className="hover:bg-white/[.03]">
-                  <Td className="font-mono font-medium text-slate-200">{c.code}</Td>
+                <tr key={c.code} className="hover:bg-[#6b4423]/[.06]">
+                  <Td className="font-mono font-medium text-[#3a2410]">{c.code}</Td>
                   <Td className="text-xs">
                     {[
                       c.gems ? `${fmtNum(c.gems)} gems` : null,
@@ -199,8 +199,8 @@ export default function CodesPage() {
           ) : (
             <Table head={["Code", "Gems", "Color", "Uses", "Status", ""]}>
               {referral.map((c) => (
-                <tr key={c.code} className="hover:bg-white/[.03]">
-                  <Td className="font-mono font-medium text-slate-200">{c.code}</Td>
+                <tr key={c.code} className="hover:bg-[#6b4423]/[.06]">
+                  <Td className="font-mono font-medium text-[#3a2410]">{c.code}</Td>
                   <Td>{fmtNum(c.gems)}</Td>
                   <Td className="text-xs">{c.color_id ?? "—"}</Td>
                   <Td>{fmtNum(c.uses_count)}{c.max_uses ? ` / ${fmtNum(c.max_uses)}` : ""}</Td>
