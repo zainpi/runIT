@@ -249,6 +249,10 @@ async function redeem(){
   busy(btn,false);
   if(!r.ok){ // RAISE → non-2xx (rate limit / bad session)
     const d=r.data||{};const m=(d.message||"")+" "+(d.details||"");
+    // Log the real Postgres error for diagnosis (devtools only — never shown to users,
+    // avoids leaking internals per §5.3). e.g. a missing check_rate_limit() (migration
+    // 015 not applied) surfaces here as "function ... does not exist".
+    console.error("redeem_code failed",{status:r.status,error:d});
     if(/rate_limited/i.test(m))msg("redeem-msg","Too many tries — take a short break and try again in a bit.");
     else if(r.status===401||/jwt|authenticated|token/i.test(m)){msg("redeem-msg","Your session expired — please sign in again.");show("step-email");}
     else msg("redeem-msg","Something went wrong redeeming that code. Please try again.");
