@@ -3,8 +3,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { rpc, fmtDate, fmtNum } from "../../_lib/rpc";
 import {
-  Card, Table, Td, Btn, Input, Badge, ErrorNote, OkNote, Spinner,
+  Card, Table, Td, Btn, Input, Select, Badge, ErrorNote, OkNote, Spinner,
 } from "../../_components/ui";
+
+// Cosmetic name-colour unlocks — mirrors the game's data/cosmetic_colors.json.
+const COLOR_OPTIONS: { id: string; name: string }[] = [
+  { id: "founder_gold", name: "Founder Gold" },
+  { id: "void_purple", name: "Void Purple" },
+  { id: "ember_red", name: "Ember Red" },
+];
+
+function colorName(id: string): string {
+  return COLOR_OPTIONS.find((c) => c.id === id)?.name ?? id;
+}
 
 type RedeemCode = {
   code: string;
@@ -42,8 +53,7 @@ export default function CodesPage() {
   const [code, setCode] = useState("");
   const [gems, setGems] = useState("");
   const [gold, setGold] = useState("");
-  const [daily, setDaily] = useState("");
-  const [weekly, setWeekly] = useState("");
+  const [harpenny, setHarpenny] = useState("");
   const [colorId, setColorId] = useState("");
   const [maxUses, setMaxUses] = useState("");
   const [expiresDays, setExpiresDays] = useState("");
@@ -81,8 +91,10 @@ export default function CodesPage() {
           p_code: code.trim(),
           p_gems: num(gems),
           p_gold: num(gold),
-          p_daily_tickets: num(daily),
-          p_weekly_tickets: num(weekly),
+          // Harpenny routes through the daily-ticket column — in-game daily/weekly
+          // tickets were merged into the single Harpenny token (2026-06-22).
+          p_daily_tickets: num(harpenny),
+          p_weekly_tickets: 0,
           p_color_id: colorId.trim() || null,
           p_max_uses: num(maxUses) || null,
           p_expires_at: days
@@ -99,7 +111,7 @@ export default function CodesPage() {
         });
         setOk(`Referral code ${created} created.`);
       }
-      setCode(""); setGems(""); setGold(""); setDaily(""); setWeekly("");
+      setCode(""); setGems(""); setGold(""); setHarpenny("");
       setColorId(""); setMaxUses(""); setExpiresDays("");
       await load();
     } catch (e) {
@@ -146,12 +158,16 @@ export default function CodesPage() {
           {tab === "redeem" && (
             <>
               <Input placeholder="Gold" type="number" min={0} value={gold} onChange={(e) => setGold(e.target.value)} />
-              <Input placeholder="Daily tickets" type="number" min={0} value={daily} onChange={(e) => setDaily(e.target.value)} />
-              <Input placeholder="Weekly tickets" type="number" min={0} value={weekly} onChange={(e) => setWeekly(e.target.value)} />
+              <Input placeholder="Harpenny" type="number" min={0} value={harpenny} onChange={(e) => setHarpenny(e.target.value)} />
               <Input placeholder="Expires in N days (blank = never)" type="number" min={0} value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} />
             </>
           )}
-          <Input placeholder="Color unlock id (optional)" value={colorId} onChange={(e) => setColorId(e.target.value)} />
+          <Select value={colorId} onChange={(e) => setColorId(e.target.value)}>
+            <option value="">No colour unlock</option>
+            {COLOR_OPTIONS.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </Select>
           <Input placeholder="Max uses (blank = unlimited)" type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} />
         </div>
         <div className="mt-3">
@@ -174,9 +190,10 @@ export default function CodesPage() {
                     {[
                       c.gems ? `${fmtNum(c.gems)} gems` : null,
                       c.gold ? `${fmtNum(c.gold)} gold` : null,
-                      c.daily_tickets ? `${c.daily_tickets} daily` : null,
-                      c.weekly_tickets ? `${c.weekly_tickets} weekly` : null,
-                      c.color_id ? `color: ${c.color_id}` : null,
+                      // daily + weekly are the same in-game token (Harpenny); sum any legacy split.
+                      (c.daily_tickets + c.weekly_tickets)
+                        ? `${fmtNum(c.daily_tickets + c.weekly_tickets)} harpenny` : null,
+                      c.color_id ? `color: ${colorName(c.color_id)}` : null,
                     ].filter(Boolean).join(", ") || "—"}
                   </Td>
                   <Td>{fmtNum(c.uses_count)}{c.max_uses ? ` / ${fmtNum(c.max_uses)}` : ""}</Td>
@@ -202,7 +219,7 @@ export default function CodesPage() {
                 <tr key={c.code} className="hover:bg-[#6b4423]/[.06]">
                   <Td className="font-mono font-medium text-[#3a2410]">{c.code}</Td>
                   <Td>{fmtNum(c.gems)}</Td>
-                  <Td className="text-xs">{c.color_id ?? "—"}</Td>
+                  <Td className="text-xs">{c.color_id ? colorName(c.color_id) : "—"}</Td>
                   <Td>{fmtNum(c.uses_count)}{c.max_uses ? ` / ${fmtNum(c.max_uses)}` : ""}</Td>
                   <Td>{c.active ? <Badge tone="good">active</Badge> : <Badge tone="bad">disabled</Badge>}</Td>
                   <Td>

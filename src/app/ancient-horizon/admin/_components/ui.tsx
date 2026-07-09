@@ -88,6 +88,15 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      className={`w-full appearance-none rounded-xl border-[3px] border-[#8a5a2b] bg-[#fbf2dc] px-3 py-2 text-sm text-[#3a2410] focus:border-[#d49a30] focus:shadow-[0_0_0_3px_rgba(212,154,48,.3)] focus:outline-none ${props.className ?? ""}`}
+    />
+  );
+}
+
 export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
