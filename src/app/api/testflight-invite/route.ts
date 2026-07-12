@@ -13,10 +13,12 @@ import { NextResponse } from "next/server";
  * Optional overrides (safe defaults baked in):
  *   TESTFLIGHT_ACCOUNT_ID  defaults to 5abaf153560ef76bea3f9c95fbb18481
  *   TESTFLIGHT_FROM_EMAIL  defaults to welcome@runs-it.com
+ *   TESTFLIGHT_FROM_NAME   defaults to "The Last Echo" (sender display name)
  */
 
 const DEFAULT_ACCOUNT_ID = "5abaf153560ef76bea3f9c95fbb18481";
 const DEFAULT_FROM_EMAIL = "welcome@runs-it.com";
+const DEFAULT_FROM_NAME = "The Last Echo";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -55,12 +57,15 @@ export async function POST(request: Request) {
   }
 
   const accountId = process.env.TESTFLIGHT_ACCOUNT_ID || DEFAULT_ACCOUNT_ID;
-  const from = process.env.TESTFLIGHT_FROM_EMAIL || DEFAULT_FROM_EMAIL;
+  const fromEmail = process.env.TESTFLIGHT_FROM_EMAIL || DEFAULT_FROM_EMAIL;
+  const fromName = process.env.TESTFLIGHT_FROM_NAME || DEFAULT_FROM_NAME;
+  // Display name so inboxes show "The Last Echo", not the bare "welcome" local-part.
+  const from = `${fromName} <${fromEmail}>`;
 
   const payload = {
     to: email,
     from,
-    subject: "You're in — your Last Echo beta invite is ready",
+    subject: "You're in! Your Last Echo beta invite is ready",
     html: buildHtml(testflightUrl),
     text: buildText(testflightUrl),
   };
