@@ -1,9 +1,9 @@
-# The Last Echo : Idle RPG — Redeem page
+# The Last Echo — Redeem page
 
-Static page served at **`https://runs-it.com/ancient-horizon/redeem/`** (it lives in
+Static page served at **`https://runs-it.com/the-last-echo/redeem/`** (it lives in
 `public/`, so Next.js serves it directly — no route/component needed). Players sign in
 with their **runsID** (email one-time code) and redeem a promo/gift code; the reward is
-delivered to their **in-game Mail** to claim inside The Last Echo : Idle RPG.
+delivered to their **in-game Mail** to claim inside The Last Echo.
 
 ## How it works
 

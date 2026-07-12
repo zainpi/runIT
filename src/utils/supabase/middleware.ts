@@ -34,12 +34,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isAdminArea = path.startsWith("/ancient-horizon/admin");
-  const isLoginPage = path === "/ancient-horizon/admin/login";
+  const isAdminArea = path.startsWith("/the-last-echo/admin");
+  const isLoginPage = path === "/the-last-echo/admin/login";
 
   if (isAdminArea && !isLoginPage && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/ancient-horizon/admin/login";
+    url.pathname = "/the-last-echo/admin/login";
     return NextResponse.redirect(url);
   }
 

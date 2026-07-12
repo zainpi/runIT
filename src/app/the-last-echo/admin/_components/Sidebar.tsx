@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Badge } from "./ui";
 
-const BASE = "/ancient-horizon/admin";
+const BASE = "/the-last-echo/admin";
 
 const TABS: { href: string; label: string }[] = [
   { href: BASE, label: "Overview" },
@@ -39,7 +39,7 @@ export default function Sidebar({
       <div className="flex items-center gap-2.5 px-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/ancient-horizon/img/icon.svg"
+          src="/the-last-echo/img/icon.svg"
           alt=""
           width={34}
           height={34}
@@ -48,7 +48,7 @@ export default function Sidebar({
         />
         <div>
           <div className="pixel text-lg leading-tight !text-[#f3e7c9] [text-shadow:1px_1px_0_#2a1808]">
-            The Last Echo : Idle RPG
+            The Last Echo
           </div>
           <div className="text-[11px] text-[#e0c88e]">Admin dashboard</div>
         </div>

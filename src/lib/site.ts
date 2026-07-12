@@ -31,7 +31,7 @@ export const mainNav: NavLink[] = [
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   // Static landing page served by the Cloudflare Worker, outside Next's router.
-  { label: "The Last Echo : Idle RPG", href: "/ancient-horizon", external: true },
+  { label: "The Last Echo", href: "/the-last-echo", external: true },
 ];
 
 export const footerNav: { title: string; links: NavLink[] }[] = [

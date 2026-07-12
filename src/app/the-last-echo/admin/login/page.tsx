@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
       setBusy(false);
       return;
     }
-    router.replace("/ancient-horizon/admin");
+    router.replace("/the-last-echo/admin");
     router.refresh();
   }
 
@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
         <div className="border-b-4 border-[#3f2812] bg-gradient-to-b from-[#8a5a2b] to-[#6b4423] px-6 py-5 text-center shadow-[inset_0_2px_0_#a87b4c]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/ancient-horizon/img/icon.svg"
+            src="/the-last-echo/img/icon.svg"
             alt=""
             width={46}
             height={46}
@@ -55,7 +55,7 @@ export default function AdminLoginPage() {
           <h1 className="pixel text-3xl !text-[#f3e7c9] [text-shadow:2px_2px_0_#2a1808]">
             Admin Sign In
           </h1>
-          <p className="mt-1 text-sm text-[#e8d3a8]">The Last Echo : Idle RPG dashboard</p>
+          <p className="mt-1 text-sm text-[#e8d3a8]">The Last Echo dashboard</p>
         </div>
         <div className="space-y-4 p-6">
           <div>

@@ -1,7 +1,7 @@
-/* The Last Echo : Idle RPG admin theme — mirrors public/ancient-horizon/redeem/index.html */
+/* The Last Echo admin theme — mirrors public/the-last-echo/redeem/index.html */
 @font-face {
   font-family: "Pixel";
-  src: url("/ancient-horizon/fonts/monogram.ttf") format("truetype");
+  src: url("/the-last-echo/fonts/monogram.ttf") format("truetype");
   font-display: swap;
 }
 

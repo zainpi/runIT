@@ -7,5 +7,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // Only the admin area needs sessions — keep the public site cookie-free.
-  matcher: ["/ancient-horizon/admin/:path*"],
+  matcher: ["/the-last-echo/admin/:path*"],
 };

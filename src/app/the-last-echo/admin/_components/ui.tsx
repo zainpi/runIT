@@ -2,7 +2,7 @@
 
 import { type ReactNode } from "react";
 
-/* The Last Echo : Idle RPG parchment/wood theme — palette mirrors the redeem page:
+/* The Last Echo parchment/wood theme — palette mirrors the redeem page:
    parch #f3e7c9/#e8d3a8/#fbf2dc · wood #6b4423/#8a5a2b/#3f2812 · ink #3a2410/#5a3a1c
    gold #c9a059/#d49a30 · green #5fa233/#7ab648/#36571f · red #d8584a/#6e1d16 */
 

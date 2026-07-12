@@ -16,7 +16,7 @@ export default async function AdminDashboardLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/ancient-horizon/admin/login");
+  if (!user) redirect("/the-last-echo/admin/login");
 
   // Server-side admin check (the DB re-checks on every RPC regardless).
   const { data: status } = await supabase.rpc("get_app_status");
@@ -29,7 +29,7 @@ export default async function AdminDashboardLayout({
             {user.email ?? user.id} is signed in but is not on the admin allowlist.
           </p>
           <a
-            href="/ancient-horizon/admin/login"
+            href="/the-last-echo/admin/login"
             className="pixel mt-4 inline-block text-lg text-[#3f7a24] underline"
           >
             Use a different account
