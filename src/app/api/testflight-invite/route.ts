@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   const payload = {
     to: email,
     from,
-    subject: "Your Last Echo beta invite is here",
+    subject: "You're in — your Last Echo beta invite is ready",
     html: buildHtml(testflightUrl),
     text: buildText(testflightUrl),
   };
@@ -110,6 +110,8 @@ function buildText(url: string): string {
     "3. Install the game and start playing.",
     "",
     "iOS only for now. Android is coming later.",
+    "",
+    "Bonus: redeem code HIGHER at https://runs-it.com/the-last-echo/redeem/ for a welcome gift and a free Golden Founder name color.",
     "",
     "Found a bug or have a thought? Just reply to this email and we read every one.",
     "",
@@ -202,6 +204,22 @@ function buildHtml(url: string): string {
                     ${step("1", "Install <strong>TestFlight</strong> from the App Store (it's free).")}
                     ${step("2", "Open the invite link above on your iPhone.")}
                     ${step("3", "Install the game and dive in!")}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Redeem code (compact) -->
+          <tr>
+            <td style="padding:14px 36px 6px 36px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#3F2812; border-radius:12px; border:2px solid #C9A86A;">
+                <tr>
+                  <td style="padding:16px 20px; color:#F3E7C9;">
+                    <div style="font-size:15px; line-height:1.6;">
+                      Use code <span style="display:inline-block; background-color:#C9A86A; color:#3F2812; font-weight:800; letter-spacing:2px; padding:3px 12px; border-radius:8px;">HIGHER</span> for a welcome gift and a free <strong style="color:#C9A86A;">Golden Founder</strong> name color.
+                    </div>
+                    <a href="https://runs-it.com/the-last-echo/redeem/" style="display:inline-block; margin-top:12px; font-size:14px; font-weight:700; color:#3F2812; background-color:#C9A86A; text-decoration:none; padding:10px 22px; border-radius:10px;">Redeem your code</a>
                   </td>
                 </tr>
               </table>
