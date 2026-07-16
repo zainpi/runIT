@@ -23,6 +23,11 @@ type RedeemCode = {
   gold: number;
   daily_tickets: number;
   weekly_tickets: number;
+  summon_notes: number;
+  ability_echoes: number;
+  weapon_cores: number;
+  relic_tickets: number;
+  refinement_dust: number;
   color_id: string | null;
   max_uses: number | null;
   uses_count: number;
@@ -54,6 +59,11 @@ export default function CodesPage() {
   const [gems, setGems] = useState("");
   const [gold, setGold] = useState("");
   const [harpenny, setHarpenny] = useState("");
+  const [summonNotes, setSummonNotes] = useState("");
+  const [abilityEchoes, setAbilityEchoes] = useState("");
+  const [weaponCores, setWeaponCores] = useState("");
+  const [relicTickets, setRelicTickets] = useState("");
+  const [refinementDust, setRefinementDust] = useState("");
   const [colorId, setColorId] = useState("");
   const [maxUses, setMaxUses] = useState("");
   const [expiresDays, setExpiresDays] = useState("");
@@ -94,7 +104,11 @@ export default function CodesPage() {
           // Harpenny routes through the daily-ticket column — in-game daily/weekly
           // tickets were merged into the single Harpenny token (2026-06-22).
           p_daily_tickets: num(harpenny),
-          p_weekly_tickets: 0,
+          p_summon_notes: num(summonNotes),
+          p_ability_echoes: num(abilityEchoes),
+          p_weapon_cores: num(weaponCores),
+          p_relic_tickets: num(relicTickets),
+          p_refinement_dust: num(refinementDust),
           p_color_id: colorId.trim() || null,
           p_max_uses: num(maxUses) || null,
           p_expires_at: days
@@ -112,6 +126,8 @@ export default function CodesPage() {
         setOk(`Referral code ${created} created.`);
       }
       setCode(""); setGems(""); setGold(""); setHarpenny("");
+      setSummonNotes(""); setAbilityEchoes(""); setWeaponCores("");
+      setRelicTickets(""); setRefinementDust("");
       setColorId(""); setMaxUses(""); setExpiresDays("");
       await load();
     } catch (e) {
@@ -159,6 +175,11 @@ export default function CodesPage() {
             <>
               <Input placeholder="Gold" type="number" min={0} value={gold} onChange={(e) => setGold(e.target.value)} />
               <Input placeholder="Harpenny" type="number" min={0} value={harpenny} onChange={(e) => setHarpenny(e.target.value)} />
+              <Input placeholder="Summon Notes" type="number" min={0} value={summonNotes} onChange={(e) => setSummonNotes(e.target.value)} />
+              <Input placeholder="Ability Echoes" type="number" min={0} value={abilityEchoes} onChange={(e) => setAbilityEchoes(e.target.value)} />
+              <Input placeholder="Weapon Cores" type="number" min={0} value={weaponCores} onChange={(e) => setWeaponCores(e.target.value)} />
+              <Input placeholder="Relic Tickets" type="number" min={0} value={relicTickets} onChange={(e) => setRelicTickets(e.target.value)} />
+              <Input placeholder="Refinement Dust" type="number" min={0} value={refinementDust} onChange={(e) => setRefinementDust(e.target.value)} />
               <Input placeholder="Expires in N days (blank = never)" type="number" min={0} value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} />
             </>
           )}
@@ -193,6 +214,11 @@ export default function CodesPage() {
                       // daily + weekly are the same in-game token (Harpenny); sum any legacy split.
                       (c.daily_tickets + c.weekly_tickets)
                         ? `${fmtNum(c.daily_tickets + c.weekly_tickets)} harpenny` : null,
+                      c.summon_notes ? `${fmtNum(c.summon_notes)} summon notes` : null,
+                      c.ability_echoes ? `${fmtNum(c.ability_echoes)} ability echoes` : null,
+                      c.weapon_cores ? `${fmtNum(c.weapon_cores)} weapon cores` : null,
+                      c.relic_tickets ? `${fmtNum(c.relic_tickets)} relic tickets` : null,
+                      c.refinement_dust ? `${fmtNum(c.refinement_dust)} refinement dust` : null,
                       c.color_id ? `color: ${colorName(c.color_id)}` : null,
                     ].filter(Boolean).join(", ") || "—"}
                   </Td>

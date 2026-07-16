@@ -42,19 +42,18 @@ a{color:#3f7a24;text-decoration:none}a:hover{text-decoration:underline}
 .chead p{font-size:13px;opacity:.9;margin-top:5px}
 .cbody{padding:24px 24px 26px}
 
-.step{display:none}.step.active{display:block;animation:fade .22s ease}
-@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 h2{font-family:'Pixel',monospace;font-weight:400;font-size:23px;color:var(--ink);margin-bottom:4px}
 .hint{font-size:14px;color:#5a4226;margin-bottom:18px;line-height:1.5}
 .hint b{color:var(--ink)}
+.field{margin-bottom:16px}
 label{display:block;font-family:'Pixel',monospace;font-size:15px;color:var(--ink2);margin-bottom:7px;letter-spacing:.5px}
 input{width:100%;padding:14px;font-size:16px;color:var(--ink);
  background:#fbf2dc;border:3px solid var(--wood2);border-radius:11px;transition:border-color .15s,box-shadow .15s}
 input:focus{outline:none;border-color:var(--gold2);box-shadow:0 0 0 3px rgba(212,154,48,.3)}
+input.pid{font-family:'Pixel',monospace;font-size:22px;letter-spacing:3px;text-align:center}
 input.code{font-family:'Pixel',monospace;font-size:22px;letter-spacing:4px;text-align:center;text-transform:uppercase}
-input.otp{font-family:'Pixel',monospace;font-size:24px;letter-spacing:10px;text-align:center}
 
-.btn{width:100%;margin-top:16px;font-family:'Pixel',monospace;font-size:21px;letter-spacing:.5px;
+.btn{width:100%;margin-top:6px;font-family:'Pixel',monospace;font-size:21px;letter-spacing:.5px;
  display:flex;align-items:center;justify-content:center;gap:10px;min-height:54px;padding:13px;cursor:pointer;
  border:3px solid var(--green-dk);border-radius:11px;color:#0f2d09;
  background:linear-gradient(var(--green2),var(--green));box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 4px 0 var(--green-dk);transition:transform .08s,filter .15s}
@@ -62,16 +61,14 @@ input.otp{font-family:'Pixel',monospace;font-size:24px;letter-spacing:10px;text-
 .btn:active{transform:translateY(3px);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 1px 0 var(--green-dk)}
 .btn[disabled]{opacity:.6;cursor:default}
 
-.linkrow{margin-top:14px;text-align:center;font-size:13px;color:#5a4226}
-.linkbtn{background:none;border:none;color:var(--wood);font-family:'Trebuchet MS',sans-serif;font-weight:700;
- text-decoration:underline;cursor:pointer;font-size:13px;padding:4px}
-.whoami{font-size:13px;color:#5a4226;margin:-4px 0 16px}
-.whoami b{color:var(--ink)}
-
 .msg{margin-top:15px;padding:11px 14px;border-radius:10px;font-size:14px;line-height:1.45;display:none}
 .msg.show{display:block}
 .msg.ok{background:rgba(95,162,51,.14);border:2px solid var(--green);color:#2c5417}
 .msg.err{background:rgba(216,88,74,.12);border:2px solid var(--red);color:#8a2a20}
+
+.tip{margin-top:16px;padding:11px 13px;border-radius:10px;background:rgba(201,160,89,.16);border:2px dashed var(--gold);
+ font-size:13px;color:#5a4226;line-height:1.5}
+.tip b{color:var(--ink)}
 
 /* Reward panel slides in BESIDE the card (no scrolling); stacks below only on
    narrow screens where there is no room to the right. */
@@ -100,46 +97,33 @@ input.otp{font-family:'Pixel',monospace;font-size:24px;letter-spacing:10px;text-
   <div class="chead">
     <img src="/the-last-echo/img/icons/G_Book.png" alt="">
     <h1>Redeem a Code</h1>
-    <p>Sign in with your runsID · rewards land in your in-game Mail</p>
+    <p>Enter your Player ID · rewards land in your in-game Mail</p>
   </div>
   <div class="cbody">
 
-    <!-- STEP 1 — email -->
-    <section id="step-email" class="step active">
-      <h2>Sign in</h2>
-      <p class="hint">Enter the email on your <b>runsID</b> account. We'll send a one-time code to sign you in — no password needed.</p>
-      <label for="email">Email</label>
-      <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
-      <button id="send-btn" class="btn">Send Code</button>
-      <div id="email-msg" class="msg"></div>
-    </section>
-
-    <!-- STEP 2 — otp -->
-    <section id="step-otp" class="step">
-      <h2>Enter Code</h2>
-      <p class="hint">We sent a one-time code to <b id="otp-email"></b>. Check your inbox (and spam), then type it below.</p>
-      <label for="otp">Sign-in code</label>
-      <input id="otp" class="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="------">
-      <button id="verify-btn" class="btn">Verify</button>
-      <div class="linkrow">
-        <button id="resend-btn" class="linkbtn">Resend code</button> &nbsp;·&nbsp;
-        <button id="change-email-btn" class="linkbtn">Change email</button>
-      </div>
-      <div id="otp-msg" class="msg"></div>
-    </section>
-
-    <!-- STEP 3 — redeem -->
-    <section id="step-redeem" class="step">
+    <section id="step-redeem">
       <h2>Redeem</h2>
-      <p class="whoami">Signed in as <b id="redeem-email"></b> · <button id="signout-btn" class="linkbtn">Sign out</button></p>
-      <p class="hint">Type or paste your reward code. The reward is delivered to your in-game <b>Mail</b> — open The Last Echo and tap Claim.</p>
-      <label for="code">Reward code</label>
-      <input id="code" class="code" type="text" autocomplete="off" spellcheck="false" maxlength="32" placeholder="ENTER-CODE">
+      <p class="hint">Enter your <b>Player ID</b> and a reward code. The reward is delivered to your in-game <b>Mail</b> — open The Last Echo and tap Claim.</p>
+
+      <div class="field">
+        <label for="pid">Player ID</label>
+        <input id="pid" class="pid" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="10" placeholder="#1234567">
+      </div>
+
+      <div class="field">
+        <label for="code">Reward code</label>
+        <input id="code" class="code" type="text" autocomplete="off" spellcheck="false" maxlength="32" placeholder="ENTER-CODE">
+      </div>
+
       <button id="redeem-btn" class="btn">Redeem Code</button>
       <div id="redeem-msg" class="msg"></div>
+
+      <div class="tip">
+        <b>Where's my Player ID?</b> In The Last Echo, open <b>Settings</b> and find <b>Player ID</b> (the #number). Tap <b>Copy</b> to grab it.
+      </div>
     </section>
 
-    <p class="footnote" style="margin-top:22px">Rewards are delivered as in-game mail. Codes never grant currency directly — you always claim it inside the game.</p>
+    <p class="footnote" style="margin-top:22px">Rewards are delivered as in-game mail. Codes never grant currency directly — you always claim it inside the game. Your Player ID is a public reference, not a password; never share your account password or sign-in codes.</p>
   </div>
 </main>
 
@@ -160,101 +144,83 @@ const CFG = {
   anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRra3VuY2JneXNsbmF1a3pobGdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDMwMjAsImV4cCI6MjA5Njc3OTAyMH0.M2fADneTmoeSD0URAg_RiogUHtI5TRiA7pX6JlIS04M"
 };
 
-/* Access token kept IN MEMORY ONLY (never localStorage) — can't be lifted by XSS and
-   dies with the tab. */
-let accessToken = null, currentEmail = "";
+/* Redeem is identified by the PUBLIC Player ID (account_number). Owner call 2026-07-16:
+   website-only, no sign-in. The reward is always delivered to the target account's
+   in-game mail and claimed server-side (CLAUDE.md §13.3) — no currency is granted here. */
 const IMG = "/the-last-echo/img/icons/";
-
 const $ = (id) => document.getElementById(id);
-function show(stepId){document.querySelectorAll(".step").forEach(s=>s.classList.remove("active"));$(stepId).classList.add("active");}
+
 function msg(id,text,kind){const el=$(id);el.textContent=text;el.className="msg show "+(kind||"err");}
 function clearMsg(id){const el=$(id);el.className="msg";el.textContent="";}
 function busy(btn,on,label){btn.disabled=on;btn.dataset.label=btn.dataset.label||btn.textContent;
   btn.innerHTML=on?'<span class="spinner"></span>'+(label||"Working"):btn.dataset.label;}
-function validEmail(e){return e.length>=3&&e.length<=254&&e.includes("@")&&e.includes(".");}
 
-async function api(path,body,withAuth){
-  const headers={"Content-Type":"application/json","apikey":CFG.anon};
-  if(withAuth&&accessToken)headers["Authorization"]="Bearer "+accessToken;
+async function api(path,body){
+  const headers={"Content-Type":"application/json","apikey":CFG.anon,"Authorization":"Bearer "+CFG.anon};
   const res=await fetch(CFG.url+path,{method:"POST",headers,body:JSON.stringify(body)});
   let data=null;try{data=await res.json();}catch(_){}
   return{ok:res.ok,status:res.status,data};
 }
 
-// STEP 1 — send OTP
-async function sendCode(){
-  clearMsg("email-msg");
-  const email=$("email").value.trim();
-  if(!validEmail(email)){msg("email-msg","Please enter a valid email address.");return;}
-  const btn=$("send-btn");busy(btn,true,"Sending");
-  const r=await api("/auth/v1/otp",{email,create_user:false}); // existing runsID only
-  busy(btn,false);
-  if(r.ok){
-    currentEmail=email;$("otp-email").textContent=email;show("step-otp");$("otp").focus();
-    msg("otp-msg","If a runsID exists for that email, a code is on its way.","ok");
-  }else{
-    const d=r.data||{};const detail=d.error_description||d.msg||d.message||"";
-    if(/signup|not allowed|disabled|not found/i.test(detail))
-      msg("email-msg","We couldn't find a runsID for that email. Create one in The Last Echo first, then come back.");
-    else msg("email-msg","Couldn't send a code right now"+(detail?" — "+detail:"."));
-  }
-}
-
-// STEP 2 — verify OTP
-async function verifyCode(){
-  clearMsg("otp-msg");
-  const token=$("otp").value.replace(/\D/g,"");
-  if(token.length<4){msg("otp-msg","Enter the code from your email.");return;}
-  const btn=$("verify-btn");busy(btn,true,"Verifying");
-  const r=await api("/auth/v1/verify",{type:"email",email:currentEmail,token});
-  busy(btn,false);
-  if(r.ok&&r.data&&r.data.access_token){
-    accessToken=r.data.access_token;$("redeem-email").textContent=currentEmail;show("step-redeem");$("code").focus();
-  }else msg("otp-msg","That code didn't work. It may be expired — try Resend.");
-}
-
-// STEP 3 — redeem
 const REDEEM_ERRORS={
+  invalid_player:"We couldn't find that Player ID. Check the number in the game under Settings > Player ID.",
   invalid_code:"Hmm, that code isn't valid. Double-check it and try again.",
   expired:"That code has expired.",
   code_exhausted:"That code has been fully claimed already.",
-  already_redeemed:"You've already redeemed this code."
+  already_redeemed:"That Player ID has already redeemed this code."
 };
 const REWARD_META={
   gems:{ic:"Diamond-blue.png",label:"Gems"},
   gold:{ic:"Coin.png",label:"Gold"},
-  daily_tickets:{ic:"Star.png",label:"Daily Summon Tickets"},
-  weekly_tickets:{ic:"Medal1.png",label:"Weekly Summon Tickets"},
+  daily_tickets:{ic:"Diamond-porple.png",label:"Harpenny"},
+  summon_notes:{ic:"G_Book.png",label:"Summon Notes"},
+  ability_echoes:{ic:"Ray.png",label:"Ability Echoes"},
+  weapon_cores:{ic:"Sword.png",label:"Weapon Cores"},
+  relic_tickets:{ic:"Medal1.png",label:"Relic Tickets"},
+  refinement_dust:{ic:"Star.png",label:"Refinement Dust"},
   color_id:{ic:"Ray.png",label:"Name Colour"}
 };
 function renderReward(reward){
   const list=$("reward-list");list.innerHTML="";
-  for(const k of ["gems","gold","daily_tickets","weekly_tickets","color_id"]){
-    if(reward[k]==null)continue;
+  // Weekly tickets are a retired storage field. Fold any legacy value into the
+  // single live Harpenny currency instead of presenting a phantom currency.
+  const shown={...reward};
+  shown.daily_tickets=Number(reward.daily_tickets||0)+Number(reward.weekly_tickets||0);
+  for(const k of ["gems","gold","daily_tickets","summon_notes","ability_echoes","weapon_cores","relic_tickets","refinement_dust","color_id"]){
+    if(shown[k]==null||shown[k]===0)continue;
     const m=REWARD_META[k];
-    const val=(k==="color_id")?String(reward[k]):Number(reward[k]).toLocaleString();
+    const val=(k==="color_id")?String(shown[k]):Number(shown[k]).toLocaleString();
+    // Build nodes with textContent (not innerHTML) so server-provided values like
+    // color_id are never interpreted as markup. m.ic/m.label are local constants.
     const row=document.createElement("div");row.className="reward";
-    row.innerHTML='<img src="'+IMG+m.ic+'" alt=""><span><b>'+val+'</b> '+m.label+'</span>';
+    const img=document.createElement("img");img.src=IMG+m.ic;img.alt="";
+    const span=document.createElement("span");
+    const b=document.createElement("b");b.textContent=val;
+    span.appendChild(b);span.appendChild(document.createTextNode(" "+m.label));
+    row.appendChild(img);row.appendChild(span);
     list.appendChild(row);
   }
   $("reward-box").classList.add("show");
 }
+
 async function redeem(){
   clearMsg("redeem-msg");$("reward-box").classList.remove("show");
+  // Player ID is the public 7-digit account number; strip a leading # or any stray
+  // non-digits the player may paste from the in-game Copy button.
+  const pid=parseInt(($("pid").value.match(/\d+/g)||[]).join(""),10);
   const code=$("code").value.trim().toUpperCase();
-  if(code.length<3){msg("redeem-msg","Enter a code to redeem.");return;}
-  if(!accessToken){msg("redeem-msg","Your session expired — please sign in again.");show("step-email");return;}
+  if(!pid||pid<1000000||pid>9999999){msg("redeem-msg","Enter your 7-digit Player ID (find it in the game under Settings).");$("pid").focus();return;}
+  if(code.length<3){msg("redeem-msg","Enter a code to redeem.");$("code").focus();return;}
   const btn=$("redeem-btn");busy(btn,true,"Redeeming");
-  const r=await api("/rest/v1/rpc/redeem_code",{p_code:code},true);
+  const r=await api("/rest/v1/rpc/redeem_code_by_number",{p_number:pid,p_code:code});
   busy(btn,false);
-  if(!r.ok){ // RAISE → non-2xx (rate limit / bad session)
+  if(!r.ok){ // RAISE → non-2xx (rate limit / unexpected server error)
     const d=r.data||{};const m=(d.message||"")+" "+(d.details||"");
     // Log the real Postgres error for diagnosis (devtools only — never shown to users,
     // avoids leaking internals per §5.3). e.g. a missing check_rate_limit() (migration
     // 015 not applied) surfaces here as "function ... does not exist".
-    console.error("redeem_code failed",{status:r.status,error:d});
-    if(/rate_limited/i.test(m))msg("redeem-msg","Too many tries — take a short break and try again in a bit.");
-    else if(r.status===401||/jwt|authenticated|token/i.test(m)){msg("redeem-msg","Your session expired — please sign in again.");show("step-email");}
+    console.error("redeem_code_by_number failed",{status:r.status,error:d});
+    if(/rate_limited/i.test(m))msg("redeem-msg","Too many tries for that Player ID — take a short break and try again in a bit.");
     else msg("redeem-msg","Something went wrong redeeming that code. Please try again.");
     return;
   }
@@ -263,21 +229,8 @@ async function redeem(){
   else msg("redeem-msg",REDEEM_ERRORS[d.error]||"That code couldn't be redeemed.");
 }
 
-function signOut(){
-  accessToken=null;currentEmail="";
-  $("email").value="";$("otp").value="";$("code").value="";
-  clearMsg("email-msg");clearMsg("otp-msg");clearMsg("redeem-msg");$("reward-box").classList.remove("show");
-  show("step-email");
-}
-
-$("send-btn").addEventListener("click",sendCode);
-$("verify-btn").addEventListener("click",verifyCode);
-$("resend-btn").addEventListener("click",sendCode);
-$("change-email-btn").addEventListener("click",()=>{clearMsg("otp-msg");show("step-email");$("email").focus();});
 $("redeem-btn").addEventListener("click",redeem);
-$("signout-btn").addEventListener("click",signOut);
-$("email").addEventListener("keydown",e=>{if(e.key==="Enter")sendCode();});
-$("otp").addEventListener("keydown",e=>{if(e.key==="Enter")verifyCode();});
+$("pid").addEventListener("keydown",e=>{if(e.key==="Enter")$("code").focus();});
 $("code").addEventListener("keydown",e=>{if(e.key==="Enter")redeem();});
 $("code").addEventListener("input",e=>{e.target.value=e.target.value.toUpperCase();});
 </script>
