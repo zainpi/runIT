@@ -39,8 +39,8 @@ export function Navbar() {
     <header
       className={[
         "fixed inset-x-0 top-0 z-50 transition-colors duration-300",
-        scrolled
-          ? "border-b border-white/10 bg-ink-950/80 backdrop-blur-xl"
+        scrolled || open
+          ? "border-b border-white/10 bg-ink-950/95 shadow-lg shadow-black/20 backdrop-blur-xl"
           : "border-b border-transparent",
       ].join(" ")}
     >
@@ -121,11 +121,12 @@ export function Navbar() {
       >
         <div
           className={[
-            "container-page overflow-hidden transition-[max-height,opacity] duration-300",
+            "container-page overflow-hidden border-white/10 bg-gradient-to-b from-ink-900 via-ink-950 to-ink-950 shadow-2xl shadow-black/50 transition-[max-height,opacity] duration-300",
+            open ? "border-b" : "border-b-0",
             open ? "max-h-[420px] opacity-100" : "max-h-0 opacity-0",
           ].join(" ")}
         >
-          <div className="flex flex-col gap-1 border-t border-white/10 py-4">
+          <div className="flex flex-col gap-1 py-4">
             {mainNav.map((link) => {
               const cls = [
                 "rounded-xl px-4 py-3 text-base transition-colors",

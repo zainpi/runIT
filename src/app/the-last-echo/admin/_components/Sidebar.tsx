@@ -12,6 +12,7 @@ const TABS: { href: string; label: string }[] = [
   { href: `${BASE}/players`, label: "Players" },
   { href: `${BASE}/mail`, label: "Mail & Rewards" },
   { href: `${BASE}/codes`, label: "Codes" },
+  { href: `${BASE}/raids`, label: "World Raids" },
   { href: `${BASE}/chat`, label: "Chat" },
   { href: `${BASE}/leaderboard`, label: "Leaderboard" },
   { href: `${BASE}/reports`, label: "Reports" },

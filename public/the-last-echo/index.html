@@ -169,7 +169,7 @@ section{position:relative}
 .cta-box>*{position:relative;z-index:1}
 .cta-box h2{font-family:'Pixel',monospace;font-weight:400;font-size:clamp(30px,5vw,44px);color:#fff;text-shadow:0 3px 0 var(--wood-dark)}
 .cta-box p{color:#f6ebd2;margin:12px auto 26px;max-width:34em;font-size:17px}
-.signup{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:560px;margin:0 auto}
+.signup{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:560px;margin:0 auto;scroll-margin-top:110px}
 .signup input{flex:1;min-width:240px;font-family:'Trebuchet MS',sans-serif;font-size:17px;padding:14px 18px;
   border:3px solid var(--ink2);border-radius:10px;background:var(--parch);color:var(--ink);box-shadow:inset 0 2px 4px rgba(90,58,28,.35)}
 .signup input:focus{outline:3px solid var(--gold-lt);outline-offset:1px}
@@ -240,7 +240,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
     <nav id="menu">
       <a href="#fair" onclick="closeMenu()">Fair Play</a>
       <a href="#screens" onclick="closeMenu()">Screens</a>
-      <a class="btn btn--green" href="#wishlist" onclick="closeMenu()">Play the demo</a>
+      <a class="btn btn--green" href="#testflight-signup" onclick="closeMenu()">Play the demo</a>
     </nav>
   </div>
 </header>
@@ -253,7 +253,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
       <p class="tagline">Idle your way to glory. An auto-battle RPG with heart.</p>
       <p class="lede">Your party keeps fighting even while you're away. Pull powerful gear, master your skill tree, climb the world-boss ladder, and come back to stacks of loot. A cosy, original world built to respect your time and your wallet.</p>
       <div class="cta-row">
-        <a class="btn btn--green" href="#wishlist">🎮 Sign up for TestFlight demo</a>
+        <a class="btn btn--green" href="#testflight-signup">🎮 Sign up for TestFlight demo</a>
       </div>
       <div class="stores">
         <span class="store"><span class="soon">Soon</span>
@@ -344,7 +344,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
         POSTs via fetch so we keep the inline thank-you. The route sends the
         visitor their TestFlight invite email via Cloudflare email sending.
       -->
-      <form class="signup" action="/api/testflight-invite" method="POST"
+      <form class="signup" id="testflight-signup" action="/api/testflight-invite" method="POST"
             onsubmit="return signup(event)" novalidate>
         <input type="email" name="email" placeholder="you@example.com" aria-label="Email address" required>
         <!-- Honeypot: hidden from humans; bots that fill it are silently dropped. -->
@@ -380,7 +380,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
         <h4>Game</h4>
         <a href="#fair">Fair Play</a>
         <a href="#screens">Screenshots</a>
-        <a href="#wishlist">Play the Demo</a>
+        <a href="#testflight-signup">Play the Demo</a>
         <a href="/the-last-echo/redeem/">Redeem a Code</a>
       </div>
       <div class="fcol">
@@ -392,7 +392,7 @@ footer{background:linear-gradient(var(--ink),#201407);color:#e6d2a8;border-top:5
       </div>
       <div class="fcol">
         <h4>Connect</h4>
-        <a href="#wishlist">Newsletter</a>
+        <a href="#testflight-signup">Newsletter</a>
         <a href="#" rel="nofollow">Discord</a>
         <a href="#" rel="nofollow">X / Twitter</a>
         <a href="/the-last-echo/support.html">Support &amp; Help</a>
