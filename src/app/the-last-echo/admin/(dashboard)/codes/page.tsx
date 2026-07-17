@@ -5,19 +5,9 @@ import { rpc, fmtDate, fmtNum } from "../../_lib/rpc";
 import {
   Card, Table, Td, Btn, Input, Select, Badge, ErrorNote, OkNote, Spinner,
 } from "../../_components/ui";
+import { COLOR_OPTIONS, colorName, rewardSummary, type RewardValues } from "../../_lib/rewards";
 
-// Cosmetic name-colour unlocks — mirrors the game's data/cosmetic_colors.json.
-const COLOR_OPTIONS: { id: string; name: string }[] = [
-  { id: "founder_gold", name: "Founder Gold" },
-  { id: "void_purple", name: "Void Purple" },
-  { id: "ember_red", name: "Ember Red" },
-];
-
-function colorName(id: string): string {
-  return COLOR_OPTIONS.find((c) => c.id === id)?.name ?? id;
-}
-
-type RedeemCode = {
+type RedeemCode = RewardValues & {
   code: string;
   gems: number;
   gold: number;
@@ -207,21 +197,7 @@ export default function CodesPage() {
               {redeem.map((c) => (
                 <tr key={c.code} className="hover:bg-[#6b4423]/[.06]">
                   <Td className="font-mono font-medium text-[#3a2410]">{c.code}</Td>
-                  <Td className="text-xs">
-                    {[
-                      c.gems ? `${fmtNum(c.gems)} gems` : null,
-                      c.gold ? `${fmtNum(c.gold)} gold` : null,
-                      // daily + weekly are the same in-game token (Harpenny); sum any legacy split.
-                      (c.daily_tickets + c.weekly_tickets)
-                        ? `${fmtNum(c.daily_tickets + c.weekly_tickets)} harpenny` : null,
-                      c.summon_notes ? `${fmtNum(c.summon_notes)} summon notes` : null,
-                      c.ability_echoes ? `${fmtNum(c.ability_echoes)} ability echoes` : null,
-                      c.weapon_cores ? `${fmtNum(c.weapon_cores)} weapon cores` : null,
-                      c.relic_tickets ? `${fmtNum(c.relic_tickets)} relic tickets` : null,
-                      c.refinement_dust ? `${fmtNum(c.refinement_dust)} refinement dust` : null,
-                      c.color_id ? `color: ${colorName(c.color_id)}` : null,
-                    ].filter(Boolean).join(", ") || "—"}
-                  </Td>
+                  <Td className="text-xs">{rewardSummary(c)}</Td>
                   <Td>{fmtNum(c.uses_count)}{c.max_uses ? ` / ${fmtNum(c.max_uses)}` : ""}</Td>
                   <Td className="text-xs">{c.expires_at ? fmtDate(c.expires_at) : "never"}</Td>
                   <Td>{c.active ? <Badge tone="good">active</Badge> : <Badge tone="bad">disabled</Badge>}</Td>
