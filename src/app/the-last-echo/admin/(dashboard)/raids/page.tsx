@@ -64,20 +64,25 @@ export default function RaidsPage() {
   const [duration, setDuration] = useState("");
   const [maxHp, setMaxHp] = useState("");
   const [repeatEveryHours, setRepeatEveryHours] = useState("");
-  const baseHp = config?.default_max_hp ?? 10_000_000_000;
+  const baseHp = 100_000_000;
   const hpGrowth = config?.hp_growth_per_level ?? 0.35;
   const damageGrowth = config?.damage_growth_per_level ?? 0.12;
 
   const load = useCallback(async () => {
     try {
-      const [list, cfg, scheduled] = await Promise.all([
+      const [list, cfg] = await Promise.all([
         rpc<Raid[]>("admin_list_raids", { p_limit: 100 }),
         rpc<RaidConfig>("admin_get_raid_config"),
-        rpc<RaidSchedule[]>("admin_list_raid_schedules"),
       ]);
       setRaids(list);
       setConfig(cfg);
-      setSchedules(scheduled);
+      // Recurring schedule RPCs are deployed separately from the original raid RPCs.
+      // Do not prevent the raid dashboard from loading while that migration is pending.
+      try {
+        setSchedules(await rpc<RaidSchedule[]>("admin_list_raid_schedules"));
+      } catch {
+        setSchedules([]);
+      }
       if (!duration && cfg?.default_duration_min) setDuration(String(cfg.default_duration_min));
     } catch (e) {
       setError((e as Error).message);
@@ -107,7 +112,9 @@ export default function RaidsPage() {
       if (!Number.isFinite(dur) || dur < 5 || dur > 1440) {
         throw new Error("Duration must be 5–1440 minutes.");
       }
-      const hp = maxHp.trim() ? parseFloat(maxHp) : null;
+      // Always send the configured game baseline instead of relying on the old
+      // database default (which was 10B before raid leveling was introduced).
+      const hp = maxHp.trim() ? parseFloat(maxHp) : baseHp;
       if (hp !== null && (!Number.isFinite(hp) || hp <= 0)) {
         throw new Error("Max HP must be a positive number, or blank for the default.");
       }
@@ -214,11 +221,11 @@ export default function RaidsPage() {
             />
           </label>
           <label className="text-xs text-[#5a4226]">
-            Max HP (blank = default)
+            Max HP (blank = 100M base)
             <Input
               type="number"
               min={1}
-              placeholder={config ? fmtNum(config.default_max_hp) : "10000000000"}
+              placeholder={fmtNum(baseHp)}
               value={maxHp}
               onChange={(e) => setMaxHp(e.target.value)}
             />
