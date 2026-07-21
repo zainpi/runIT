@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const pages = [
-    { path: "", priority: 1, frequency: "weekly" as const },
+    { path: "/the-last-echo/", priority: 1, frequency: "weekly" as const },
     { path: "/the-last-echo/guides/", priority: 0.8, frequency: "weekly" as const },
     { path: "/the-last-echo/guides/how-idle-progression-works.html", priority: 0.7, frequency: "monthly" as const },
     { path: "/the-last-echo/guides/fair-gacha-design.html", priority: 0.7, frequency: "monthly" as const },

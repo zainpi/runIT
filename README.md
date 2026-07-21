@@ -21,6 +21,16 @@ npm run start    # serve the production build
 npm run lint     # eslint
 ```
 
+## Production deployment
+
+Production is deployed through the GitHub integration connected to this
+repository. Pushing the intended branch to `origin` triggers the live
+Cloudflare deployment for `runs-it.com`.
+
+Do **not** deploy production directly with `wrangler deploy` from a local
+machine. Verify changes with `npm run build`, then commit and push them through
+GitHub so the configured deployment pipeline remains the source of truth.
+
 ## Pages
 
 | Route            | Description                                                      |
