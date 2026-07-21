@@ -1,32 +1,23 @@
 import type { MetadataRoute } from "next";
-import { site } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ["", "/services", "/case-studies", "/about", "/contact", "/book"];
   const now = new Date();
-
-  const entries: MetadataRoute.Sitemap = routes.map((path) => ({
-    url: `${site.url}${path}`,
-    lastModified: now,
-    changeFrequency: path === "" ? "weekly" : "monthly",
-    priority: path === "" ? 1 : path === "/book" ? 0.9 : 0.7,
-  }));
-
-  // The Last Echo: static pages served on the runs-it.com Worker domain.
-  const ahPages = [
-    { path: "/the-last-echo", priority: 0.5 },
-    { path: "/the-last-echo/support.html", priority: 0.4 },
-    { path: "/the-last-echo/privacy.html", priority: 0.3 },
-    { path: "/the-last-echo/terms.html", priority: 0.3 },
+  const pages = [
+    { path: "", priority: 1, frequency: "weekly" as const },
+    { path: "/the-last-echo/guides/", priority: 0.8, frequency: "weekly" as const },
+    { path: "/the-last-echo/guides/how-idle-progression-works.html", priority: 0.7, frequency: "monthly" as const },
+    { path: "/the-last-echo/guides/fair-gacha-design.html", priority: 0.7, frequency: "monthly" as const },
+    { path: "/the-last-echo/guides/first-demo-guide.html", priority: 0.7, frequency: "monthly" as const },
+    { path: "/the-last-echo/devlog/why-we-built-the-last-echo.html", priority: 0.7, frequency: "monthly" as const },
+    { path: "/the-last-echo/about.html", priority: 0.6, frequency: "monthly" as const },
+    { path: "/the-last-echo/support.html", priority: 0.4, frequency: "monthly" as const },
+    { path: "/the-last-echo/privacy.html", priority: 0.3, frequency: "yearly" as const },
+    { path: "/the-last-echo/terms.html", priority: 0.3, frequency: "yearly" as const },
   ];
-  for (const p of ahPages) {
-    entries.push({
-      url: `https://runs-it.com${p.path}`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: p.priority,
-    });
-  }
-
-  return entries;
+  return pages.map((page) => ({
+    url: `https://runs-it.com${page.path}`,
+    lastModified: now,
+    changeFrequency: page.frequency,
+    priority: page.priority,
+  }));
 }
