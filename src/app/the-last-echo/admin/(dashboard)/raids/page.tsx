@@ -9,6 +9,12 @@ import {
 // Boss ids map to data/world_bosses.json keys (world-number strings). Worlds 1-20 are the
 // curated bosses; the migration falls back to the default boss art for any unknown id.
 const BOSS_OPTIONS = Array.from({ length: 20 }, (_, i) => String(i + 1));
+const RANDOM_BOSS_ID = "random";
+
+function resolveBossId(bossId: string) {
+  if (bossId !== RANDOM_BOSS_ID) return bossId;
+  return BOSS_OPTIONS[Math.floor(Math.random() * BOSS_OPTIONS.length)];
+}
 
 type Raid = {
   id: string;
@@ -122,24 +128,27 @@ export default function RaidsPage() {
       if (everyHours !== null && (!Number.isFinite(everyHours) || everyHours < 1 || everyHours > 720)) {
         throw new Error("Repeat interval must be 1–720 hours.");
       }
+      const scheduledBossId = resolveBossId(bossId);
 
       if (everyHours === null) {
         const res = await rpc<{ ok?: boolean; duplicate?: boolean }>("admin_schedule_raid", {
-          p_boss_id: bossId,
+          p_boss_id: scheduledBossId,
           p_starts_at: startIso,
           p_duration_minutes: dur,
           p_max_hp: hp,
         });
-        setOk(res?.duplicate ? "That raid was already scheduled." : "Raid scheduled.");
+        setOk(res?.duplicate
+          ? "That raid was already scheduled."
+          : `Raid scheduled${bossId === RANDOM_BOSS_ID ? ` with World ${scheduledBossId}` : ""}.`);
       } else {
         await rpc("admin_create_raid_schedule", {
-          p_boss_id: bossId,
+          p_boss_id: scheduledBossId,
           p_starts_at: startIso,
           p_every_hours: everyHours,
           p_duration_minutes: dur,
           p_max_hp: hp,
         });
-        setOk(`Raid schedule created: every ${everyHours} hour${everyHours === 1 ? "" : "s"}.`);
+        setOk(`Raid schedule created${bossId === RANDOM_BOSS_ID ? ` with random selection World ${scheduledBossId}` : ""}: every ${everyHours} hour${everyHours === 1 ? "" : "s"}.`);
       }
       setStartLocal("");
       setMaxHp("");
@@ -196,6 +205,7 @@ export default function RaidsPage() {
           <label className="text-xs text-[#5a4226]">
             Boss (world)
             <Select value={bossId} onChange={(e) => setBossId(e.target.value)}>
+              <option value={RANDOM_BOSS_ID}>Random world</option>
               {BOSS_OPTIONS.map((b) => (
                 <option key={b} value={b}>{`World ${b}`}</option>
               ))}
@@ -248,7 +258,7 @@ export default function RaidsPage() {
           ) : (
             <>Times are entered in your local timezone and converted to UTC for the server.</>
           )}
-          <span className="block mt-1">Recurring raids launch on this start time, then every chosen number of hours. Each defeat increases that boss&apos;s level.</span>
+          <span className="block mt-1">Random world picks a boss when this raid or recurring schedule is created. Recurring raids keep that selected boss and launch on this start time, then every chosen number of hours. Each defeat increases that boss&apos;s level.</span>
         </div>
         <div className="mt-3">
           <Btn disabled={busy || !startIso} onClick={schedule}>

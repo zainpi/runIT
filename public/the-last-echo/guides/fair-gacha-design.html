@@ -1,1 +1,162 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fair Gacha Design: Odds, Pity, and Player Trust | The Last Echo</title><meta name="description" content="How The Last Echo approaches random rewards with published odds, visible pity, earnable currency, and non-pay-to-win boundaries."><link rel="canonical" href="https://runs-it.com/the-last-echo/guides/fair-gacha-design.html"><link rel="stylesheet" href="/the-last-echo/editorial.css"><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6839111786994082" crossorigin="anonymous"></script></head><body><a class="skip" href="#content">Skip to content</a><header class="site-head"><nav class="nav"><a class="brand" href="/"><img src="/the-last-echo/img/app-icon.png" alt="">The Last Echo</a><div class="links"><a href="/">Game</a><a href="/the-last-echo/guides/">Guides</a><a href="/the-last-echo/devlog/why-we-built-the-last-echo.html">Devlog</a><a href="/the-last-echo/about.html">About</a></div></nav></header><section class="hero"><div><div class="eyebrow">Design policy</div><h1>Random rewards should not require blind trust</h1><p class="dek">Our rules for probability disclosure, visible pity, free progression, and respectful monetization.</p></div></section><article class="page" id="content"><p class="meta">By The Last Echo development team · Published July 21, 2026 · Policy for the current game design</p><p>Random rewards can create memorable moments, but they also create an information imbalance: the game knows the probability and the player cannot observe it from a handful of results. That means the developer carries a special responsibility to disclose the rules clearly and avoid exploiting uncertainty.</p><p>The Last Echo uses randomised item acquisition as one part of progression. We do not treat “random” as permission to hide the system. The design is governed by four commitments that players can evaluate directly.</p><h2>1. Publish the actual probabilities</h2><p>The probability shown to a player must match the probability used by the game. Odds belong at the point where a decision is made, not buried in unrelated copy. If a banner has different reward categories or a featured item, the presentation should make those distinctions understandable before a pull.</p><p>Probabilities also need context. A percentage alone does not explain whether results are independent, whether a guarantee exists, or what happens at a threshold. The surrounding rules matter as much as the number.</p><h2>2. Make pity visible and deterministic</h2><p>The current design promises a top-rarity reward by pull 100. The counter is visible so a player can understand their exact position rather than estimating it from memory. A hard guarantee means the stated boundary is a maximum, not an average and not a vague description such as “increased chance.”</p><div class="callout"><strong>Current commitment:</strong> the hard-pity counter and applicable odds are shown in the summon interface. If the rules of a future banner differ, that difference must be disclosed before participation.</div><h2>3. Keep completion available without payment</h2><p>Spending can accelerate or vary collection, but it should not become the admission price for the game’s core progression. Premium currency is earnable through play, and the intended progression path allows free players to clear the game. Balancing must be tested against that promise, because a technically free path that is deliberately impractical would not satisfy it.</p><p>“No pay-to-win” is only meaningful when attached to observable design choices. Required content must not be locked behind purchasing random pulls. Difficulty should be solved through play, upgrades, and build decisions rather than through a checkout screen.</p><h2>4. Avoid pressure mechanics</h2><p>A transparent probability can still be paired with manipulative presentation. We aim to avoid language that implies a player is failing by not spending, false scarcity, unclear currency conversions, and interfaces designed to make accidental purchases easy. Purchase decisions should be deliberate and recoverable where platform rules permit.</p><h2>How players can hold us accountable</h2><p>Capture the summon screen if its displayed odds, pity counter, or result appears inconsistent. Include the app version and approximate time in a support message. A single result is not proof that a probability is wrong, but a display mismatch or counter error is actionable and should be investigated.</p><p>We will update this page when the monetization model or probability rules materially change. The Terms provide the binding service conditions; this guide explains the design standard we use when implementing those conditions.</p><p class="sources">Related: <a href="/the-last-echo/terms.html#gacha">Terms and gacha disclosure</a> · <a href="/the-last-echo/support.html">contact support</a></p></article><footer><a href="/the-last-echo/privacy.html">Privacy</a><a href="/the-last-echo/terms.html">Terms</a><a href="/the-last-echo/support.html">Support</a><p>© 2026 The Last Echo</p></footer></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>
+      Fair Gacha Design: Odds, Pity, and Player Trust | The Last Echo
+    </title>
+    <meta
+      name="description"
+      content="How The Last Echo approaches random rewards with published odds, visible pity, earnable currency, and non-pay-to-win boundaries."
+    />
+    <link
+      rel="canonical"
+      href="https://runs-it.com/the-last-echo/guides/fair-gacha-design.html"
+    />
+    <link rel="stylesheet" href="/the-last-echo/editorial.css" />
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6839111786994082"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <header class="site-head">
+      <nav class="nav">
+        <a class="brand" href="/"
+          ><img src="/the-last-echo/img/app-icon.png" alt="" />The Last Echo</a
+        >
+        <div class="links">
+          <a href="/">Game</a><a href="/the-last-echo/guides/">Guides</a
+          ><a href="/the-last-echo/devlog/why-we-built-the-last-echo.html"
+            >Devlog</a
+          ><a href="/the-last-echo/about.html">About</a>
+        </div>
+      </nav>
+    </header>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Design policy</div>
+        <h1>Random rewards should not require blind trust</h1>
+        <p class="dek">
+          Our rules for probability disclosure, visible pity, free progression,
+          and respectful monetization.
+        </p>
+      </div>
+    </section>
+    <article class="page" id="content">
+      <p class="meta">
+        By The Last Echo development team · Published July 21, 2026 · Policy for
+        the current game design
+      </p>
+      <p>
+        Random rewards can create memorable moments, but they also create an
+        information imbalance: the game knows the probability and the player
+        cannot observe it from a handful of results. That means the developer
+        carries a special responsibility to disclose the rules clearly and avoid
+        exploiting uncertainty.
+      </p>
+      <p>
+        The Last Echo uses randomised item acquisition as one part of
+        progression. We do not treat “random” as permission to hide the system.
+        The design is governed by four commitments that players can evaluate
+        directly.
+      </p>
+      <h2>1. Publish the actual probabilities</h2>
+      <p>
+        The probability shown to a player must match the probability used by the
+        game. Odds belong at the point where a decision is made, not buried in
+        unrelated copy. If a banner has different reward categories or a
+        featured item, the presentation should make those distinctions
+        understandable before a pull.
+      </p>
+      <img
+        class="shot"
+        src="/the-last-echo/screenshots/new/11-summon-banner.png"
+        alt="Summon banner showing reward options, currency cost, disclosed probabilities, and visible pity progress"
+        width="2814"
+        height="1582"
+        loading="lazy"
+      />
+      <p>
+        Probabilities also need context. A percentage alone does not explain
+        whether results are independent, whether a guarantee exists, or what
+        happens at a threshold. The surrounding rules matter as much as the
+        number.
+      </p>
+      <h2>2. Make pity visible and deterministic</h2>
+      <p>
+        The current design promises a top-rarity reward by pull 100. The counter
+        is visible so a player can understand their exact position rather than
+        estimating it from memory. A hard guarantee means the stated boundary is
+        a maximum, not an average and not a vague description such as “increased
+        chance.”
+      </p>
+      <img
+        class="shot"
+        src="/the-last-echo/screenshots/new/13-hard-pity-result.png"
+        alt="Top-rarity summon result awarded at the hard-pity threshold"
+        width="2814"
+        height="1582"
+        loading="lazy"
+      />
+      <div class="callout">
+        <strong>Current commitment:</strong> the hard-pity counter and
+        applicable odds are shown in the summon interface. If the rules of a
+        future banner differ, that difference must be disclosed before
+        participation.
+      </div>
+      <h2>3. Keep completion available without payment</h2>
+      <p>
+        Spending can accelerate or vary collection, but it should not become the
+        admission price for the game’s core progression. Premium currency is
+        earnable through play, and the intended progression path allows free
+        players to clear the game. Balancing must be tested against that
+        promise, because a technically free path that is deliberately
+        impractical would not satisfy it.
+      </p>
+      <p>
+        “No pay-to-win” is only meaningful when attached to observable design
+        choices. Required content must not be locked behind purchasing random
+        pulls. Difficulty should be solved through play, upgrades, and build
+        decisions rather than through a checkout screen.
+      </p>
+      <h2>4. Avoid pressure mechanics</h2>
+      <p>
+        A transparent probability can still be paired with manipulative
+        presentation. We aim to avoid language that implies a player is failing
+        by not spending, false scarcity, unclear currency conversions, and
+        interfaces designed to make accidental purchases easy. Purchase
+        decisions should be deliberate and recoverable where platform rules
+        permit.
+      </p>
+      <h2>How players can hold us accountable</h2>
+      <p>
+        Capture the summon screen if its displayed odds, pity counter, or result
+        appears inconsistent. Include the app version and approximate time in a
+        support message. A single result is not proof that a probability is
+        wrong, but a display mismatch or counter error is actionable and should
+        be investigated.
+      </p>
+      <p>
+        We will update this page when the monetization model or probability
+        rules materially change. The Terms provide the binding service
+        conditions; this guide explains the design standard we use when
+        implementing those conditions.
+      </p>
+      <p class="sources">
+        Related:
+        <a href="/the-last-echo/terms.html#gacha">Terms and gacha disclosure</a>
+        · <a href="/the-last-echo/support.html">contact support</a>
+      </p>
+    </article>
+    <footer>
+      <a href="/the-last-echo/privacy.html">Privacy</a
+      ><a href="/the-last-echo/terms.html">Terms</a
+      ><a href="/the-last-echo/support.html">Support</a>
+      <p>© 2026 The Last Echo</p>
+    </footer>
+  </body>
+</html>
