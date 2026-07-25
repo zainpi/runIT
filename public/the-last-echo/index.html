@@ -695,6 +695,20 @@
         margin: 0 auto;
         scroll-margin-top: 110px;
       }
+      .hero-signup {
+        justify-content: flex-start;
+        max-width: 620px;
+        margin: 26px 0 0;
+      }
+      .hero-signup-note {
+        margin-top: 12px;
+        font-size: 13px;
+        color: #5e482c;
+      }
+      .hero-copy .err,
+      .hero-copy .ok {
+        text-align: left;
+      }
       .signup input {
         flex: 1;
         min-width: 240px;
@@ -983,11 +997,46 @@
             back to stacks of loot. A cosy, original world built to respect your
             time and your wallet.
           </p>
-          <div class="cta-row">
-            <a class="btn btn--green" href="#testflight-signup"
-              >🎮 Sign up for TestFlight demo</a
-            >
+          <form
+            class="signup hero-signup"
+            id="testflight-signup"
+            action="/api/testflight-invite"
+            method="POST"
+            onsubmit="return signup(event);"
+            novalidate
+          >
+            <input
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              aria-label="Email address"
+              required
+            />
+            <input
+              type="text"
+              name="website"
+              tabindex="-1"
+              autocomplete="off"
+              aria-hidden="true"
+              style="
+                position: absolute;
+                left: -9999px;
+                width: 1px;
+                height: 1px;
+                opacity: 0;
+              "
+            />
+            <button class="btn btn--green" type="submit">
+              Get the TestFlight demo
+            </button>
+          </form>
+          <div class="err" id="err" role="alert"></div>
+          <div class="ok" id="ok">
+            🎉 You're in! Check your email for your TestFlight invite.
           </div>
+          <p class="hero-signup-note">
+            We'll only use your address to send your TestFlight invite.
+          </p>
           <div class="stores">
             <span class="store"
               ><span class="soon">Soon</span>
@@ -1187,53 +1236,9 @@
             The Last Echo is now on TestFlight. Drop your email and we'll send
             you an invite to play the demo. No spam, just your invite.
           </p>
-          <!--
-        EMAIL SIGNUP -> /api/testflight-invite (same-origin Next.js route).
-        The action/method below is the no-JS fallback; signup() intercepts and
-        POSTs via fetch so we keep the inline thank-you. The route sends the
-        visitor their TestFlight invite email via Cloudflare email sending.
-      -->
-          <form
-            class="signup"
-            id="testflight-signup"
-            action="/api/testflight-invite"
-            method="POST"
-            onsubmit="return signup(event);"
-            novalidate
+          <a class="btn btn--green" href="#testflight-signup"
+            >Enter your email above</a
           >
-            <input
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              aria-label="Email address"
-              required
-            />
-            <!-- Honeypot: hidden from humans; bots that fill it are silently dropped. -->
-            <input
-              type="text"
-              name="website"
-              tabindex="-1"
-              autocomplete="off"
-              aria-hidden="true"
-              style="
-                position: absolute;
-                left: -9999px;
-                width: 1px;
-                height: 1px;
-                opacity: 0;
-              "
-            />
-            <button class="btn btn--green" type="submit">
-              Sign up for TestFlight demo
-            </button>
-          </form>
-          <div class="err" id="err" role="alert"></div>
-          <div class="ok" id="ok">
-            🎉 You're in! Check your email for your TestFlight invite.
-          </div>
-          <p class="note">
-            We'll only use your address to send your TestFlight invite.
-          </p>
           <div class="stores">
             <span class="store"
               ><span class="soon">Soon</span>
