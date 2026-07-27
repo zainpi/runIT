@@ -28,6 +28,14 @@
     {
       "pattern": "runs-it.com",
       "custom_domain": true
+    },
+    {
+      "pattern": "runsit.ca",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.runsit.ca",
+      "custom_domain": true
     }
   ],
   "workers_dev": false,
