@@ -8,7 +8,7 @@
     <meta property="og:url" content="https://runs-it.com/the-last-echo/" />
     <meta
       name="description"
-      content="The Last Echo is a charming idle auto-battle RPG. Your party keeps fighting even while you're away. Fair, transparent gacha with visible pity, deep progression, prestige, dungeons and world bosses. Coming soon to iOS & Android."
+      content="The Last Echo is a charming idle auto-battle RPG. Your party keeps fighting even while you're away. Fair, transparent gacha with visible pity, deep progression, prestige, dungeons and world bosses. Available now on iOS; Android coming soon."
     />
     <meta name="theme-color" content="#6b4423" />
     <meta name="author" content="The Last Echo development team" />
@@ -30,7 +30,7 @@
     />
     <meta
       property="og:description"
-      content="Your party keeps fighting even while you're away. Fair gacha, deep progression, real offline progress. Coming soon to iOS & Android."
+      content="Your party keeps fighting even while you're away. Fair gacha, deep progression, real offline progress. Available now on iOS; Android coming soon."
     />
     <meta
       property="og:image"
@@ -195,6 +195,13 @@
         font-size: 18px;
         font-weight: 400;
         letter-spacing: 0.5px;
+      }
+      .store[href] {
+        cursor: pointer;
+        transition: filter 0.15s;
+      }
+      .store[href]:hover {
+        filter: brightness(1.12);
       }
       .store .soon {
         position: absolute;
@@ -645,7 +652,7 @@
         padding: 2px 9px;
       }
 
-      /* ---------- wishlist CTA ---------- */
+      /* ---------- download CTA ---------- */
       .cta {
         padding: 30px 0 76px;
       }
@@ -686,65 +693,8 @@
         max-width: 34em;
         font-size: 17px;
       }
-      .signup {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-        flex-wrap: wrap;
-        max-width: 560px;
-        margin: 0 auto;
-        scroll-margin-top: 110px;
-      }
-      .hero-signup {
-        justify-content: flex-start;
-        max-width: 620px;
-        margin: 26px 0 0;
-      }
-      .hero-signup-note {
-        margin-top: 12px;
-        font-size: 13px;
-        color: #5e482c;
-      }
-      .hero-copy .err,
-      .hero-copy .ok {
-        text-align: left;
-      }
-      .signup input {
-        flex: 1;
-        min-width: 240px;
-        font-family: "Trebuchet MS", sans-serif;
-        font-size: 17px;
-        padding: 14px 18px;
-        border: 3px solid var(--ink2);
-        border-radius: 10px;
-        background: var(--parch);
-        color: var(--ink);
-        box-shadow: inset 0 2px 4px rgba(90, 58, 28, 0.35);
-      }
-      .signup input:focus {
-        outline: 3px solid var(--gold-lt);
-        outline-offset: 1px;
-      }
-      .note {
-        margin-top: 14px;
-        font-size: 13px;
-        color: #f0e2c4;
-        opacity: 0.85;
-      }
-      .ok {
-        display: none;
-        margin-top: 18px;
-        font-family: "Pixel";
-        font-size: 22px;
-        color: #eaffd6;
-        text-shadow: 0 2px 0 var(--green-dk);
-      }
-      .err {
-        display: none;
-        margin-top: 14px;
-        font-size: 15px;
-        font-weight: 700;
-        color: #ffd9d3;
+      .hero-download {
+        margin-top: 26px;
       }
       .cta .stores {
         justify-content: center;
@@ -975,9 +925,11 @@
           <a href="#screens" onclick="closeMenu()">Screens</a>
           <a
             class="btn btn--green"
-            href="#testflight-signup"
+            href="https://t.co/cQMtSrgSLZ"
+            target="_blank"
+            rel="noopener"
             onclick="closeMenu()"
-            >Play the demo</a
+            >Download on iOS</a
           >
         </nav>
       </div>
@@ -997,56 +949,28 @@
             back to stacks of loot. A cosy, original world built to respect your
             time and your wallet.
           </p>
-          <form
-            class="signup hero-signup"
-            id="testflight-signup"
-            action="/api/testflight-invite"
-            method="POST"
-            onsubmit="return signup(event);"
-            novalidate
+          <a
+            class="btn btn--green hero-download"
+            href="https://t.co/cQMtSrgSLZ"
+            target="_blank"
+            rel="noopener"
+            >Download on the App Store</a
           >
-            <input
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              aria-label="Email address"
-              required
-            />
-            <input
-              type="text"
-              name="website"
-              tabindex="-1"
-              autocomplete="off"
-              aria-hidden="true"
-              style="
-                position: absolute;
-                left: -9999px;
-                width: 1px;
-                height: 1px;
-                opacity: 0;
-              "
-            />
-            <button class="btn btn--green" type="submit">
-              Get the TestFlight demo
-            </button>
-          </form>
-          <div class="err" id="err" role="alert"></div>
-          <div class="ok" id="ok">
-            🎉 You're in! Check your email for your TestFlight invite.
-          </div>
-          <p class="hero-signup-note">
-            We'll only use your address to send your TestFlight invite.
-          </p>
           <div class="stores">
-            <span class="store"
-              ><span class="soon">Soon</span>
+            <a
+              class="store"
+              href="https://t.co/cQMtSrgSLZ"
+              target="_blank"
+              rel="noopener"
+              aria-label="Download The Last Echo on the App Store"
+              >
               <svg viewBox="0 0 384 512">
                 <path
                   d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"
                 />
               </svg>
-              <span><small>Coming soon to</small><b>App Store</b></span>
-            </span>
+              <span><small>Available on</small><b>App Store</b></span>
+            </a>
             <span class="store"
               ><span class="soon">Soon</span>
               <svg viewBox="0 0 512 512">
@@ -1227,28 +1151,37 @@
       </div>
     </section>
 
-    <!-- ============ WISHLIST CTA ============ -->
-    <section class="cta" id="wishlist">
+    <!-- ============ DOWNLOAD CTA ============ -->
+    <section class="cta" id="download">
       <div class="wrap">
         <div class="cta-box reveal">
-          <h2>Play the demo now</h2>
+          <h2>Play The Last Echo now</h2>
           <p>
-            The Last Echo is now on TestFlight. Drop your email and we'll send
-            you an invite to play the demo. No spam, just your invite.
+            The Last Echo is available now on the App Store. Download the game
+            and start building your party today.
           </p>
-          <a class="btn btn--green" href="#testflight-signup"
-            >Enter your email above</a
+          <a
+            class="btn btn--green"
+            href="https://t.co/cQMtSrgSLZ"
+            target="_blank"
+            rel="noopener"
+            >Download on the App Store</a
           >
           <div class="stores">
-            <span class="store"
-              ><span class="soon">Soon</span>
+            <a
+              class="store"
+              href="https://t.co/cQMtSrgSLZ"
+              target="_blank"
+              rel="noopener"
+              aria-label="Download The Last Echo on the App Store"
+              >
               <svg viewBox="0 0 384 512">
                 <path
                   d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"
                 />
               </svg>
-              <span><small>Coming soon to</small><b>App Store</b></span>
-            </span>
+              <span><small>Available on</small><b>App Store</b></span>
+            </a>
             <span class="store"
               ><span class="soon">Soon</span>
               <svg viewBox="0 0 512 512">
@@ -1275,8 +1208,8 @@
             >
             <p>
               A cosy idle auto-battle RPG with fair, transparent gacha and
-              progression deep enough to optimise for weeks. Coming soon to iOS
-              &amp; Android.
+              progression deep enough to optimise for weeks. Available now on
+              iOS; Android coming soon.
             </p>
           </div>
           <div class="fcol">
@@ -1288,7 +1221,12 @@
             >
             <a href="#fair">Fair Play</a>
             <a href="#screens">Screenshots</a>
-            <a href="#testflight-signup">Play the Demo</a>
+            <a
+              href="https://t.co/cQMtSrgSLZ"
+              target="_blank"
+              rel="noopener"
+              >Download on the App Store</a
+            >
             <a href="/the-last-echo/redeem/">Redeem a Code</a>
           </div>
           <div class="fcol">
@@ -1301,7 +1239,6 @@
           <div class="fcol">
             <h4>Connect</h4>
             <a href="/the-last-echo/about.html">About the Studio</a>
-            <a href="#testflight-signup">Newsletter</a>
             <a href="#" rel="nofollow">Discord</a>
             <a href="#" rel="nofollow">X / Twitter</a>
             <a href="/the-last-echo/support.html">Support &amp; Help</a>
@@ -1332,61 +1269,6 @@
         var lb = document.getElementById("lb");
         document.getElementById("lbimg").src = src;
         lb.classList.add("open");
-      }
-      function signup(e) {
-        e.preventDefault();
-        var f = e.target,
-          email = f.email.value.trim(),
-          btn = f.querySelector("button"),
-          err = document.getElementById("err");
-        err.style.display = "none";
-        f.email.style.outline = "";
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-          f.email.focus();
-          f.email.style.outline = "3px solid #d8584a";
-          return false;
-        }
-        var label = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "Sending…";
-        function fail(text) {
-          btn.disabled = false;
-          btn.textContent = label;
-          f.email.style.outline = "3px solid #d8584a";
-          err.textContent = text || "Something went wrong. Please try again.";
-          err.style.display = "block";
-        }
-        fetch(f.action, {
-          method: "POST",
-          body: new FormData(f),
-          headers: { Accept: "application/json" },
-        })
-          .then(function (res) {
-            if (res.ok) {
-              f.style.display = "none";
-              document.getElementById("ok").style.display = "block";
-              return;
-            }
-            return res
-              .json()
-              .then(function (d) {
-                var m = null;
-                if (d && d.error === "invalid_email") {
-                  m = "Please enter a valid email address.";
-                } else if (d && d.error) {
-                  m =
-                    "We could not send your invite just now. Please try again in a moment.";
-                }
-                fail(m);
-              })
-              .catch(function () {
-                fail();
-              });
-          })
-          .catch(function () {
-            fail("Network error. Please check your connection and try again.");
-          });
-        return false;
       }
       /* scroll reveal */
       var io = new IntersectionObserver(
