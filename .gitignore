@@ -10,6 +10,7 @@
 # cloudflare / opennext build output
 /.open-next/
 .dev.vars
+/supabase/.temp/
 
 # production
 /build

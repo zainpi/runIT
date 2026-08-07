@@ -24,5 +24,17 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // Only the admin area needs sessions — keep the public site cookie-free.
-  matcher: ["/the-last-echo/admin/:path*", "/heaterdeals", "/heaterdeals/:path*"],
+  // Keep the HeaterDeals API out of the Supabase browser-session middleware; it
+  // authenticates with its own short-lived signed session instead.
+  matcher: [
+    "/the-last-echo/admin/:path*",
+    "/heaterdeals",
+    "/heaterdeals/",
+    "/heaterdeals/privacy",
+    "/heaterdeals/privacy/",
+    "/heaterdeals/terms",
+    "/heaterdeals/terms/",
+    "/heaterdeals/support",
+    "/heaterdeals/support/",
+  ],
 };
