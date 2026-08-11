@@ -2,8 +2,29 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  trailingSlash: true,
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/the-last-echo",
+        destination: "/the-last-echo/index.html",
+      },
+      {
+        source: "/the-last-echo/",
+        destination: "/the-last-echo/index.html",
+      },
+      {
+        source: "/the-last-echo/guides",
+        destination: "/the-last-echo/guides/index.html",
+      },
+      {
+        source: "/the-last-echo/guides/",
+        destination: "/the-last-echo/guides/index.html",
+      },
+    ];
   },
   async redirects() {
     return [

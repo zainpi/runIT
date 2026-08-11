@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Game Systems Reference | The Last Echo Player Handbook</title>
+    <meta
+      name="description"
+      content="A practical, first-party reference to The Last Echo's current screen flow, offline rewards, equipment, dungeons, summons, and accessibility settings."
+    />
+    <link
+      rel="canonical"
+      href="https://runs-it.com/the-last-echo/guides/game-systems-reference.html"
+    />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Game Systems Reference | The Last Echo" />
+    <meta
+      property="og:description"
+      content="A screen-by-screen reference for making informed decisions in The Last Echo."
+    />
+    <meta
+      property="og:url"
+      content="https://runs-it.com/the-last-echo/guides/game-systems-reference.html"
+    />
+    <link rel="stylesheet" href="/the-last-echo/editorial.css" />
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6839111786994082"
+      crossorigin="anonymous"
+    ></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "The Last Echo Game Systems Reference",
+        "description": "A first-party reference to the current screen flow, progression loop, dungeons, summons, equipment, and accessibility settings in The Last Echo.",
+        "datePublished": "2026-08-06",
+        "dateModified": "2026-08-06",
+        "author": {
+          "@type": "Organization",
+          "name": "The Last Echo development team",
+          "url": "https://runs-it.com/the-last-echo/about.html"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "runsIT"
+        },
+        "mainEntityOfPage": "https://runs-it.com/the-last-echo/guides/game-systems-reference.html",
+        "image": "https://runs-it.com/the-last-echo/screenshots/new/07-equipment-overview.png"
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <header class="site-head">
+      <nav class="nav" aria-label="Primary">
+        <a class="brand" href="/the-last-echo/"
+          ><img src="/the-last-echo/img/app-icon.png" alt="" />The Last Echo</a
+        >
+        <div class="links">
+          <a href="/the-last-echo/">Game</a>
+          <a href="/the-last-echo/guides/">Guides</a>
+          <a href="/the-last-echo/guides/game-systems-reference.html"
+            >Systems</a
+          >
+          <a href="/the-last-echo/gallery.html">Gallery</a>
+          <a href="/the-last-echo/devlog/why-we-built-the-last-echo.html"
+            >Devlog</a
+          >
+          <a href="/the-last-echo/about.html">About</a>
+          <a
+            href="https://apps.apple.com/us/app/the-last-echo-idle-rpg/id6788888795"
+            target="_blank"
+            rel="noopener"
+            >Download</a
+          >
+        </div>
+      </nav>
+    </header>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Current-build player handbook</div>
+        <h1>The systems reference</h1>
+        <p class="dek">
+          A screen-by-screen explanation of the decisions behind offline
+          rewards, equipment, dungeons, summons, and player settings.
+        </p>
+      </div>
+    </section>
+    <article class="page" id="content">
+      <p class="meta">
+        Written and maintained by
+        <a href="/the-last-echo/about.html">The Last Echo development team</a>
+        · Updated August 6, 2026 · Current App Store build
+      </p>
+
+      <nav class="toc" aria-label="On this page">
+        <strong>On this page</strong>
+        <a href="#loop">The play loop</a>
+        <a href="#screens">Screen map</a>
+        <a href="#offline">Offline rewards</a>
+        <a href="#equipment">Equipment</a>
+        <a href="#dungeons">Dungeons</a>
+        <a href="#summons">Summons</a>
+        <a href="#accessibility">Accessibility</a>
+        <a href="#decisions">Decision loop</a>
+      </nav>
+
+      <p>
+        The Last Echo has several progression screens, but they are easier to
+        understand when treated as one connected loop. This reference explains
+        what each screen is for, what information it exposes, and what a player
+        can learn from it. It is written from the current game build and the
+        original captures in the <a href="/the-last-echo/gallery.html">gameplay
+        gallery</a>; it is not a promise that future balance updates will use
+        the same numbers or layout.
+      </p>
+
+      <h2 id="loop">The play loop: prepare, advance, inspect</h2>
+      <p>
+        The central loop has three kinds of work. The game performs repeated
+        execution through auto-battle and offline progress. The player provides
+        judgment by choosing equipment, abilities, upgrades, and activities.
+        Results then provide the evidence for the next decision. Keeping those
+        responsibilities separate is useful because a larger number is not
+        automatically an explanation of why a build improved.
+      </p>
+      <ol class="step-list">
+        <li>
+          <strong>Prepare.</strong> Start at the home hub and review the Gear,
+          Ability, and Upgrade screens. Fill missing equipment slots, compare a
+          replacement with the item it would remove, and spend resources only
+          when the intended effect is clear.
+        </li>
+        <li>
+          <strong>Advance.</strong> Let the party work through a stage and watch
+          the visible DPS and Gold-per-minute indicators. A stable stage is a
+          better offline starting point than a stage that only succeeds once in
+          a while.
+        </li>
+        <li>
+          <strong>Inspect the return.</strong> When you come back, the Welcome
+          Back panel reports elapsed time, collected resources, and AFK boxes.
+          Collect those rewards, then check whether the stage and build still
+          match the goal you had before leaving.
+        </li>
+        <li>
+          <strong>Test one change.</strong> Use a dungeon or world-boss attempt
+          as a repeatable comparison. Change one meaningful variable, run the
+          test again, and keep the change only if it solves the problem you were
+          trying to solve.
+        </li>
+      </ol>
+
+      <h2 id="screens">Screen map</h2>
+      <p>
+        The bottom navigation groups the game's major decisions. The table below
+        is a quick way to choose where to look instead of opening every menu at
+        random.
+      </p>
+      <div class="table-scroll">
+        <table class="reference-table">
+          <thead>
+            <tr>
+              <th scope="col">Screen</th>
+              <th scope="col">What it answers</th>
+              <th scope="col">Useful next action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Home / stage</strong></td>
+              <td>Is the current party advancing, and at what DPS and Gold rate?</td>
+              <td>Watch a full encounter before changing the build.</td>
+            </tr>
+            <tr>
+              <td><strong>Gear</strong></td>
+              <td>Which item is equipped, what is in the inventory, and how do the statistics change?</td>
+              <td>Compare one replacement, then equip or lock it.</td>
+            </tr>
+            <tr>
+              <td><strong>Ability</strong></td>
+              <td>Which active or passive effect can address the current failure?</td>
+              <td>Choose damage, survival, or consistency based on evidence.</td>
+            </tr>
+            <tr>
+              <td><strong>Upgrade</strong></td>
+              <td>Which permanent or hero investment is available now?</td>
+              <td>Spend resources where the next test can show a clear result.</td>
+            </tr>
+            <tr>
+              <td><strong>Dungeon</strong></td>
+              <td>Which resource, trial, attempts, and difficulty are available?</td>
+              <td>Use the activity whose reward helps the build you are testing.</td>
+            </tr>
+            <tr>
+              <td><strong>Summon</strong></td>
+              <td>What pool, cost, possible rewards, odds, and guarantee apply to this banner?</td>
+              <td>Read the active banner before confirming a pull.</td>
+            </tr>
+            <tr>
+              <td><strong>Settings</strong></td>
+              <td>Can the controls, motion, contrast, audio, or account settings fit the player?</td>
+              <td>Set accessibility options before a long session.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="offline">Offline rewards: the return screen is a checkpoint</h2>
+      <p>
+        Offline progress is designed to handle routine battles while the player
+        is away. The Welcome Back screen does more than show a single currency
+        total: it reports how long the account was away, separates Gold and
+        Harpenny, and lists the AFK boxes that were earned during that period.
+        The support FAQ documents a current 24-hour offline cap, so leaving the
+        app closed for longer does not mean the reward calculation grows
+        without limit.
+      </p>
+      <img
+        class="shot"
+        src="/the-last-echo/screenshots/new/02-offline-rewards.png"
+        alt="Welcome Back screen showing 8 hours 14 minutes away, Gold and Harpenny rewards, and Legendary, Epic, and Rare AFK boxes"
+        width="2814"
+        height="1582"
+        loading="lazy"
+      />
+      <p class="shot-caption">
+        In this original capture, the return summary shows 8h 14m away, +470B
+        Gold, +330 Harpenny, one Legendary AFK Box, two Epic AFK Boxes, and one
+        Rare AFK Box. Those values are an example of one account state, not a
+        universal drop promise.
+      </p>
+      <p>
+        A good return routine is simple: collect the summary, open the relevant
+        boxes, check the current stage, and then decide whether the new items
+        solve a real bottleneck. Offline rewards provide materials and options;
+        they do not decide which equipment or ability combination is best for
+        the next encounter.
+      </p>
+
+      <h2 id="equipment">Equipment: compare a change before committing</h2>
+      <p>
+        The Gear screen keeps the paper-doll, inventory, and character
+        statistics close together. In the captured build, armor can be filtered
+        by All, Head, Shoulders, Chest, Legs, Boots, or Accessories; the list
+        can be sorted by rarity, items can be locked, and bulk dismantling is
+        available. Those controls make inventory maintenance faster, but the
+        comparison panel is what makes a build decision understandable.
+      </p>
+      <img
+        class="shot"
+        src="/the-last-echo/screenshots/new/07-equipment-overview.png"
+        alt="Equipment overview showing the character paper-doll, armor filters, inventory, Equip Best control, and visible statistics"
+        width="2814"
+        height="1582"
+        loading="lazy"
+      />
+      <div class="table-scroll">
+        <table class="reference-table">
+          <thead>
+            <tr>
+              <th scope="col">If you notice...</th>
+              <th scope="col">Try this question</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>The party loses early</td>
+              <td>Does the replacement improve defence, health, or regeneration enough to survive the failure point?</td>
+            </tr>
+            <tr>
+              <td>The party survives but stalls</td>
+              <td>Does the item increase damage or improve the ability interaction that is slowing the run?</td>
+            </tr>
+            <tr>
+              <td>Results vary from run to run</td>
+              <td>Would a slightly less explosive item produce a more reliable result?</td>
+            </tr>
+            <tr>
+              <td>The inventory is filling up</td>
+              <td>Lock anything you are testing, compare before dismantling, and use the filters to reduce noise.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="dungeons">Dungeons: make limited attempts comparable</h2>
+      <p>
+        Dungeons are a useful bridge between routine stages and build tests. The
+        current Resource view shows separate activities such as Cave of Echoes,
+        Sunken Temple, and Frozen Vault, along with their reward type, key cost,
+        and remaining attempts. Difficulty is presented as a progression: the
+        captured screen shows Normal available while Hard and Hell remain locked
+        until the preceding difficulty is cleared.
+      </p>
+      <img
+        class="shot"
+        src="/the-last-echo/screenshots/new/18-dungeon-selection.png"
+        alt="Dungeon selection screen showing Cave of Echoes, Sunken Temple, Frozen Vault, attempts, keys, and locked Hard and Hell difficulties"
+        width="2814"
+        height="1582"
+        loading="lazy"
+      />
+      <p>
+        The screen also explains an important distinction: new levels supply a
+        reward key, while keyless repeats give equipment loot and mission
+        progress only. That makes a dungeon run a resource decision, not just a
+        button to press whenever it is available. Before starting, choose the
+        activity whose reward answers the current need, confirm the difficulty,
+        and reserve attempts for a build you are actually evaluating.
+      </p>
+
+      <h2 id="summons">Summons: read each banner at the point of choice</h2>
+      <p>
+        Randomized rewards are easiest to understand when the banner itself is
+        treated as the source of truth. Check the active tab, the featured item,
+        the pool and tiers, the cost, and any guarantee or pity text before you
+        spend currency. The current public Terms list the standard ability-pull
+        probabilities and the hard-pity rules, while the in-game banner remains
+        authoritative when a particular event uses different details.
+      </p>
+      <img
+        class="shot"
+        src="/the-last-echo/screenshots/new/11-summon-banner.png"
+        alt="Featured Summon banner showing Divine Mallet, item tiers, a Transcendent-plus guarantee, and the Summon and Event Summon tabs"
+        width="2814"
+        height="1582"
+        loading="lazy"
+      />
+      <p>
+        The capture illustrates why banner-specific reading matters: it names a
+        Featured Summon, identifies Divine Mallet, shows the highest tier in the
+        pool, and includes a guarantee message. Those are decision details, not
+        decorative copy. If the displayed odds, pity counter, or result appears
+        inconsistent, save the screen and report the app version and device via
+        <a href="/the-last-echo/support.html">support</a>.
+      </p>
+      <div class="callout">
+        <strong>Before a pull:</strong> write down the goal of the pull, read the
+        active banner, confirm the cost and pity position, and stop if the
+        possible reward does not improve the build you are testing. Full
+        published rates are available in the
+        <a href="/the-last-echo/terms.html#gacha">gacha disclosure</a>.
+      </div>
+
+      <h2 id="accessibility">Accessibility settings are part of the build</h2>
+      <p>
+        The game exposes accessibility controls alongside general, audio,
+        gameplay, account, privacy, and developer settings. In the current
+        screen, Colorblind Mode adds shape cues to rarity indicators, Reduce
+        Motion cuts screen shake and parallax drift, Reduce Flashing dims bright
+        flashes and strobes, High Contrast Mode strengthens borders and text,
+        Movement Keys changes where on-screen controls appear, and UI Size
+        provides a separate way to adjust readability.
+      </p>
+      <img
+        class="shot"
+        src="/the-last-echo/screenshots/new/26-settings-accessibility.png"
+        alt="Accessibility settings showing colorblind mode, reduce motion, battle scrolling, reduce flashing, high contrast, movement keys, and UI size"
+        width="2814"
+        height="1582"
+        loading="lazy"
+      />
+      <p>
+        These options are useful before a difficult session, not only after a
+        problem occurs. If flashing, motion, small text, or control placement
+        makes a screen tiring to use, adjust the setting first and then judge
+        the game system. A setting that makes information easier to read is part
+        of a better build experience.
+      </p>
+
+      <h2 id="decisions">A practical decision loop</h2>
+      <p>
+        When progress slows, use this short loop to turn a vague feeling into a
+        testable change:
+      </p>
+      <ol class="step-list">
+        <li><strong>Name the failure point.</strong> Early defeat, a damage stall, or inconsistent results each suggests a different fix.</li>
+        <li><strong>Choose one screen.</strong> Gear, Ability, Upgrade, Dungeon, or Summon should each answer a different question.</li>
+        <li><strong>Change one variable.</strong> Replacing every item and spending every currency at once hides the cause of an improvement.</li>
+        <li><strong>Repeat the same test.</strong> Use the same stage, dungeon difficulty, or world-boss attempt when possible.</li>
+        <li><strong>Record what worked.</strong> Keep the change if it improves the intended result; otherwise revert and test a different hypothesis.</li>
+      </ol>
+
+      <h2 id="updates">How this reference stays accurate</h2>
+      <p>
+        This page is maintained by the development team and separates current
+        screen behavior from future plans. Screenshots are original captures
+        from the App Store build, and example reward values are labeled as
+        examples rather than presented as universal rates. When a UI or rule
+        changes, we update the affected explanation and the revision date.
+      </p>
+      <div class="callout">
+        <strong>See something different?</strong> Send the app version, device
+        model, screen name, and a screenshot to
+        <a href="mailto:info@runs-it.com">info@runs-it.com</a>. A report that
+        explains what you expected and what happened is especially helpful.
+      </div>
+      <p class="sources related-links">
+        Continue reading:
+        <a href="/the-last-echo/guides/first-demo-guide.html"
+          >first game-session guide</a
+        >
+        ·
+        <a href="/the-last-echo/guides/how-idle-progression-works.html"
+          >how idle progression works</a
+        >
+        ·
+        <a href="/the-last-echo/guides/fair-gacha-design.html"
+          >fair-gacha rules</a
+        >
+        · <a href="/the-last-echo/gallery.html">gameplay gallery</a>
+      </p>
+    </article>
+    <footer>
+      <a href="/the-last-echo/privacy.html">Privacy</a
+      ><a href="/the-last-echo/terms.html">Terms</a
+      ><a href="/the-last-echo/support.html">Support</a>
+      <p>© 2026 The Last Echo · runsIT</p>
+    </footer>
+  </body>
+</html>
