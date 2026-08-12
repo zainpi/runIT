@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isAdminArea = path.startsWith("/the-last-echo/admin");
-  const isLoginPage = path === "/the-last-echo/admin/login";
+  const isLoginPage = path.replace(/\/$/, "") === "/the-last-echo/admin/login";
 
   if (isAdminArea && !isLoginPage && !user) {
     const url = request.nextUrl.clone();
