@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.env
+.env.*
+.neutronium-dev
+.open-next
+.dev.vars
+*.tsbuildinfo
+
+.wrangler
+**/.env
+**/.env.*
+**/bootstrap-credentials.txt
+**/backups
+**/*.pem

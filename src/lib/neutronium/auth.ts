@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { accountAuth } from "./accounts";
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 import { Actor, DomainError, Role, platformRoles } from "./model";
 import { db, developmentEnabled, readWorkspace } from "./store";
@@ -38,27 +38,6 @@ export async function setDemo(actor: Actor) {
     maxAge: 8 * 3600,
   });
 }
-export async function supabaseAuth() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
-    key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key)
-    throw new DomainError("Authentication is not configured.", 503);
-  const jar = await cookies();
-  return createServerClient(url, key, {
-    cookies: {
-      getAll: () => jar.getAll(),
-      setAll: (values) =>
-        values.forEach((c) =>
-          jar.set(c.name, c.value, {
-            ...c.options,
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-          }),
-        ),
-    },
-  });
-}
 export async function actorFor(orgId?: string): Promise<Actor> {
   const jar = await cookies();
   const signed = jar.get(cookieName)?.value;
@@ -81,7 +60,7 @@ export async function actorFor(orgId?: string): Promise<Actor> {
       }
     }
   }
-  const client = await supabaseAuth();
+  const client = await accountAuth();
   const {
     data: { user },
   } = await client.auth.getUser();
@@ -163,9 +142,9 @@ export async function actorFor(orgId?: string): Promise<Actor> {
 export async function signOut() {
   (await cookies()).delete(cookieName);
   try {
-    await (await supabaseAuth()).auth.signOut();
+    await (await accountAuth()).auth.signOut();
   } catch {
-    /* demo has no Supabase session */
+    /* demo has no database session */
   }
 }
 export function appOrigin(request: Request) {
@@ -182,7 +161,7 @@ export function sameOrigin(request: Request) {
 export async function rateLimit(key: string, limit = 20, seconds = 60) {
   if (developmentEnabled()) return;
   const { data, error } = await db().rpc("neutronium_rate_limit", {
-    p_key: createHmac("sha256", process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    p_key: createHmac("sha256", process.env.NEUTRONIUM_CRON_SECRET || (() => { throw new DomainError("Configure NEUTRONIUM_CRON_SECRET.", 503); })())
       .update(key)
       .digest("hex"),
     p_limit: limit,

@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { database } from "./postgres";
 import { Workspace, DomainError } from "./model";
 const buckets = [
   "employees",
@@ -14,18 +14,7 @@ const buckets = [
 export const developmentEnabled = () =>
   process.env.NODE_ENV === "development" &&
   process.env.NEUTRONIUM_DISABLE_DEMO !== "true";
-export function db() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key)
-    throw new DomainError(
-      "Neutronium database is not configured. Set the Supabase service credentials and apply the migration.",
-      503,
-    );
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+export const db = database;
 async function localRoot() {
   const fs = await import("node:fs/promises");
   const path = await import("node:path");

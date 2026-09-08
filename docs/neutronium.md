@@ -30,11 +30,11 @@ The browser also nudges the local worker every 1.4 seconds for convenient demos.
 
 - `src/lib/neutronium/model.ts`: typed entities, seed, role policy, approver resolution, response projection.
 - `service.ts`: bounded command handlers. Every employee/resource lookup is within the authenticated organization. Commands validate role, target, input and state before mutation.
-- `store.ts`: local development adapter and production Supabase repository. Production mutations use a Postgres row lock and revision compare-and-swap RPC, so a losing concurrent command retries against current state.
+- `store.ts`: local development adapter and production PostgreSQL repository. Production mutations use a Postgres row lock and revision compare-and-swap RPC, so a losing concurrent command retries against current state.
 - `providers.ts`: identity, email, application, HR, device, and calendar contracts; Microsoft Graph implementation; explicitly labeled development adapter; authenticated encryption.
 - `worker.ts`: durable jobs, step leases, retry backoff, expired-grant scheduling, in-app notifications, optional Resend email outbox.
 - `/neutronium/api/[...path]`: authentication, organizations, commands, Microsoft consent, inventory sync, invitations, scheduler.
-- `supabase/migrations/20260908000000_neutronium.sql`: isolated `neutronium_*` namespace. No changes to existing application tables.
+- `deploy/neutronium/migrations/001_initial.sql`: isolated `neutronium_*` namespace. No changes to existing application tables.
 
 The relational database stores organizations, user memberships, operator memberships/scopes, employees, applications, templates, employee access grants, requests, jobs, audit events, notifications, integrations, encrypted credentials, OAuth nonces, and rate-limit windows. Each tenant entity has a composite `(organization_id, id)` primary key. Employee email uniqueness and cross-tenant foreign keys are enforced in PostgreSQL. Generated employee/application/manager/template columns support relational constraints and indexes. Lifecycle enums are checked at the database boundary. Employees and templates are deactivated instead of deleted.
 
@@ -57,40 +57,19 @@ Audit events are append-only at the database level. They include actor, organiza
 
 Approvals may require manager, application owner, administrator, or a sequence. Self-approval is forbidden. The request stores a policy snapshot; changing the company policy does not rewrite an existing approval chain. An approver can approve, reject, or request information; the requester can reply. All requested stages must approve before a grant job exists.
 
-Direct `anon` and `authenticated` SQL table/RPC access is revoked and RLS is enabled with no permissive client policies. Browser access is exclusively through authenticated server projections. Only the server holds the Supabase service-role key. Employees cannot fetch other employees' private fields, integration records, templates, or support notes. Demo personas are server-signed and isolated to one development workspace; the demo directory intentionally shows sample employee names to make switching personas possible.
+PostgreSQL is private to the VPS Docker network. The application connects as the dedicated database owner; public table/function privileges are revoked and RLS is enabled. Browser access is exclusively through authenticated server projections. Employees cannot fetch other employees' private fields, integration records, templates, or support notes. Demo personas are server-signed and isolated to one development workspace; the demo directory intentionally shows sample employee names to make switching personas possible.
 
 Production employee sessions are denied when offboarding becomes due, independent of whether Microsoft is temporarily unavailable. Operators need explicit assignments in `neutronium_platform_scopes`, except the platform owner. Provision operator roles/scopes using trusted database administration, never browser self-service.
 
 ## Production setup
 
-Apply the migration to your Supabase project. Configure these environment variables in the runtime (use Cloudflare secrets for private values):
+Neutronium runs on a VPS with Docker Compose: Node.js, PostgreSQL 17, Caddy HTTPS, and a persistent scheduler. It does not require Supabase. Other applications in this repository retain their own Supabase integration.
 
-```dotenv
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-SUPABASE_SERVICE_ROLE_KEY=server-only-service-role-key
-NEUTRONIUM_APP_URL=https://your-domain.example
-NEUTRONIUM_MICROSOFT_CLIENT_ID=application-client-id
-NEUTRONIUM_MICROSOFT_CLIENT_SECRET=server-only-client-secret
-NEUTRONIUM_ACTIVE_KEY_VERSION=v1
-NEUTRONIUM_ENCRYPTION_KEYS={"v1":"BASE64_ENCODED_32_BYTE_KEY"}
-NEUTRONIUM_CRON_SECRET=long-random-scheduler-secret
-# Optional email notifications via Resend:
-NEUTRONIUM_EMAIL_API_KEY=server-only-resend-key
-NEUTRONIUM_EMAIL_FROM=Neutronium <notifications@your-verified-domain.example>
-```
+See [VPS deployment](../deploy/neutronium/README.md) for installation, backups, updates and migration notes. Copy `.env.neutronium.example` to `deploy/neutronium/.env`, supply a domain, database password, scheduler secret, encryption keyring and email credentials. Set `NEUTRONIUM_APP_URL` to the HTTPS origin. All secrets stay server-side.
 
-Generate an encryption key locally with `openssl rand -base64 32`; generate a separate scheduler secret. Do not commit either. All nodes must share the same versioned keyring. To rotate, add a new key while retaining the previous key and update `NEUTRONIUM_ACTIVE_KEY_VERSION`. Newly cached credentials use the active key. Existing records remain decryptable until refreshed/re-encrypted; do not remove old keys prematurely.
+Authentication uses salted scrypt password hashes and random 256-bit session tokens stored only as SHA-256 hashes in PostgreSQL. Cookies are HttpOnly, Secure in production, SameSite=Lax, scoped to `/neutronium`, and expire after eight hours. Email confirmation and invitation links are single-use, expire after 24 hours, and are delivered through the existing Resend configuration. Password changes revoke all previous sessions and authentication links. Configure email delivery before enabling signup/invitations. Existing verified users can sign in normally after an administrator assigns their membership.
 
-Supabase authentication uses secure, HttpOnly, SameSite=Lax cookies. Production requires HTTPS. Configure the Supabase site URL and allowed redirect URLs. Set invitation, signup and recovery email links to the server-confirmation flow, using the appropriate type:
-
-```text
-https://your-domain.example/neutronium/api/auth/confirm/?token_hash={{ .TokenHash }}&type=invite
-https://your-domain.example/neutronium/api/auth/confirm/?token_hash={{ .TokenHash }}&type=signup
-https://your-domain.example/neutronium/api/auth/confirm/?token_hash={{ .TokenHash }}&type=recovery
-```
-
-Employees follow an invitation, then can set their password in My profile. Create a company through the signup/sign-in flow. An owner invites employees from their directory profile, selecting the employee/manager/approver/HR role. If the email already exists in Supabase, supply its verified user ID; the server verifies its email matches the employee before assigning membership. Configure Supabase SMTP delivery before inviting real users. Production authentication, SMTP delivery, and live Microsoft consent require real credentials and were not executed by the local test suite.
+Generate an encryption key with `openssl rand -base64 32`; use separate random values for the database password and scheduler secret. Keep previous encryption keys when rotating so existing credentials remain readable.
 
 ### Microsoft registration
 
@@ -122,7 +101,7 @@ References used for the adapter: [Create user](https://learn.microsoft.com/en-us
 
 ### Scheduler and reliability
 
-The existing Cloudflare wrapper has an additional once-per-minute trigger for Neutronium. The existing HeaterDeals five-minute trigger remains separate. Set `NEUTRONIUM_CRON_SECRET` on the deployed worker. Other hosts can schedule:
+The VPS scheduler invokes Neutronium once per minute and retries after failures. Keep the Neutronium scheduler secret only on the VPS. The website’s existing Cloudflare deployment is separate. Other hosts can schedule:
 
 ```sh
 curl -X POST https://your-domain.example/neutronium/api/worker/ \

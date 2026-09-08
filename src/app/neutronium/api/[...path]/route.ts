@@ -1,3 +1,4 @@
+import { accountAuth, accountById, inviteAccount } from "@/lib/neutronium/accounts";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import {
@@ -5,7 +6,6 @@ import {
   setDemo,
   sameOrigin,
   appOrigin,
-  supabaseAuth,
   signOut,
   rateLimit,
 } from "@/lib/neutronium/auth";
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest, ctx: Context) {
     if (path === "config")
       return json({
         demoAvailable: developmentEnabled(),
-        authConfigured: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        authConfigured: !!process.env.NEUTRONIUM_DATABASE_URL,
         microsoftFeatures,
       });
     if (path === "auth/confirm") {
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest, ctx: Context) {
       )
         throw new DomainError("Invalid authentication link.");
       const { error } = await (
-        await supabaseAuth()
+        await accountAuth()
       ).auth.verifyOtp({
         token_hash,
         type: type as "invite" | "signup" | "recovery" | "email",
@@ -181,7 +181,7 @@ export async function GET(req: NextRequest, ctx: Context) {
           .eq("user_id", a.id);
         if (error)
           throw new DomainError("Operator assignments unavailable.", 503);
-        const ids = new Set((data || []).map((s) => s.organization_id));
+        const ids = new Set((data || []).map((s: { organization_id: string }) => s.organization_id));
         all = all.filter((o) => ids.has(o.id));
       }
       const companies = await Promise.all(
@@ -277,6 +277,7 @@ export async function POST(req: NextRequest, ctx: Context) {
       if (
         typeof input.email !== "string" ||
         typeof input.password !== "string" ||
+        input.password.length > 128 ||
         (path === "signup"
           ? input.password.length < 12
           : !input.password.length)
@@ -284,7 +285,8 @@ export async function POST(req: NextRequest, ctx: Context) {
         throw new DomainError(
           "Enter a valid email and password. New passwords need at least 12 characters.",
         );
-      const auth = await supabaseAuth();
+      await rateLimit(`auth-email:${input.email.trim().toLowerCase()}`, 10, 60);
+      const auth = await accountAuth();
       const result =
         path === "signup"
           ? await auth.auth.signUp({
@@ -311,7 +313,7 @@ export async function POST(req: NextRequest, ctx: Context) {
     if (path === "organization") {
       const {
         data: { user },
-      } = await (await supabaseAuth()).auth.getUser();
+      } = await (await accountAuth()).auth.getUser();
       if (!user) throw new DomainError("Sign in first.", 401);
       await rateLimit(`create:${user.id}`, 3, 3600);
       if (
@@ -351,7 +353,7 @@ export async function POST(req: NextRequest, ctx: Context) {
       )
         throw new DomainError("Use a password between 12 and 128 characters.");
       const { error } = await (
-        await supabaseAuth()
+        await accountAuth()
       ).auth.updateUser({ password: input.password });
       if (error)
         throw new DomainError(
@@ -539,24 +541,12 @@ export async function POST(req: NextRequest, ctx: Context) {
         );
       let userId: string;
       if (input.userId) {
-        const { data, error } = await db().auth.admin.getUserById(
-          String(input.userId),
-        );
-        if (error || data.user?.email?.toLowerCase() !== e.email)
-          throw new DomainError(
-            "The supplied user does not match the employee email.",
-          );
-        userId = data.user.id;
+        const user = await accountById(String(input.userId));
+        if (!user || user.email.toLowerCase() !== e.email.toLowerCase())
+          throw new DomainError("The supplied user does not match the employee email.");
+        userId = user.id;
       } else {
-        const { data, error } = await db().auth.admin.inviteUserByEmail(
-          e.email,
-          { redirectTo: `${appOrigin(req)}/neutronium` },
-        );
-        if (error || !data.user)
-          throw new DomainError(
-            "Invitation could not be sent. If this account already exists, enter its verified Supabase user ID.",
-          );
-        userId = data.user.id;
+        userId = (await inviteAccount(e.email)).id;
       }
       const { data: existingMember } = await db()
         .from("neutronium_memberships")

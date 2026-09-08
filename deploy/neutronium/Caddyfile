@@ -1,0 +1,17 @@
+{$NEUTRONIUM_DOMAIN} {
+  encode zstd gzip
+  @root path /
+  redir @root /neutronium/ 302
+  handle /neutronium/* {
+    reverse_proxy app:3000 {
+      header_up -CF-Connecting-IP
+      header_up X-Forwarded-For {remote_host}
+    }
+  }
+  handle /_next/* {
+    reverse_proxy app:3000
+  }
+  handle {
+    respond "Not found" 404
+  }
+}

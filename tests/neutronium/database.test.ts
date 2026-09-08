@@ -7,16 +7,16 @@ test("PostgreSQL migration: tenant isolation, atomic CAS, foreign keys, audit im
   const db = new PGlite();
   try {
     await db.exec(
-      "create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key);",
+      "create role authenticated;",
     );
     await db.exec(
       await readFile(
-        "supabase/migrations/20260908000000_neutronium.sql",
+        "deploy/neutronium/migrations/001_initial.sql",
         "utf8",
       ),
     );
     const owner = uid();
-    await db.query("insert into auth.users values($1)", [owner]);
+    await db.query("insert into neutronium_users(id,email) values($1,'owner@example.com')", [owner]);
     const a = seed();
     const b = seed();
     await db.query("select neutronium_create($1,$2)", [

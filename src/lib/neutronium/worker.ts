@@ -1,3 +1,4 @@
+import { accountById } from "./accounts";
 import {
   Actor,
   Workspace,
@@ -238,8 +239,8 @@ export async function deliverNotifications(orgId: string) {
         .eq("active", true)
         .in("role", ["ORG_OWNER", "ORG_ADMIN"]);
       for (const member of data || []) {
-        const { data } = await db().auth.admin.getUserById(member.user_id);
-        if (data.user?.email) addresses.push(data.user.email);
+        const user = await accountById(member.user_id);
+        if (user?.email) addresses.push(user.email);
       }
     } else {
       const e = w.employees.find((e) => e.id === n.recipientId);

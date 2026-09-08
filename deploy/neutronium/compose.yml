@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: neutronium
+      POSTGRES_USER: neutronium
+      POSTGRES_PASSWORD: ${NEUTRONIUM_POSTGRES_PASSWORD:?Set database password}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U neutronium -d neutronium']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    command: [postgres, -c, shared_buffers=32MB, -c, max_connections=30]
+  app:
+    image: neutronium-app
+    build:
+      context: ../..
+      dockerfile: deploy/neutronium/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NEUTRONIUM_DATABASE_URL: postgres://neutronium:${NEUTRONIUM_POSTGRES_PASSWORD}@db:5432/neutronium
+      NEUTRONIUM_DISABLE_DEMO: 'true'
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: ['127.0.0.1:3000:3000']
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/neutronium/api/config/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  scheduler:
+    image: node:22-bookworm-slim
+    restart: unless-stopped
+    environment:
+      NEUTRONIUM_CRON_SECRET: ${NEUTRONIUM_CRON_SECRET:?Set scheduler secret}
+    volumes: ['./scheduler.mjs:/scheduler.mjs:ro']
+    command: [node, /scheduler.mjs]
+    depends_on:
+      app:
+        condition: service_healthy
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      NEUTRONIUM_DOMAIN: ${NEUTRONIUM_DOMAIN:?Set HTTPS domain}
+    ports: ['80:80', '443:443', '443:443/udp']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+volumes:
+  postgres:
+  caddy_data:
+  caddy_config:

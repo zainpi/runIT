@@ -37,3 +37,7 @@ next-env.d.ts
 
 # Neutronium local development data
 /.neutronium-dev/
+
+/deploy/neutronium/backups/
+
+/deploy/neutronium/bootstrap-credentials.txt

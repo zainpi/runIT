@@ -31,6 +31,8 @@ Do **not** deploy production directly with `wrangler deploy` from a local
 machine. Verify changes with `npm run build`, then commit and push them through
 GitHub so the configured deployment pipeline remains the source of truth.
 
+Neutronium is deployed separately on a DigitalOcean VPS; see [VPS instructions](deploy/neutronium/README.md). Its PostgreSQL database, sessions, and scheduler run there.
+
 ## Pages
 
 | Route            | Description                                                      |

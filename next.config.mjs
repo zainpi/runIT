@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  ...(process.env.NEUTRONIUM_STANDALONE === "true" ? { output: "standalone", experimental: { cpus: 1 } } : {}),
   poweredByHeader: false,
   trailingSlash: true,
   async headers() {
@@ -49,6 +50,9 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      ...(process.env.NODE_ENV === "production" && process.env.NEUTRONIUM_STANDALONE !== "true"
+        ? [{ source: "/neutronium/:path*", destination: "https://neutronium.runsit.ca/neutronium/:path*", permanent: false }]
+        : []),
       { source: "/", destination: "/the-last-echo/", permanent: true },
       { source: "/services", destination: "/", permanent: true },
       { source: "/case-studies", destination: "/", permanent: true },

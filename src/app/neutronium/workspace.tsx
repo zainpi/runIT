@@ -3222,7 +3222,7 @@ function WorkspaceDialog({
                     ))}
                   </select>
                 </Field>
-                <Field label="Existing Supabase user ID (optional)">
+                <Field label="Existing Neutronium user ID (optional)">
                   <input
                     name="userId"
                     placeholder="Use only for an already registered employee"

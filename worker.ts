@@ -5,7 +5,6 @@ import openNextWorker from "./.open-next/worker.js";
 
 type WorkerEnvironment = {
   HEATERDEALS_CRON_SECRET?: string;
-  NEUTRONIUM_CRON_SECRET?: string;
   WORKER_SELF_REFERENCE?: { fetch(input: RequestInfo, init?: RequestInit): Promise<Response> };
 };
 
@@ -28,12 +27,6 @@ export default {
     env: WorkerEnvironment,
     ctx: HeaterDealsExecutionContext,
   ) {
-    if (_controller.cron === "* * * * *" && env.NEUTRONIUM_CRON_SECRET) {
-      const request = new Request("https://runsit.ca/neutronium/api/worker", {
-        method: "POST", headers: { authorization: `Bearer ${env.NEUTRONIUM_CRON_SECRET}` },
-      });
-      ctx.waitUntil(env.WORKER_SELF_REFERENCE ? env.WORKER_SELF_REFERENCE.fetch(request) : fetch(request));
-    }
     if (_controller.cron !== "*/5 * * * *") return;
     const secret = env.HEATERDEALS_CRON_SECRET;
     if (!secret) return;
