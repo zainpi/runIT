@@ -21,7 +21,21 @@ type HeaterDealsExecutionContext = {
 const marketplaces = ["us", "ca", "de", "uk"] as const;
 
 export default {
-  fetch: openNextWorker.fetch,
+  fetch(
+    request: Request,
+    env: WorkerEnvironment,
+    ctx: HeaterDealsExecutionContext,
+  ) {
+    const url = new URL(request.url);
+    if (
+      (url.hostname === "runsit.ca" || url.hostname === "www.runsit.ca") &&
+      (url.pathname === "/neutronium" || url.pathname.startsWith("/neutronium/"))
+    ) {
+      url.hostname = "neutronium.runsit.ca";
+      return Response.redirect(url.toString(), 307);
+    }
+    return openNextWorker.fetch(request, env, ctx);
+  },
   async scheduled(
     _controller: HeaterDealsScheduledController,
     env: WorkerEnvironment,

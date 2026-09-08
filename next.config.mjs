@@ -55,9 +55,6 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      ...(process.env.NODE_ENV === "production" && process.env.NEUTRONIUM_STANDALONE !== "true"
-        ? [{ source: "/neutronium/:path*", destination: "https://neutronium.runsit.ca/neutronium/:path*", permanent: false }]
-        : []),
       { source: "/", destination: "/the-last-echo/", permanent: true },
       { source: "/services", destination: "/", permanent: true },
       { source: "/case-studies", destination: "/", permanent: true },
