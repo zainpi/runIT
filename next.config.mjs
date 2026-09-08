@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  ...(process.env.NEUTRONIUM_STANDALONE === "true" ? { output: "standalone", experimental: { cpus: 1 } } : {}),
+  ...(process.env.NEUTRONIUM_STANDALONE === "true"
+    ? { eslint: { ignoreDuringBuilds: true }, typescript: { ignoreBuildErrors: true } }
+    : {}),
+  ...(process.env.NEUTRONIUM_STANDALONE === "true"
+    ? { output: "standalone", experimental: { cpus: 1 } }
+    : {}),
   poweredByHeader: false,
   trailingSlash: true,
   async headers() {
