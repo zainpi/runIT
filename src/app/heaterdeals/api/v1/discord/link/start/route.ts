@@ -1,10 +1,12 @@
 import {
   apiJson,
+  checkBodySize,
   enforceRateLimit,
+  beginDiscordLink,
   getAdminClient,
   handleApiError,
+  requireActiveSubscription,
   requireSession,
-  unlinkDiscord,
 } from "@/lib/heaterdeals/server";
 
 export const runtime = "nodejs";
@@ -15,22 +17,23 @@ export async function OPTIONS(request: Request) {
     headers: {
       "access-control-allow-origin": request.headers.get("origin") ?? "*",
       "access-control-allow-headers": "authorization, content-type, idempotency-key, x-app-attest",
-      "access-control-allow-methods": "DELETE, OPTIONS",
+      "access-control-allow-methods": "POST, OPTIONS",
       "access-control-max-age": "86400",
     },
   });
 }
 
-export async function DELETE(request: Request) {
+export async function POST(request: Request) {
+  const tooLarge = checkBodySize(request, 2_000);
+  if (tooLarge) return tooLarge;
   try {
     const session = await requireSession(request);
     const admin = getAdminClient();
-    const limit = await enforceRateLimit(request, admin, `account:delete:${session.sub}`, 3, 3_600);
+    await requireActiveSubscription(admin, session.sub);
+    const limit = await enforceRateLimit(request, admin, `discord:start:${session.sub}`, 5, 3_600);
     if (limit) return limit;
-    await unlinkDiscord(admin, session.sub);
-    const result = await admin.from("heater_accounts").delete().eq("id", session.sub);
-    if (result.error) throw result.error;
-    return apiJson(request, { ok: true });
+    const result = await beginDiscordLink(admin, session.sub);
+    return apiJson(request, { ok: true, ...result });
   } catch (error) {
     return handleApiError(request, error);
   }

@@ -2,20 +2,26 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import {
   HEATER_CATEGORIES,
+  HEATER_DEAL_VOTES,
   HEATER_MARKETPLACES,
   type FeedResponse,
   type HeaterCategory,
   type HeaterDeal,
+  type HeaterDealVote,
+  type HeaterDealVoteSummary,
   type HeaterMarketplace,
+  type HeaterDiscordConnection,
   type SessionResponse,
 } from "./types";
 
 const textEncoder = new TextEncoder();
 const SESSION_TTL_SECONDS = 15 * 60;
 const REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
-const SUBSCRIPTION_PRODUCT_ID = "com.heaterdeals.subscription.monthly";
+const SUBSCRIPTION_PRODUCT_ID = "com.pulsedeals.subscription.monthly";
 const APPLE_ISSUER = "https://appleid.apple.com";
 const APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys";
+const DISCORD_API_BASE = "https://discord.com/api/v10";
+const DISCORD_LINK_TTL_SECONDS = 10 * 60;
 
 type AppleIdentity = {
   sub: string;
@@ -42,6 +48,45 @@ type RateLimitResult = {
   retry_after_seconds: number;
 };
 
+type DiscordConfig = {
+  clientID: string;
+  clientSecret: string;
+  botToken: string;
+  guildID: string;
+  roleID: string;
+  redirectURI: string;
+  serverName: string;
+};
+
+type DiscordUser = {
+  id: string;
+  username: string;
+  global_name?: string | null;
+  avatar?: string | null;
+};
+
+type DiscordGuildMember = {
+  user?: DiscordUser;
+  roles?: string[];
+  pending?: boolean;
+};
+
+type DiscordLinkRow = {
+  id: string;
+  account_id: string;
+  discord_user_id: string;
+  username: string;
+  global_name: string | null;
+  avatar_hash: string | null;
+  guild_id: string;
+  membership_status: "member" | "pending" | "not_member" | "unknown";
+  is_pending: boolean;
+  has_access_role: boolean;
+  access_granted: boolean;
+  linked_at: string;
+  updated_at: string;
+};
+
 type AppleJwk = JsonWebKey & { kid?: string };
 
 let appleKeysCache: { expiresAt: number; keys: AppleJwk[] } | null = null;
@@ -54,6 +99,429 @@ function getRequiredEnv(name: string): string {
 
 export function getProductID(): string {
   return process.env.HEATERDEALS_PRODUCT_ID ?? SUBSCRIPTION_PRODUCT_ID;
+}
+
+export function getDiscordConfig(): DiscordConfig {
+  const required = [
+    "HEATERDEALS_DISCORD_CLIENT_ID",
+    "HEATERDEALS_DISCORD_CLIENT_SECRET",
+    "HEATERDEALS_DISCORD_BOT_TOKEN",
+    "HEATERDEALS_DISCORD_GUILD_ID",
+    "HEATERDEALS_DISCORD_ROLE_ID",
+  ];
+  const missing = required.find((name) => !process.env[name]);
+  if (missing) throw new Error(`Missing server configuration: ${missing}`);
+
+  return {
+    clientID: process.env.HEATERDEALS_DISCORD_CLIENT_ID!,
+    clientSecret: process.env.HEATERDEALS_DISCORD_CLIENT_SECRET!,
+    botToken: process.env.HEATERDEALS_DISCORD_BOT_TOKEN!,
+    guildID: process.env.HEATERDEALS_DISCORD_GUILD_ID!,
+    roleID: process.env.HEATERDEALS_DISCORD_ROLE_ID!,
+    redirectURI: process.env.HEATERDEALS_DISCORD_REDIRECT_URI
+      ?? "https://runsit.ca/heaterdeals/api/v1/discord/callback",
+    serverName: process.env.HEATERDEALS_DISCORD_SERVER_NAME ?? "Pulse Deals",
+  };
+}
+
+function discordBotHeaders(config: DiscordConfig, includeJSON = false): HeadersInit {
+  return {
+    authorization: `Bot ${config.botToken}`,
+    ...(includeJSON ? { "content-type": "application/json" } : {}),
+  };
+}
+
+async function discordJSON<T>(config: DiscordConfig, path: string, init: RequestInit): Promise<T> {
+  const response = await fetch(`${DISCORD_API_BASE}${path}`, init);
+  if (!response.ok) {
+    console.error("Discord API request failed", response.status, path);
+    throw new Error("Discord API request failed");
+  }
+  return (await response.json()) as T;
+}
+
+async function exchangeDiscordCode(config: DiscordConfig, code: string): Promise<string> {
+  if (code.length < 8 || code.length > 500) throw new Error("Discord OAuth exchange failed");
+  const response = await fetch(`${DISCORD_API_BASE}/oauth2/token`, {
+    method: "POST",
+    headers: {
+      authorization: `Basic ${btoa(`${config.clientID}:${config.clientSecret}`)}`,
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      client_id: config.clientID,
+      client_secret: config.clientSecret,
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: config.redirectURI,
+    }),
+  });
+  if (!response.ok) {
+    console.error("Discord OAuth token exchange failed", response.status);
+    throw new Error("Discord OAuth exchange failed");
+  }
+  const payload = (await response.json()) as { access_token?: unknown };
+  if (typeof payload.access_token !== "string" || !payload.access_token) {
+    throw new Error("Discord OAuth exchange failed");
+  }
+  return payload.access_token;
+}
+
+async function revokeDiscordToken(config: DiscordConfig, accessToken: string): Promise<void> {
+  try {
+    await fetch(`${DISCORD_API_BASE}/oauth2/token/revoke`, {
+      method: "POST",
+      headers: {
+        authorization: `Basic ${btoa(`${config.clientID}:${config.clientSecret}`)}`,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: config.clientID,
+        client_secret: config.clientSecret,
+        token: accessToken,
+      }),
+    });
+  } catch (error) {
+    console.error("Discord OAuth token revocation failed", error);
+  }
+}
+
+async function getDiscordMember(
+  config: DiscordConfig,
+  discordUserID: string,
+): Promise<DiscordGuildMember | null> {
+  const path = `/guilds/${encodeURIComponent(config.guildID)}/members/${encodeURIComponent(discordUserID)}`;
+  const response = await fetch(`${DISCORD_API_BASE}${path}`, {
+    headers: discordBotHeaders(config),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    console.error("Discord member lookup failed", response.status);
+    throw new Error("Discord API request failed");
+  }
+  return (await response.json()) as DiscordGuildMember;
+}
+
+async function addDiscordMember(
+  config: DiscordConfig,
+  discordUserID: string,
+  accessToken: string,
+): Promise<void> {
+  const path = `/guilds/${encodeURIComponent(config.guildID)}/members/${encodeURIComponent(discordUserID)}`;
+  const response = await fetch(`${DISCORD_API_BASE}${path}`, {
+    method: "PUT",
+    headers: discordBotHeaders(config, true),
+    body: JSON.stringify({ access_token: accessToken }),
+  });
+  if (response.status !== 201 && response.status !== 204) {
+    console.error("Discord member provisioning failed", response.status);
+    throw new Error("Discord server access could not be granted");
+  }
+}
+
+async function addDiscordRole(config: DiscordConfig, discordUserID: string): Promise<void> {
+  const path = `/guilds/${encodeURIComponent(config.guildID)}/members/${encodeURIComponent(discordUserID)}/roles/${encodeURIComponent(config.roleID)}`;
+  const response = await fetch(`${DISCORD_API_BASE}${path}`, {
+    method: "PUT",
+    headers: discordBotHeaders(config),
+  });
+  if (!response.ok) {
+    console.error("Discord access-role assignment failed", response.status);
+    throw new Error("Discord server access could not be granted");
+  }
+}
+
+async function removeDiscordRole(config: DiscordConfig, discordUserID: string): Promise<void> {
+  const path = `/guilds/${encodeURIComponent(config.guildID)}/members/${encodeURIComponent(discordUserID)}/roles/${encodeURIComponent(config.roleID)}`;
+  const response = await fetch(`${DISCORD_API_BASE}${path}`, {
+    method: "DELETE",
+    headers: discordBotHeaders(config),
+  });
+  if (response.status !== 404 && !response.ok) {
+    console.error("Discord access-role removal failed", response.status);
+    throw new Error("Discord access could not be revoked");
+  }
+}
+
+export async function beginDiscordLink(
+  admin: SupabaseClient,
+  accountID: string,
+): Promise<{ authorizationURL: string; state: string; expiresAt: string }> {
+  const config = getDiscordConfig();
+  const state = randomToken(32);
+  const expiresAt = new Date(Date.now() + DISCORD_LINK_TTL_SECONDS * 1_000).toISOString();
+  const stateHash = await sha256(state);
+  const insert = await admin.from("heater_discord_link_states").insert({
+    state_hash: stateHash,
+    account_id: accountID,
+    expires_at: expiresAt,
+  });
+  if (insert.error) throw insert.error;
+
+  // Keep the state table bounded without touching any active authorization.
+  await admin.from("heater_discord_link_states").delete().lt("expires_at", new Date().toISOString());
+
+  const authorizationURL = new URL("https://discord.com/oauth2/authorize");
+  authorizationURL.searchParams.set("response_type", "code");
+  authorizationURL.searchParams.set("client_id", config.clientID);
+  authorizationURL.searchParams.set("scope", "identify guilds.join");
+  authorizationURL.searchParams.set("state", state);
+  authorizationURL.searchParams.set("redirect_uri", config.redirectURI);
+  authorizationURL.searchParams.set("prompt", "consent");
+
+  return { authorizationURL: authorizationURL.toString(), state, expiresAt };
+}
+
+async function consumeDiscordLinkState(admin: SupabaseClient, state: string): Promise<string> {
+  if (state.length < 20 || state.length > 200) throw new Error("Invalid or expired Discord link state");
+  const stateHash = await sha256(state);
+  const result = await admin
+    .from("heater_discord_link_states")
+    .update({ used_at: new Date().toISOString() })
+    .eq("state_hash", stateHash)
+    .is("used_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .select("account_id")
+    .maybeSingle();
+  if (result.error) throw result.error;
+  if (!result.data) throw new Error("Invalid or expired Discord link state");
+  return String(result.data.account_id);
+}
+
+export async function cancelDiscordLink(admin: SupabaseClient, state: string): Promise<void> {
+  if (state.length < 20 || state.length > 200) return;
+  await admin
+    .from("heater_discord_link_states")
+    .update({ used_at: new Date().toISOString() })
+    .eq("state_hash", await sha256(state))
+    .is("used_at", null);
+}
+
+async function ensureDiscordLinkAvailable(
+  admin: SupabaseClient,
+  accountID: string,
+  discordUserID: string,
+): Promise<void> {
+  const accountLink = await admin
+    .from("heater_discord_links")
+    .select("account_id, discord_user_id")
+    .eq("account_id", accountID)
+    .maybeSingle();
+  if (accountLink.error) throw accountLink.error;
+  if (accountLink.data && accountLink.data.discord_user_id !== discordUserID) {
+    throw new Error("A different Discord account is already linked");
+  }
+
+  const discordLink = await admin
+    .from("heater_discord_links")
+    .select("account_id")
+    .eq("discord_user_id", discordUserID)
+    .maybeSingle();
+  if (discordLink.error) throw discordLink.error;
+  if (discordLink.data && discordLink.data.account_id !== accountID) {
+    throw new Error("This Discord account is already linked to another Pulse Deals account");
+  }
+}
+
+function makeDiscordConnection(
+  row: DiscordLinkRow,
+  config: DiscordConfig,
+  member: DiscordGuildMember | null,
+  activeSubscription: boolean,
+): HeaterDiscordConnection {
+  const roles = member?.roles ?? [];
+  const isMember = member !== null;
+  const isPending = Boolean(member?.pending);
+  const hasAccessRole = roles.includes(config.roleID);
+  return {
+    discordUserID: row.discord_user_id,
+    username: row.username,
+    globalName: row.global_name,
+    serverName: config.serverName,
+    isMember,
+    isPending,
+    hasAccessRole,
+    accessGranted: Boolean(activeSubscription && isMember && !isPending && hasAccessRole),
+    linkedAt: row.linked_at,
+  };
+}
+
+async function saveDiscordLink(
+  admin: SupabaseClient,
+  accountID: string,
+  config: DiscordConfig,
+  user: DiscordUser,
+  member: DiscordGuildMember,
+  activeSubscription: boolean,
+): Promise<HeaterDiscordConnection> {
+  const roles = member.roles ?? [];
+  const row = await admin
+    .from("heater_discord_links")
+    .upsert({
+      account_id: accountID,
+      discord_user_id: user.id,
+      username: user.username,
+      global_name: user.global_name ?? null,
+      avatar_hash: user.avatar ?? null,
+      guild_id: config.guildID,
+      membership_status: member.pending ? "pending" : "member",
+      is_pending: Boolean(member.pending),
+      has_access_role: roles.includes(config.roleID),
+      access_granted: Boolean(activeSubscription && !member.pending && roles.includes(config.roleID)),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "account_id" })
+    .select("id, account_id, discord_user_id, username, global_name, avatar_hash, guild_id, membership_status, is_pending, has_access_role, access_granted, linked_at, updated_at")
+    .single();
+  if (row.error) {
+    if (row.error.code === "23505") {
+      throw new Error("This Discord account is already linked to another Pulse Deals account");
+    }
+    throw row.error;
+  }
+  return makeDiscordConnection(row.data as DiscordLinkRow, config, member, activeSubscription);
+}
+
+export async function completeDiscordLink(
+  admin: SupabaseClient,
+  state: string,
+  code: string,
+): Promise<HeaterDiscordConnection> {
+  const accountID = await consumeDiscordLinkState(admin, state);
+  const config = getDiscordConfig();
+  if (!(await hasActiveSubscription(admin, accountID))) throw new Error("Active subscription required");
+
+  let accessToken: string | null = null;
+  try {
+    accessToken = await exchangeDiscordCode(config, code);
+    const user = await discordJSON<DiscordUser>(config, "/users/@me", {
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    if (!user.id || !user.username) throw new Error("Discord profile could not be read");
+    await ensureDiscordLinkAvailable(admin, accountID, user.id);
+
+    await addDiscordMember(config, user.id, accessToken);
+    let member = await getDiscordMember(config, user.id);
+    if (!member) throw new Error("Discord server access could not be granted");
+
+    if (!member.pending && !(member.roles ?? []).includes(config.roleID)) {
+      await addDiscordRole(config, user.id);
+      member = { ...member, roles: [...(member.roles ?? []), config.roleID] };
+    }
+
+    return await saveDiscordLink(admin, accountID, config, user, member, true);
+  } finally {
+    if (accessToken) await revokeDiscordToken(config, accessToken);
+  }
+}
+
+export async function hasActiveSubscription(admin: SupabaseClient, accountID: string): Promise<boolean> {
+  const result = await admin
+    .from("heater_entitlements")
+    .select("id")
+    .eq("account_id", accountID)
+    .eq("product_id", getProductID())
+    .in("status", ["active", "grace_period"])
+    .gt("expires_at", new Date().toISOString())
+    .is("revoked_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (result.error) throw result.error;
+  return Boolean(result.data);
+}
+
+export async function getDiscordConnection(
+  admin: SupabaseClient,
+  accountID: string,
+): Promise<HeaterDiscordConnection | null> {
+  const result = await admin
+    .from("heater_discord_links")
+    .select("id, account_id, discord_user_id, username, global_name, avatar_hash, guild_id, membership_status, is_pending, has_access_role, access_granted, linked_at, updated_at")
+    .eq("account_id", accountID)
+    .maybeSingle();
+  if (result.error) throw result.error;
+  if (!result.data) return null;
+
+  const config = getDiscordConfig();
+  const row = result.data as DiscordLinkRow;
+  let member = await getDiscordMember(config, row.discord_user_id);
+  const activeSubscription = await hasActiveSubscription(admin, accountID);
+  if (member) {
+    const hasRole = (member.roles ?? []).includes(config.roleID);
+    if (activeSubscription && !member.pending && !hasRole) {
+      await addDiscordRole(config, row.discord_user_id);
+      member = { ...member, roles: [...(member.roles ?? []), config.roleID] };
+    } else if (!activeSubscription && hasRole) {
+      await removeDiscordRole(config, row.discord_user_id);
+      member = { ...member, roles: (member.roles ?? []).filter((role) => role !== config.roleID) };
+    }
+  }
+
+  const connection = makeDiscordConnection(row, config, member, activeSubscription);
+  const updated = await admin.from("heater_discord_links").update({
+    guild_id: config.guildID,
+    membership_status: member ? (member.pending ? "pending" : "member") : "not_member",
+    is_pending: Boolean(member?.pending),
+    has_access_role: connection.hasAccessRole,
+    access_granted: connection.accessGranted,
+    updated_at: new Date().toISOString(),
+  }).eq("id", row.id);
+  if (updated.error) throw updated.error;
+  return connection;
+}
+
+export async function syncDiscordAccess(
+  admin: SupabaseClient,
+  accountID: string,
+  activeSubscription: boolean,
+): Promise<void> {
+  const result = await admin
+    .from("heater_discord_links")
+    .select("id, account_id, discord_user_id, username, global_name, avatar_hash, guild_id, membership_status, is_pending, has_access_role, access_granted, linked_at, updated_at")
+    .eq("account_id", accountID)
+    .maybeSingle();
+  if (result.error) throw result.error;
+  if (!result.data) return;
+
+  const config = getDiscordConfig();
+  const row = result.data as DiscordLinkRow;
+  let member = await getDiscordMember(config, row.discord_user_id);
+  if (member) {
+    const hasRole = (member.roles ?? []).includes(config.roleID);
+    if (activeSubscription && !member.pending && !hasRole) {
+      await addDiscordRole(config, row.discord_user_id);
+      member = { ...member, roles: [...(member.roles ?? []), config.roleID] };
+    } else if (!activeSubscription && hasRole) {
+      await removeDiscordRole(config, row.discord_user_id);
+      member = { ...member, roles: (member.roles ?? []).filter((role) => role !== config.roleID) };
+    }
+  }
+  const connection = makeDiscordConnection(row, config, member, activeSubscription);
+  const update = await admin.from("heater_discord_links").update({
+    membership_status: member ? (member.pending ? "pending" : "member") : "not_member",
+    is_pending: Boolean(member?.pending),
+    has_access_role: connection.hasAccessRole,
+    access_granted: connection.accessGranted,
+    updated_at: new Date().toISOString(),
+  }).eq("id", row.id);
+  if (update.error) throw update.error;
+}
+
+export async function unlinkDiscord(admin: SupabaseClient, accountID: string): Promise<void> {
+  const result = await admin
+    .from("heater_discord_links")
+    .select("discord_user_id")
+    .eq("account_id", accountID)
+    .maybeSingle();
+  if (result.error) throw result.error;
+  if (!result.data) return;
+
+  const config = getDiscordConfig();
+  const member = await getDiscordMember(config, result.data.discord_user_id);
+  if (member && (member.roles ?? []).includes(config.roleID)) {
+    await removeDiscordRole(config, result.data.discord_user_id);
+  }
+  const deleted = await admin.from("heater_discord_links").delete().eq("account_id", accountID);
+  if (deleted.error) throw deleted.error;
 }
 
 export function getAdminClient(): SupabaseClient {
@@ -182,7 +650,7 @@ export async function verifyAppleIdentityToken(token: string): Promise<AppleIden
     textEncoder.encode(decoded.signingInput) as unknown as BufferSource,
   );
   const audience = Array.isArray(decoded.payload.aud) ? decoded.payload.aud : [decoded.payload.aud];
-  const bundleID = process.env.HEATERDEALS_BUNDLE_ID ?? "com.heaterdeals.app";
+  const bundleID = process.env.HEATERDEALS_BUNDLE_ID ?? "com.pulsedeals.app";
   if (
     !valid ||
     decoded.payload.iss !== APPLE_ISSUER ||
@@ -460,6 +928,88 @@ export async function getFeed(
   };
 }
 
+function emptyDealVoteSummary(): HeaterDealVoteSummary {
+  return {
+    goodVotes: 0,
+    boughtVotes: 0,
+    badVotes: 0,
+    myVote: null,
+    updatedAt: null,
+  };
+}
+
+export async function getDealVoteSummaries(
+  admin: SupabaseClient,
+  accountID: string,
+  asins: string[],
+): Promise<Record<string, HeaterDealVoteSummary>> {
+  const uniqueASINs = Array.from(
+    new Set(asins.map((asin) => asin.trim().toUpperCase()).filter(Boolean)),
+  ).slice(0, 50);
+  const summaries: Record<string, HeaterDealVoteSummary> = {};
+  for (const asin of uniqueASINs) summaries[asin] = emptyDealVoteSummary();
+  if (!uniqueASINs.length) return summaries;
+
+  const result = await admin
+    .from("heater_deal_votes")
+    .select("account_id, asin, vote, updated_at")
+    .in("asin", uniqueASINs);
+  if (result.error) throw result.error;
+
+  for (const row of (result.data ?? []) as Array<Record<string, unknown>>) {
+    const asin = String(row.asin ?? "").toUpperCase();
+    const summary = summaries[asin];
+    const vote = row.vote as HeaterDealVote;
+    if (!summary || !(HEATER_DEAL_VOTES as readonly string[]).includes(vote)) continue;
+
+    switch (vote) {
+      case "good": summary.goodVotes += 1; break;
+      case "bought": summary.boughtVotes += 1; break;
+      case "bad": summary.badVotes += 1; break;
+    }
+    if (String(row.account_id) === accountID) summary.myVote = vote;
+
+    const updatedAt = row.updated_at ? String(row.updated_at) : null;
+    if (updatedAt && (!summary.updatedAt || updatedAt > summary.updatedAt)) {
+      summary.updatedAt = updatedAt;
+    }
+  }
+
+  return summaries;
+}
+
+export async function submitDealVote(
+  admin: SupabaseClient,
+  accountID: string,
+  asin: string,
+  vote: HeaterDealVote,
+): Promise<HeaterDealVoteSummary> {
+  const normalizedASIN = asin.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6,32}$/.test(normalizedASIN)) throw new Error("Invalid deal ASIN");
+  if (!(HEATER_DEAL_VOTES as readonly string[]).includes(vote)) throw new Error("Invalid deal vote");
+
+  const deal = await admin
+    .from("heater_deals")
+    .select("asin")
+    .eq("asin", normalizedASIN)
+    .eq("status", "live")
+    .limit(1);
+  if (deal.error) throw deal.error;
+  if (!deal.data?.length) throw new Error("Deal not found");
+
+  const updatedAt = new Date().toISOString();
+  const result = await admin.from("heater_deal_votes").upsert({
+    account_id: accountID,
+    asin: normalizedASIN,
+    vote,
+    updated_at: updatedAt,
+  }, { onConflict: "account_id,asin" });
+  if (result.error) throw result.error;
+
+  const summaries = await getDealVoteSummaries(admin, accountID, [normalizedASIN]);
+  return summaries[normalizedASIN] ?? emptyDealVoteSummary();
+}
+
 export function apiHeaders(request: Request): Headers {
   const headers = new Headers({
     "cache-control": "no-store",
@@ -510,6 +1060,24 @@ export function handleApiError(request: Request, error: unknown): Response {
   }
   if (message === "Active subscription required") {
     return apiError(request, 403, "subscription_required", "An active HeaterDeals subscription is required.");
+  }
+  if (message === "Invalid deal ASIN" || message === "Invalid deal vote") {
+    return apiError(request, 422, "invalid_request", "Choose a valid vote for this deal.");
+  }
+  if (message === "Deal not found") {
+    return apiError(request, 404, "deal_not_found", "This deal is no longer available.");
+  }
+  if (message === "A different Discord account is already linked" || message.includes("Discord account is already linked")) {
+    return apiError(request, 409, "discord_account_conflict", "Disconnect the existing Discord account before linking another one.");
+  }
+  if (message === "Invalid or expired Discord link state") {
+    return apiError(request, 400, "discord_link_expired", "This Discord link has expired. Start the link again.");
+  }
+  if (message.includes("Missing server configuration: HEATERDEALS_DISCORD")) {
+    return apiError(request, 503, "discord_not_configured", "Discord linking is not configured yet.");
+  }
+  if (message.includes("Discord server access") || message.includes("Discord OAuth") || message.includes("Discord API") || message.includes("Discord access") || message.includes("Discord profile")) {
+    return apiError(request, 502, "discord_unavailable", "Discord could not grant server access right now.");
   }
   if (message === "App account token is already linked") {
     return apiError(request, 409, "account_token_conflict", "This app account token is already linked to another account.");

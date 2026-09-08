@@ -6,6 +6,7 @@ import {
   getAdminClient,
   handleApiError,
   requireSession,
+  syncDiscordAccess,
 } from "@/lib/heaterdeals/server";
 import { entitlementStatus, verifyTransaction } from "@/lib/heaterdeals/apple";
 
@@ -23,8 +24,8 @@ export async function POST(request: Request) {
     if (!body.signedTransaction) return apiError(request, 400, "invalid_request", "signedTransaction is required.");
 
     const transaction = await verifyTransaction(body.signedTransaction);
-    const productID = process.env.HEATERDEALS_PRODUCT_ID ?? "com.heaterdeals.subscription.monthly";
-    const bundleID = process.env.HEATERDEALS_BUNDLE_ID ?? "com.heaterdeals.app";
+    const productID = process.env.HEATERDEALS_PRODUCT_ID ?? "com.pulsedeals.subscription.monthly";
+    const bundleID = process.env.HEATERDEALS_BUNDLE_ID ?? "com.pulsedeals.app";
     if (
       transaction.bundleId !== bundleID ||
       transaction.productId !== productID ||
@@ -75,6 +76,13 @@ export async function POST(request: Request) {
       .select("product_id, status, expires_at, environment")
       .single();
     if (upsert.error) throw upsert.error;
+    try {
+      await syncDiscordAccess(admin, session.sub, status === "active" || status === "grace_period");
+    } catch (error) {
+      // Billing must remain successful even if Discord is temporarily down;
+      // the next status read or Apple notification will reconcile the role.
+      console.error("Discord access reconciliation failed after purchase", error);
+    }
     return apiJson(request, { ok: true, active: status === "active" || status === "grace_period", data: upsert.data });
   } catch (error) {
     if (error instanceof Error && /verification|signed|certificate|Apple/i.test(error.message)) {

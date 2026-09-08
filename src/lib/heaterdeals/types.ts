@@ -35,6 +35,17 @@ export type HeaterDeal = {
   offerListingID: string | null;
 };
 
+export const HEATER_DEAL_VOTES = ["good", "bought", "bad"] as const;
+export type HeaterDealVote = (typeof HEATER_DEAL_VOTES)[number];
+
+export type HeaterDealVoteSummary = {
+  goodVotes: number;
+  boughtVotes: number;
+  badVotes: number;
+  myVote: HeaterDealVote | null;
+  updatedAt: string | null;
+};
+
 export type FeedResponse = {
   data: HeaterDeal[];
   page: number;
@@ -49,6 +60,18 @@ export type EntitlementResponse = {
   status: string | null;
   expiresAt: string | null;
   environment: string | null;
+};
+
+export type HeaterDiscordConnection = {
+  discordUserID: string;
+  username: string;
+  globalName: string | null;
+  serverName: string;
+  isMember: boolean;
+  isPending: boolean;
+  hasAccessRole: boolean;
+  accessGranted: boolean;
+  linkedAt: string;
 };
 
 export type SessionResponse = {

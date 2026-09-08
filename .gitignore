@@ -34,3 +34,6 @@ next-env.d.ts
 
 # claude code assistant context
 .claude/
+
+# Neutronium local development data
+/.neutronium-dev/

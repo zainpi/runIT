@@ -5,6 +5,7 @@ import {
   getAdminClient,
   handleApiError,
   getProductID,
+  syncDiscordAccess,
 } from "@/lib/heaterdeals/server";
 import { asEnvironment, entitlementStatus, verifyNotification, verifyTransaction } from "@/lib/heaterdeals/apple";
 
@@ -73,6 +74,13 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     }, { onConflict: "account_id,product_id" });
     if (upsert.error) throw upsert.error;
+    try {
+      await syncDiscordAccess(admin, accountID, status === "active" || status === "grace_period");
+    } catch (error) {
+      // Do not make Apple retry a valid notification solely because Discord is
+      // temporarily unavailable. The next notification/status check repairs it.
+      console.error("Discord access reconciliation failed after Apple notification", error);
+    }
 
     const notificationInsert = await admin.from("heater_apple_notifications").insert({
       notification_uuid: notification.notificationUUID,

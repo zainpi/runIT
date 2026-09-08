@@ -85,3 +85,9 @@ your provider's embed (Calendly / Cal.com).
 
 Skip-to-content link, keyboard-visible focus rings, semantic landmarks, labeled
 form fields with inline errors, and `prefers-reduced-motion` support.
+
+## Neutronium
+
+Company IT administration lives at `/neutronium/`, with company, employee, and operator interfaces. Run `npm run dev` to open an isolated Acme development workspace, and `npm run neutronium:worker` in a second terminal for unattended local workflows.
+
+See [Neutronium setup and architecture](docs/neutronium.md) for the database migration, production environment variables, Microsoft consent setup, demo walkthrough, and tests.

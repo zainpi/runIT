@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Sora } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { SiteFrame } from "@/components/layout/SiteFrame";
 import { site } from "@/lib/site";
 
 const inter = Inter({
@@ -83,13 +82,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${sora.variable}`}>
-      <head>
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6839111786994082"
-          crossOrigin="anonymous"
-        />
-      </head>
       <body className="min-h-screen font-sans">
         <a
           href="#main"
@@ -97,11 +89,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <Navbar />
-        <main id="main" className="pt-16 sm:pt-18">
-          {children}
-        </main>
-        <Footer />
+        <SiteFrame>{children}</SiteFrame>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

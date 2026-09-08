@@ -44,7 +44,7 @@ function environmentFor(value: unknown): Environment {
 }
 
 async function verifierFor(environment: Environment): Promise<SignedDataVerifier> {
-  const bundleID = process.env.HEATERDEALS_BUNDLE_ID ?? "com.heaterdeals.app";
+  const bundleID = process.env.HEATERDEALS_BUNDLE_ID ?? "com.pulsedeals.app";
   const appAppleID = process.env.HEATERDEALS_APPLE_ID
     ? Number(process.env.HEATERDEALS_APPLE_ID)
     : undefined;

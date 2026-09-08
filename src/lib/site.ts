@@ -26,6 +26,8 @@ export const site = {
 export type NavLink = { label: string; href: string; external?: boolean };
 
 export const mainNav: NavLink[] = [
+  // Start a fresh document so marketing scripts never share the admin shell.
+  { label: "Neutronium", href: "/neutronium", external: true },
   { label: "Services", href: "/services" },
   { label: "Case Studies", href: "/case-studies" },
   { label: "About", href: "/about" },

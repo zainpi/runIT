@@ -3,6 +3,27 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   trailingSlash: true,
+  async headers() {
+    return [
+      {
+        source: "/neutronium/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Content-Security-Policy",
+            value:
+              "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+          },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
@@ -31,8 +52,16 @@ const nextConfig = {
       { source: "/", destination: "/the-last-echo/", permanent: true },
       { source: "/services", destination: "/", permanent: true },
       { source: "/case-studies", destination: "/", permanent: true },
-      { source: "/about", destination: "/the-last-echo/about.html", permanent: true },
-      { source: "/contact", destination: "/the-last-echo/support.html", permanent: true },
+      {
+        source: "/about",
+        destination: "/the-last-echo/about.html",
+        permanent: true,
+      },
+      {
+        source: "/contact",
+        destination: "/the-last-echo/support.html",
+        permanent: true,
+      },
       { source: "/book", destination: "/", permanent: true },
     ];
   },
