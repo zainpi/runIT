@@ -44,16 +44,16 @@ Audit events are append-only at the database level. They include actor, organiza
 
 ## Authorization
 
-| Role | Capability |
-| --- | --- |
-| ORG_OWNER / ORG_ADMIN | Company administration, templates, employee workflows, integration configuration; approve only when assigned to the current approval stage |
-| HR_ADMIN | Directory, templates, onboarding, offboarding, retries; cannot change integration credentials or approve by virtue of HR role |
-| MANAGER | Own portal and requests assigned through employee manager relationships |
-| APPROVER | Own portal and requests assigned through application ownership |
-| EMPLOYEE | Own applications, grants, requests, and notifications |
-| PLATFORM_OWNER | All customer operational summaries, audit visibility, support notes; cannot provision identities or approve customer access |
-| PLATFORM_SUPPORT | Operational visibility and support notes for explicitly assigned customers |
-| PLATFORM_SECURITY / PLATFORM_READONLY | Read-only operational visibility for explicitly assigned customers |
+| Role                                  | Capability                                                                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| ORG_OWNER / ORG_ADMIN                 | Company administration, templates, employee workflows, integration configuration; approve only when assigned to the current approval stage |
+| HR_ADMIN                              | Directory, templates, onboarding, offboarding, retries; cannot change integration credentials or approve by virtue of HR role              |
+| MANAGER                               | Own portal and requests assigned through employee manager relationships                                                                    |
+| APPROVER                              | Own portal and requests assigned through application ownership                                                                             |
+| EMPLOYEE                              | Own applications, grants, requests, and notifications                                                                                      |
+| PLATFORM_OWNER                        | All customer operational summaries, audit visibility, support notes; cannot provision identities or approve customer access                |
+| PLATFORM_SUPPORT                      | Operational visibility and support notes for explicitly assigned customers                                                                 |
+| PLATFORM_SECURITY / PLATFORM_READONLY | Read-only operational visibility for explicitly assigned customers                                                                         |
 
 Approvals may require manager, application owner, administrator, or a sequence. Self-approval is forbidden. The request stores a policy snapshot; changing the company policy does not rewrite an existing approval chain. An approver can approve, reject, or request information; the requester can reply. All requested stages must approve before a grant job exists.
 
@@ -65,9 +65,9 @@ Production employee sessions are denied when offboarding becomes due, independen
 
 Neutronium runs on a VPS with Docker Compose: Node.js, PostgreSQL 17, Caddy HTTPS, and a persistent scheduler. It does not require Supabase. Other applications in this repository retain their own Supabase integration.
 
-See [VPS deployment](../deploy/neutronium/README.md) for installation, backups, updates and migration notes. Copy `.env.neutronium.example` to `deploy/neutronium/.env`, supply a domain, database password, scheduler secret, encryption keyring and email credentials. Set `NEUTRONIUM_APP_URL` to the HTTPS origin. All secrets stay server-side.
+See [VPS deployment](../deploy/neutronium/README.md) for installation, backups, updates and migration notes. Copy `.env.neutronium.example` to `deploy/neutronium/.env`, supply a domain, database password, scheduler secret, encryption keyring and email credentials. For Cloudflare Email Service SMTP, use `NEUTRONIUM_EMAIL_PROVIDER=cloudflare_smtp`, `NEUTRONIUM_EMAIL_SMTP_PASSWORD` for the Email Sending: Edit API token, and an onboarded `NEUTRONIUM_EMAIL_FROM` address. The SMTP username is the literal `api_token`; the app connects to `smtp.mx.cloudflare.net:465` over implicit TLS. Set `NEUTRONIUM_APP_URL` to the HTTPS origin. All secrets stay server-side.
 
-Authentication uses salted scrypt password hashes and random 256-bit session tokens stored only as SHA-256 hashes in PostgreSQL. Cookies are HttpOnly, Secure in production, SameSite=Lax, scoped to `/neutronium`, and expire after eight hours. Email confirmation and invitation links are single-use, expire after 24 hours, and are delivered through the existing Resend configuration. Password changes revoke all previous sessions and authentication links. Configure email delivery before enabling signup/invitations. Existing verified users can sign in normally after an administrator assigns their membership.
+Authentication uses salted scrypt password hashes and random 256-bit session tokens stored only as SHA-256 hashes in PostgreSQL. Cookies are HttpOnly, Secure in production, SameSite=Lax, scoped to `/neutronium`, and expire after eight hours. Email confirmation and invitation links are single-use, expire after 24 hours, and are delivered through Cloudflare SMTP or the legacy Resend configuration. Password changes revoke all previous sessions and authentication links. Configure email delivery before enabling signup/invitations. Existing verified users can sign in normally after an administrator assigns their membership.
 
 Generate an encryption key with `openssl rand -base64 32`; use separate random values for the database password and scheduler secret. Keep previous encryption keys when rotating so existing credentials remain readable.
 
@@ -81,12 +81,12 @@ https://your-domain.example/neutronium/api/microsoft/callback
 
 Configure only the application permissions your deployment actually supports:
 
-| Feature | Microsoft application permissions |
-| --- | --- |
-| Inventory | `User.Read.All` |
-| Create identities | `User.Create`, `User.Read.All` |
-| Group-based application access | `GroupMember.ReadWrite.All` |
-| Assign licenses | `LicenseAssignment.ReadWrite.All` |
+| Feature                           | Microsoft application permissions                                           |
+| --------------------------------- | --------------------------------------------------------------------------- |
+| Inventory                         | `User.Read.All`                                                             |
+| Create identities                 | `User.Create`, `User.Read.All`                                              |
+| Group-based application access    | `GroupMember.ReadWrite.All`                                                 |
+| Assign licenses                   | `LicenseAssignment.ReadWrite.All`                                           |
 | Disable sign-in / revoke sessions | `User.EnableDisableAccount.All`, `User.Read.All`, `User.RevokeSessions.All` |
 
 The integration UI explains each feature and permission. OAuth state is a single-use, hashed nonce bound to authenticated user, organization, tenant, feature selection, and a ten-minute deadline. Callback processing compares the consent tenant and verifies granted application roles using a token obtained directly from Microsoft's HTTPS endpoint. Tokens are encrypted with AES-256-GCM, authenticated to the organization ID, and never returned to the browser.

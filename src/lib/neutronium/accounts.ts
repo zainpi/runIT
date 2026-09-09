@@ -3,6 +3,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { postgres } from "./postgres";
 import { hashPassword, verifyPassword } from "./passwords";
 import { DomainError } from "./model";
+import { emailConfigured, sendEmail } from "./email";
 const sessionCookie = "neutronium_session";
 const digest = (token: string) =>
   createHash("sha256").update(token).digest("hex");
@@ -47,10 +48,9 @@ export async function sendLink(
   email: string,
   kind: "signup" | "invite",
 ) {
-  const key = process.env.NEUTRONIUM_EMAIL_API_KEY;
   const from = process.env.NEUTRONIUM_EMAIL_FROM;
   const origin = process.env.NEUTRONIUM_APP_URL;
-  if (!key || !from || !origin)
+  if (!emailConfigured() || !from || !origin)
     throw new DomainError(
       "Configure email delivery and NEUTRONIUM_APP_URL before creating accounts.",
       503,
@@ -63,21 +63,14 @@ export async function sendLink(
   const link = new URL("/neutronium/api/auth/confirm/", origin);
   link.searchParams.set("token_hash", token);
   link.searchParams.set("type", kind);
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  try {
+    await sendEmail({
       from,
       to: [email],
       subject: "Confirm your Neutronium account",
       text: `Open this link to sign in and set your password. It expires in 24 hours.\n\n${link}`,
-    }),
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!response.ok) {
+    });
+  } catch {
     await postgres().query(
       "delete from neutronium_auth_tokens where token_hash=$1",
       [digest(token)],

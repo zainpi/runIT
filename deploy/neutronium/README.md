@@ -15,7 +15,7 @@ cd deploy/neutronium
 docker compose up -d --build
 ```
 
-Set `NEUTRONIUM_DOMAIN` (hostname only) and `NEUTRONIUM_APP_URL` (HTTPS origin). Caddy obtains and renews TLS certificates when DNS resolves to the VPS. `NEUTRONIUM_EMAIL_API_KEY` and `NEUTRONIUM_EMAIL_FROM` configure Resend for signup and invitations. The sender domain must be verified with Resend. Microsoft credentials are needed only for the live Microsoft integration. The Docker runtime overrides `NEUTRONIUM_DATABASE_URL` to use its private database service.
+Set `NEUTRONIUM_DOMAIN` (hostname only) and `NEUTRONIUM_APP_URL` (HTTPS origin). Caddy obtains and renews TLS certificates when DNS resolves to the VPS. For Cloudflare Email Service, set `NEUTRONIUM_EMAIL_PROVIDER=cloudflare_smtp`, `NEUTRONIUM_EMAIL_SMTP_PASSWORD` to the API token with Email Sending: Edit, and `NEUTRONIUM_EMAIL_FROM` to an onboarded sender such as `welcome@neutronium.runsit.ca`. Cloudflare's SMTP username is the literal `api_token`, host is `smtp.mx.cloudflare.net`, and port is 465 with implicit TLS. The API token stays server-side. Resend remains supported by setting `NEUTRONIUM_EMAIL_PROVIDER=resend` and `NEUTRONIUM_EMAIL_API_KEY` instead. Microsoft credentials are needed only for the live Microsoft integration. The Docker runtime overrides `NEUTRONIUM_DATABASE_URL` to use its private database service.
 
 The initial SQL migration runs automatically on an empty database volume. Never delete the volume to apply an upgrade. Future numbered SQL migrations must be applied explicitly with `docker compose exec -T db psql -v ON_ERROR_STOP=1 -U neutronium -d neutronium < migrations/NEW.sql`, after a backup. The app is the dedicated database owner; do not give its credentials to browser clients or unrelated apps.
 

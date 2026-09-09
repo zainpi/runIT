@@ -1,4 +1,5 @@
 import { accountById } from "./accounts";
+import { emailConfigured, sendEmail } from "./email";
 import {
   Actor,
   Workspace,
@@ -221,8 +222,7 @@ export async function deliverNotifications(orgId: string) {
     .slice(0, 10);
   for (const n of pending) {
     if (
-      !process.env.NEUTRONIUM_EMAIL_API_KEY ||
-      !process.env.NEUTRONIUM_EMAIL_FROM
+      !emailConfigured()
     ) {
       await mutate(orgId, false, (s) => {
         const found = s.notifications.find((v) => v.id === n.id);
@@ -247,25 +247,23 @@ export async function deliverNotifications(orgId: string) {
       if (e) addresses.push(e.email);
     }
     if (!addresses.length) continue;
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.NEUTRONIUM_EMAIL_API_KEY}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": n.id,
-      },
-      body: JSON.stringify({
-        from: process.env.NEUTRONIUM_EMAIL_FROM,
+    let sent = false;
+    try {
+      await sendEmail({
+        from: process.env.NEUTRONIUM_EMAIL_FROM!,
         to: addresses,
         subject: `Neutronium · ${n.title}`,
         text: `${n.body}\n\nOpen your workspace: ${process.env.NEUTRONIUM_APP_URL}/neutronium`,
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
+        idempotencyKey: n.id,
+      });
+      sent = true;
+    } catch {
+      sent = false;
+    }
     await mutate(orgId, false, (s) => {
       const found = s.notifications.find((v) => v.id === n.id);
       if (found) {
-        found.emailStatus = response.ok ? "sent" : "pending";
+        found.emailStatus = sent ? "sent" : "pending";
         found.attempts = (found.attempts || 0) + 1;
         found.nextAttemptAt = new Date(
           Date.now() + Math.min(86400_000, 60_000 * 2 ** found.attempts),
