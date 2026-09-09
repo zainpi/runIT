@@ -23,9 +23,11 @@ npm run lint     # eslint
 
 ## Production deployment
 
-Production is deployed through the GitHub integration connected to this
-repository. Pushing the intended branch to `origin` triggers the live
-Cloudflare deployment for `runs-it.com`.
+Production is deployed through the Cloudflare Workers Builds integration
+connected to this repository. The Wrangler config targets the `runsit-ca`
+Worker; custom domains and routes stay managed in the Cloudflare dashboard.
+Pushing the intended branch to `origin` triggers the live deployment for those
+configured domains.
 
 Do **not** deploy production directly with `wrangler deploy` from a local
 machine. Verify changes with `npm run build`, then commit and push them through

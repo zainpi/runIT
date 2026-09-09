@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Must match the existing Worker that serves runs-it.com.
-  "name": "runit",
+  // Must match the Worker selected by the Cloudflare Workers Build.
+  "name": "runsit-ca",
   "main": "worker.ts",
   "compatibility_date": "2025-03-25",
   "compatibility_flags": [
@@ -16,28 +16,14 @@
     {
       "binding": "WORKER_SELF_REFERENCE",
       // The service MUST equal "name" above, or deploy fails with error 10143.
-      "service": "runit"
+      "service": "runsit-ca"
     }
   ],
   // Enable Next.js <Image> optimization on Cloudflare.
   "images": {
     "binding": "IMAGES"
   },
-  // Keep the production custom domain attached to this Worker.
-  "routes": [
-    {
-      "pattern": "runs-it.com",
-      "custom_domain": true
-    },
-    {
-      "pattern": "runsit.ca",
-      "custom_domain": true
-    },
-    {
-      "pattern": "www.runsit.ca",
-      "custom_domain": true
-    }
-  ],
+  // Custom domains and routes are managed in the Cloudflare dashboard.
   "workers_dev": false,
   "preview_urls": false,
   "triggers": {
