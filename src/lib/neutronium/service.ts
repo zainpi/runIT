@@ -22,6 +22,19 @@ function str(v: unknown, label: string, required = true, max = 200) {
     throw new DomainError(`Enter a valid ${label}.`);
   return v.trim();
 }
+function directoryUrl(v: unknown, required = true) {
+  const value = str(v ?? "", "URL", required, 2000);
+  if (!value) return "";
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new DomainError("Enter a complete HTTPS URL.");
+  }
+  if (url.protocol !== "https:" || url.username || url.password)
+    throw new DomainError("Use an HTTPS URL without embedded credentials.");
+  return url.toString();
+}
 function arr(v: unknown): string[] {
   if (
     !Array.isArray(v) ||
@@ -62,6 +75,194 @@ export function command(
       403,
     );
   switch (action) {
+    case "test-environment-save": {
+      requireRole(a, admins);
+      const existing = input.id
+        ? find(w.testEnvironments || [], input.id)
+        : undefined;
+      if (!existing && (w.testEnvironments || []).length >= 100)
+        throw new DomainError("A workspace can hold up to 100 environments.");
+      const kind = str(input.kind, "environment type");
+      const status = str(input.status ?? "active", "status");
+      if (
+        !["staging", "production", "development"].includes(kind) ||
+        !["active", "archived"].includes(status)
+      )
+        throw new DomainError("Invalid environment type or status.");
+      const next = {
+        id: existing?.id || uid(),
+        name: str(input.name, "environment name", true, 100),
+        kind: kind as "staging" | "production" | "development",
+        url: directoryUrl(input.url),
+        notes: str(input.notes ?? "", "notes", false, 2000),
+        status: status as "active" | "archived",
+        accounts: existing?.accounts || [],
+        updatedAt: now(),
+      };
+      if (existing) Object.assign(existing, next);
+      else (w.testEnvironments ||= []).push(next);
+      audit(
+        w,
+        a,
+        existing ? "Test environment updated" : "Test environment created",
+        next.id,
+        requestId,
+        undefined,
+        { name: next.name, kind, status },
+      );
+      return next.id;
+    }
+    case "tester-account-save": {
+      requireRole(a, admins);
+      const environment = find(w.testEnvironments || [], input.environmentId);
+      if (environment.status === "archived")
+        throw new DomainError(
+          "Restore this environment before changing its accounts.",
+        );
+      const existing = input.id
+        ? find(environment.accounts, input.id)
+        : undefined;
+      if (!existing && environment.accounts.length >= 100)
+        throw new DomainError(
+          "An environment can hold up to 100 tester accounts.",
+        );
+      const employeeId = str(
+        input.employeeId ?? "",
+        "assigned employee",
+        false,
+      );
+      if (employeeId && find(w.employees, employeeId).status === "terminated")
+        throw new DomainError("Choose an available employee.");
+      const status = str(input.status ?? "active", "status");
+      if (!["active", "archived"].includes(status))
+        throw new DomainError("Invalid account status.");
+      const next = {
+        id: existing?.id || uid(),
+        label: str(input.label, "account label", true, 100),
+        username: str(input.username, "username or email", true, 254),
+        role: str(input.role ?? "Tester", "account role", true, 100),
+        employeeId,
+        credentialUrl: directoryUrl(input.credentialUrl, false),
+        notes: str(input.notes ?? "", "notes", false, 2000),
+        status: status as "active" | "archived",
+        updatedAt: now(),
+      };
+      if (
+        environment.accounts.some(
+          (account) =>
+            account.id !== next.id &&
+            account.username.toLowerCase() === next.username.toLowerCase(),
+        )
+      )
+        throw new DomainError(
+          "This username is already registered for this environment.",
+          409,
+        );
+      if (existing) Object.assign(existing, next);
+      else environment.accounts.push(next);
+      environment.updatedAt = now();
+      audit(
+        w,
+        a,
+        existing ? "Tester account updated" : "Tester account registered",
+        next.id,
+        requestId,
+        undefined,
+        { environmentId: environment.id, status },
+      );
+      return next.id;
+    }
+    case "test-employee": {
+      requireRole(a, admins);
+      if (!w.demo)
+        throw new DomainError(
+          "Test employees are only available in development workspaces.",
+          403,
+        );
+      const id = uid();
+      w.employees.push({
+        id,
+        firstName: "Test",
+        lastName: `Employee ${w.employees.length + 1}`,
+        email: `test-${id}@example.invalid`,
+        personalEmail: "",
+        title: "Test employee",
+        department: "Testing",
+        managerId: "",
+        startDate: now().slice(0, 10),
+        location: "",
+        employmentType: "Test",
+        status: "active",
+        createdAt: now(),
+      });
+      audit(w, a, "Test employee created", id, requestId);
+      return id;
+    }
+    case "help-create": {
+      requireRole(a, ["EMPLOYEE", "MANAGER", "APPROVER", ...admins]);
+      const e = find(w.employees, a.employeeId);
+      if (e.status !== "active" && e.status !== "onboarding")
+        throw new DomainError("Employee is not available.", 403);
+      const r = {
+        id: uid(),
+        employeeId: e.id,
+        subject: str(input.subject, "subject", true, 150),
+        body: str(input.body, "request", true, 4000),
+        status: "open" as const,
+        createdAt: now(),
+        messages: [],
+      };
+      (w.helpRequests ||= []).push(r);
+      audit(w, a, "Employee help requested", e.id, requestId);
+      notify(w, "admins", `${fullName(e)}: ${r.subject}`, r.body);
+      return r.id;
+    }
+    case "help-reply": {
+      const r = find(w.helpRequests || [], input.id);
+      const admin = admins.includes(a.role);
+      if (!admin && r.employeeId !== a.employeeId)
+        throw new DomainError("Request not found.", 404);
+      const text = str(input.body, "reply", true, 4000);
+      let attachment: { name: string; data: string } | undefined;
+      if (input.attachment) {
+        if (!admin)
+          throw new DomainError("Only administrators can attach files.", 403);
+        const raw = input.attachment as Record<string, unknown>;
+        const name = str(raw.name, "filename", true, 150);
+        const data = str(raw.data, "file", true, 70000);
+        if (
+          !/^[A-Za-z0-9+/]*={0,2}$/.test(data) ||
+          data.length % 4 !== 0 ||
+          Buffer.from(data, "base64").length > 50000
+        )
+          throw new DomainError("Files must be at most 50 KB.");
+        attachment = { name: name.replace(/[\\/\r\n]/g, "_"), data };
+      }
+      if (r.messages.length >= 100)
+        throw new DomainError("This conversation has reached its limit.");
+      const status = admin ? String(input.status || "waiting") : "open";
+      if (!["open", "waiting", "resolved"].includes(status))
+        throw new DomainError("Invalid request status.");
+      r.messages.push({
+        id: uid(),
+        author: a.name,
+        body: text,
+        at: now(),
+        attachment,
+      });
+      r.status = status as typeof r.status;
+      audit(
+        w,
+        a,
+        "Employee help response",
+        r.employeeId,
+        requestId,
+        undefined,
+        { id: r.id, status },
+      );
+      notify(w, admin ? r.employeeId : "admins", r.subject, text);
+      return r.id;
+    }
     case "onboard": {
       requireRole(a, [...admins, "HR_ADMIN"]);
       const template = find(w.templates, input.templateId);

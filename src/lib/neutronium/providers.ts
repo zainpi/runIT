@@ -15,6 +15,12 @@ import {
 } from "./model";
 import { db } from "./store";
 export const microsoftFeatures = {
+  security: {
+    name: "Account risk detection",
+    permissions: ["IdentityRiskyUser.Read.All"],
+    reason:
+      "Read Microsoft Entra risky users for administrator review. Requires tenant consent and applicable Identity Protection licensing.",
+  },
   inventory: {
     name: "Account inventory",
     permissions: ["User.Read.All"],

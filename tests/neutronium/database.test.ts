@@ -15,6 +15,7 @@ test("PostgreSQL migration: tenant isolation, atomic CAS, foreign keys, audit im
         "utf8",
       ),
     );
+    await db.exec(await readFile("deploy/neutronium/migrations/002_social_auth.sql", "utf8"));
     const owner = uid();
     await db.query("insert into neutronium_users(id,email) values($1,'owner@example.com')", [owner]);
     const a = seed();

@@ -1,4 +1,15 @@
-import { accountAuth, accountById, inviteAccount } from "@/lib/neutronium/accounts";
+import { currentUser } from "@/lib/neutronium/accounts";
+import {
+  socialProviders,
+  startSocial,
+  finishSocial,
+} from "@/lib/neutronium/social";
+import { syncConnection } from "@/lib/neutronium/connections";
+import {
+  accountAuth,
+  accountById,
+  inviteAccount,
+} from "@/lib/neutronium/accounts";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import {
@@ -79,10 +90,34 @@ export async function GET(req: NextRequest, ctx: Context) {
     const path = (await ctx.params).path.join("/");
     if (path === "config")
       return json({
+        socialProviders: socialProviders(),
         demoAvailable: developmentEnabled(),
         authConfigured: !!process.env.NEUTRONIUM_DATABASE_URL,
         microsoftFeatures,
       });
+    if (path === "auth/status") return json({ user: await currentUser() });
+    if (path.startsWith("auth/social/") && path.endsWith("/callback")) {
+      try {
+        const result = await finishSocial(
+          path.split("/")[2],
+          appOrigin(req),
+          req.nextUrl.searchParams.get("state") || "",
+          req.nextUrl.searchParams.get("code") || "",
+        );
+        return NextResponse.redirect(
+          new URL(`/neutronium?auth=${result || "ready"}`, appOrigin(req)),
+        );
+      } catch (e) {
+        const url = new URL("/neutronium", appOrigin(req));
+        url.searchParams.set(
+          "authError",
+          e instanceof DomainError
+            ? e.message
+            : "Provider sign-in failed. Try again.",
+        );
+        return NextResponse.redirect(url);
+      }
+    }
     if (path === "auth/confirm") {
       const token_hash = req.nextUrl.searchParams.get("token_hash");
       const type = req.nextUrl.searchParams.get("type");
@@ -168,6 +203,48 @@ export async function GET(req: NextRequest, ctx: Context) {
       );
     }
     const a = await actorFor(req.nextUrl.searchParams.get("org") || undefined);
+    if (path === "employees/export") {
+      requireRole(a, [...admins, "HR_ADMIN"]);
+      const w = await readWorkspace(a.orgId, a.demo);
+      const fields = [
+        "firstName",
+        "lastName",
+        "email",
+        "title",
+        "department",
+        "location",
+        "status",
+        "startDate",
+      ] as const;
+      const cell = (v: string) =>
+        '"' +
+        (/^[=+@\-\t\r\n]/.test(v) ? "'" : "") +
+        v.replace(/"/g, '""') +
+        '"';
+      const csv = [
+        fields.join(","),
+        ...w.employees.map((e) => fields.map((k) => cell(e[k])).join(",")),
+      ].join("\r\n");
+      await mutate(a.orgId, a.demo, (state) =>
+        audit(
+          state,
+          a,
+          "Employee inventory exported",
+          state.name,
+          uid(),
+          undefined,
+          { count: w.employees.length },
+        ),
+      );
+      return new NextResponse(csv, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": "attachment; filename=employees.csv",
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
     if (path === "session") return json({ actor: a });
     if (path === "companies") {
       requireRole(a, platformRoles);
@@ -181,7 +258,11 @@ export async function GET(req: NextRequest, ctx: Context) {
           .eq("user_id", a.id);
         if (error)
           throw new DomainError("Operator assignments unavailable.", 503);
-        const ids = new Set((data || []).map((s: { organization_id: string }) => s.organization_id));
+        const ids = new Set(
+          (data || []).map(
+            (s: { organization_id: string }) => s.organization_id,
+          ),
+        );
         all = all.filter((o) => ids.has(o.id));
       }
       const companies = await Promise.all(
@@ -250,6 +331,20 @@ export async function POST(req: NextRequest, ctx: Context) {
     }
     sameOrigin(req);
     const input = await body(req);
+    if (path === "auth/social") {
+      await rateLimit(
+        `social:${req.headers.get("x-forwarded-for") || "unknown"}`,
+        20,
+        60,
+      );
+      return json({
+        url: await startSocial(
+          String(input.provider),
+          appOrigin(req),
+          String(input.signupRole),
+        ),
+      });
+    }
     if (path === "demo") {
       if (!developmentEnabled())
         throw new DomainError(
@@ -292,6 +387,7 @@ export async function POST(req: NextRequest, ctx: Context) {
           ? await auth.auth.signUp({
               email: input.email,
               password: input.password,
+              signupRole: input.signupRole,
             })
           : await auth.auth.signInWithPassword({
               email: input.email,
@@ -446,6 +542,75 @@ export async function POST(req: NextRequest, ctx: Context) {
       }).toString();
       return json({ url: url.toString() });
     }
+    if (path === "connections/connect" || path === "connections/sync") {
+      return json({
+        count: await syncConnection(
+          a,
+          String(input.provider),
+          path.endsWith("connect") ? input : undefined,
+        ),
+      });
+    }
+    if (path === "security/sync") {
+      requireRole(a, admins);
+      const w = await readWorkspace(a.orgId, a.demo);
+      let alerts = [];
+      if (a.demo)
+        alerts = [
+          {
+            id: "demo-risk",
+            email: w.employees[0]?.email || "test@example.invalid",
+            level: "high",
+            state: "atRisk",
+            detail: "Simulated compromised account — test data",
+            at: now(),
+          },
+        ];
+      else {
+        const provider = new MicrosoftProvider(w);
+        let page = "/identityProtection/riskyUsers?$top=100";
+        do {
+          const data = await provider.graph(page, "security");
+          alerts.push(
+            ...data.value.map((r: Record<string, string>) => ({
+              id: r.id,
+              email: r.userPrincipalName,
+              level: r.riskLevel,
+              state: r.riskState,
+              detail: r.riskDetail,
+              at: r.riskLastUpdatedDateTime,
+            })),
+          );
+          const next = data["@odata.nextLink"];
+          if (
+            next &&
+            !next.startsWith(
+              "https://graph.microsoft.com/v1.0/identityProtection/riskyUsers?",
+            )
+          )
+            throw new DomainError("Unexpected security pagination URL.");
+          page = next
+            ? next.replace("https://graph.microsoft.com/v1.0", "")
+            : "";
+          if (alerts.length > 5000)
+            throw new DomainError("Security inventory exceeds 5000 accounts.");
+        } while (page);
+      }
+      await mutate(a.orgId, a.demo, (state) => {
+        state.securityAlerts = alerts;
+        state.securityCheckedAt = now();
+        audit(
+          state,
+          a,
+          "Account risk synchronized",
+          state.name,
+          uid(),
+          undefined,
+          { count: alerts.length },
+        );
+      });
+      return json({ count: alerts.length });
+    }
     if (path === "microsoft/sync") {
       requireRole(a, admins);
       if (a.demo)
@@ -543,7 +708,9 @@ export async function POST(req: NextRequest, ctx: Context) {
       if (input.userId) {
         const user = await accountById(String(input.userId));
         if (!user || user.email.toLowerCase() !== e.email.toLowerCase())
-          throw new DomainError("The supplied user does not match the employee email.");
+          throw new DomainError(
+            "The supplied user does not match the employee email.",
+          );
         userId = user.id;
       } else {
         userId = (await inviteAccount(e.email)).id;

@@ -148,7 +148,62 @@ export type Integration = {
   checkedAt?: string;
   error?: string;
 };
+export type HelpRequest = {
+  id: string;
+  employeeId: string;
+  subject: string;
+  body: string;
+  status: "open" | "waiting" | "resolved";
+  createdAt: string;
+  messages: {
+    id: string;
+    author: string;
+    body: string;
+    at: string;
+    attachment?: { name: string; data: string };
+  }[];
+};
+export type SecurityAlert = {
+  id: string;
+  email: string;
+  level: string;
+  state: string;
+  detail: string;
+  at: string;
+};
+export type ExternalItem = {
+  id: string;
+  title: string;
+  status: string;
+  url: string;
+};
+export type TesterAccount = {
+  id: string;
+  label: string;
+  username: string;
+  role: string;
+  employeeId: string;
+  credentialUrl: string;
+  notes: string;
+  status: "active" | "archived";
+  updatedAt: string;
+};
+export type TestEnvironment = {
+  id: string;
+  name: string;
+  kind: "staging" | "production" | "development";
+  url: string;
+  notes: string;
+  status: "active" | "archived";
+  accounts: TesterAccount[];
+  updatedAt: string;
+};
 export type Workspace = {
+  testEnvironments?: TestEnvironment[];
+  helpRequests?: HelpRequest[];
+  securityAlerts?: SecurityAlert[];
+  securityCheckedAt?: string;
+  externalItems?: Record<string, ExternalItem[]>;
   id: string;
   name: string;
   domain: string;
@@ -427,6 +482,7 @@ export function seed(id = uid(), demo = true, name = "Acme Inc."): Workspace {
 export function project(w: Workspace, actor: Actor): Workspace {
   if (w.id !== actor.orgId) throw new DomainError("Workspace not found.", 404);
   const copy = structuredClone(w);
+  if (!canAdmin(actor)) copy.testEnvironments = [];
   if (platformRoles.includes(actor.role)) {
     copy.employees = copy.employees.map((e) => ({
       ...e,
@@ -438,6 +494,12 @@ export function project(w: Workspace, actor: Actor): Workspace {
     if (!["PLATFORM_OWNER", "PLATFORM_SECURITY"].includes(actor.role))
       copy.grants = [];
     copy.notifications = [];
+    copy.helpRequests = [];
+    copy.externalItems = {};
+    if (!["PLATFORM_OWNER", "PLATFORM_SECURITY"].includes(actor.role)) {
+      copy.securityAlerts = [];
+      copy.securityCheckedAt = undefined;
+    }
     copy.audit = copy.audit.map((e) => ({
       ...e,
       previous: undefined,
@@ -446,6 +508,14 @@ export function project(w: Workspace, actor: Actor): Workspace {
     return copy;
   }
   copy.supportNotes = [];
+  if (!canAdmin(actor)) {
+    copy.securityAlerts = [];
+    copy.securityCheckedAt = undefined;
+    copy.externalItems = {};
+    copy.helpRequests = (copy.helpRequests || []).filter(
+      (r) => r.employeeId === actor.employeeId,
+    );
+  }
   if (!canManagePeople(actor)) {
     const own = actor.employeeId;
     const approvable = w.requests.filter((r) => mayApprove(w, actor, r));

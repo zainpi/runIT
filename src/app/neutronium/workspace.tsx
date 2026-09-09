@@ -26,7 +26,10 @@ import {
 } from "@/lib/neutronium/model";
 import { Icon, Mark } from "./icons";
 import Link from "next/link";
+import { TestEnvironments } from "./test-environments";
+import { HelpInbox, Connections, AccountRisk } from "./team-tools";
 type Config = {
+  socialProviders?: string[];
   demoAvailable: boolean;
   authConfigured: boolean;
   microsoftFeatures: Record<
@@ -36,6 +39,9 @@ type Config = {
 };
 type Dialog = { kind: string; id?: string };
 const titles: Record<string, string> = {
+  environments: "Test environments",
+  help: "Employee help",
+  security: "Account risk",
   overview: "Overview",
   people: "People",
   onboarding: "Workflows",
@@ -59,6 +65,8 @@ const titles: Record<string, string> = {
   notifications: "Notifications",
 };
 const descriptions: Record<string, string> = {
+  environments:
+    "Staging, production, and the tester accounts that belong to each.",
   overview: "A little less IT admin. A lot more peace of mind.",
   people: "Everyone in your organization, in one place.",
   onboarding: "From first day to last. Every step accounted for.",
@@ -393,11 +401,13 @@ export function Neutronium() {
           "apps",
           "myaccess",
           "requests",
+          "help",
           ...(["MANAGER", "APPROVER"].includes(actor.role) ? ["access"] : []),
           "profile",
         ]
       : [
           "overview",
+          ...(canAdmin(actor) ? ["help", "security", "environments"] : []),
           "people",
           "onboarding",
           "access",
@@ -891,6 +901,9 @@ export function Neutronium() {
               "support",
               "companies",
               "notifications",
+              "help",
+              "security",
+              "environments",
             ].includes(view) && (
               <div className="nt-toolbar">
                 <label className="nt-search">
@@ -1204,6 +1217,40 @@ export function Neutronium() {
                   .reverse(),
               )}
             </Panel>
+          )}
+          {view === "environments" && w && canAdmin(actor) && (
+            <TestEnvironments w={w} run={run} />
+          )}
+          {view === "help" && w && !platform && (
+            <HelpInbox w={w} actor={actor} run={run} />
+          )}
+          {view === "security" && w && canAdmin(actor) && (
+            <AccountRisk w={w} run={run} />
+          )}
+          {view === "people" && w && manage && (
+            <div className="nt-toolbar">
+              <a
+                className="nt-button"
+                href={`/neutronium/api/employees/export?org=${w.id}`}
+              >
+                Export employee CSV
+              </a>
+              {w.demo && canAdmin(actor) && (
+                <button
+                  className="nt-button"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      "test-employee",
+                      {},
+                      "Test employee created. Select them from the persona menu.",
+                    ).catch(() => {})
+                  }
+                >
+                  Create test employee
+                </button>
+              )}
+            </div>
           )}
           {["access", "requests"].includes(view) && w && (
             <div className="nt-request-grid">
@@ -1611,18 +1658,28 @@ export function Neutronium() {
                   </div>
                 )}
               </Panel>
-              <div className="nt-phase-note">
-                <Icon name="integrations" />
-                <div>
-                  <strong>Room to grow. No pretend integrations.</strong>
-                  <p>
-                    Google Workspace, HR systems, devices, calendar scheduling,
-                    and social account management are Phase 2. Other
-                    applications are explicitly managed manually.
-                  </p>
-                </div>
-              </div>
+              {canAdmin(actor) && <Connections w={w} run={run} />}
             </>
+          )}
+          {view === "profile" && !actor.demo && (
+            <div className="nt-toolbar">
+              {config?.socialProviders?.map((provider) => (
+                <button
+                  key={provider}
+                  className="nt-button"
+                  onClick={async () => {
+                    try {
+                      const r = await api("auth/social", { provider });
+                      location.assign(r.url);
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                  }}
+                >
+                  Link {provider} sign-in
+                </button>
+              ))}
+            </div>
           )}
           {view === "settings" && w && !platform && (
             <Settings
@@ -2025,6 +2082,21 @@ function Auth({
   onReady: () => Promise<void>;
 }) {
   const [mode, setMode] = useState("login");
+  const [signupRole, setSignupRole] = useState("employee");
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("authError")) setError(params.get("authError")!);
+    if (params.get("auth") === "confirmation")
+      setMessage("Check your email to finish verifying your account.");
+    api("auth/status")
+      .then((r) => {
+        if (r.user) {
+          setSignupRole(r.user.signup_role || "employee");
+          setMode("organization");
+        }
+      })
+      .catch(() => {});
+  }, [setError]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -2037,13 +2109,15 @@ function Auth({
         await api("organization", { name: data.name });
         await onReady();
       } else {
-        const r = await api(mode, data);
+        const r = await api(mode, { ...data, signupRole });
         if (r.confirmationRequired)
           setMessage("Check your email to confirm your account, then sign in.");
         else {
           try {
             await onReady();
           } catch {
+            const status = await api("auth/status");
+            setSignupRole(status.user?.signup_role || "employee");
             setMode("organization");
           }
         }
@@ -2094,14 +2168,18 @@ function Auth({
           <span className="nt-eyebrow">WELCOME TO NEUTRONIUM</span>
           <h2>
             {mode === "organization"
-              ? "Create your workspace"
+              ? signupRole === "employee"
+                ? "Join your company"
+                : "Create your workspace"
               : mode === "signup"
                 ? "A better workday starts here."
                 : "Welcome back."}
           </h2>
           <p>
             {mode === "organization"
-              ? "Give your company a home in Neutronium."
+              ? signupRole === "employee"
+                ? "Your administrator will invite you using your account email."
+                : "Give your company a home in Neutronium."
               : "Sign in to your company workspace."}
           </p>
           {error && (
@@ -2114,7 +2192,25 @@ function Auth({
               {message}
             </div>
           )}
-          {mode === "organization" ? (
+          {(mode === "signup" || mode === "organization") && (
+            <Field label="How will you use Neutronium?">
+              <select
+                value={signupRole}
+                onChange={(e) => setSignupRole(e.target.value)}
+              >
+                <option value="employee">
+                  Employee — join an invited company
+                </option>
+                <option value="admin">Admin — create a new company</option>
+              </select>
+            </Field>
+          )}
+          {mode === "organization" && signupRole === "employee" ? (
+            <p>
+              Ask your company administrator to invite this email. Once invited,
+              sign in again to open your employee onboarding and requests.
+            </p>
+          ) : mode === "organization" ? (
             <Field label="Organization name">
               <input
                 name="name"
@@ -2148,7 +2244,12 @@ function Auth({
               </Field>
             </>
           )}
-          <button className="nt-button nt-primary" disabled={busy}>
+          <button
+            className="nt-button nt-primary"
+            disabled={
+              busy || (mode === "organization" && signupRole === "employee")
+            }
+          >
             {busy
               ? "Please wait…"
               : mode === "organization"
@@ -2169,6 +2270,61 @@ function Auth({
                 : "Already have an account? Sign in"}
             </button>
           )}
+          {mode === "organization" && (
+            <>
+              <button
+                type="button"
+                className="nt-button"
+                onClick={() => void onReady().catch((e) => setError(e.message))}
+              >
+                Check my invitation
+              </button>
+              {config?.socialProviders?.map((provider) => (
+                <button
+                  type="button"
+                  className="nt-button"
+                  key={provider}
+                  onClick={async () => {
+                    try {
+                      const r = await api("auth/social", { provider });
+                      location.assign(r.url);
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                  }}
+                >
+                  Link {provider} sign-in
+                </button>
+              ))}
+            </>
+          )}
+          {mode !== "organization" &&
+            ["google", "microsoft"].map((provider) => (
+              <button
+                key={provider}
+                type="button"
+                className="nt-button"
+                disabled={busy || !config?.socialProviders?.includes(provider)}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const r = await api("auth/social", {
+                      provider,
+                      signupRole,
+                    });
+                    location.assign(r.url);
+                  } catch (e) {
+                    setError((e as Error).message);
+                    setBusy(false);
+                  }
+                }}
+              >
+                Continue with {provider === "google" ? "Google" : "Microsoft"}
+                {!config?.socialProviders?.includes(provider)
+                  ? " (not configured)"
+                  : ""}
+              </button>
+            ))}
           {config?.demoAvailable && (
             <button
               className="nt-button nt-demo-launch"

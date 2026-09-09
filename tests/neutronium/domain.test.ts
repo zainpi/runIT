@@ -371,3 +371,102 @@ test("operator projection redacts private HR fields and scopes permission invent
     ),
   );
 });
+
+test("help conversations isolate employees and restrict attachments to admins", () => {
+  const w = seed();
+  const admin: Actor = {
+    id: "admin",
+    name: "Admin",
+    role: "ORG_OWNER",
+    orgId: w.id,
+    demo: true,
+  };
+  const employee: Actor = {
+    ...admin,
+    id: "employee",
+    role: "EMPLOYEE",
+    employeeId: w.employees[0].id,
+  };
+  const other: Actor = { ...employee, employeeId: w.employees[1].id };
+  const id = command(w, employee, "help-create", {
+    subject: "Monitor",
+    body: "Please send a monitor.",
+  });
+  assert.equal(project(w, other).helpRequests?.length, 0);
+  assert.throws(
+    () => command(w, other, "help-reply", { id, body: "Stolen" }),
+    DomainError,
+  );
+  assert.throws(
+    () =>
+      command(w, employee, "help-reply", {
+        id,
+        body: "File",
+        attachment: { name: "a.txt", data: "YQ==" },
+      }),
+    DomainError,
+  );
+  command(w, admin, "help-reply", {
+    id,
+    body: "Here is the order",
+    status: "resolved",
+    attachment: { name: "order.txt", data: "YQ==" },
+  });
+  assert.equal(
+    project(w, employee).helpRequests?.[0].messages[0].attachment?.data,
+    "YQ==",
+  );
+  assert.equal(w.helpRequests?.[0].status, "resolved");
+  assert.throws(
+    () =>
+      command(w, admin, "help-reply", {
+        id,
+        body: "Too large",
+        attachment: { name: "a", data: Buffer.alloc(50001).toString("base64") },
+      }),
+    DomainError,
+  );
+  command(w, employee, "help-reply", { id, body: "One more question" });
+  assert.equal(w.helpRequests?.[0].status, "open");
+  assert.throws(
+    () => command({ ...w, id: "other" }, admin, "help-create", {}),
+    DomainError,
+  );
+});
+test("test accounts are isolated to development and security data to admins", () => {
+  const w = seed();
+  const a: Actor = {
+    id: "admin",
+    name: "Admin",
+    role: "ORG_OWNER",
+    orgId: w.id,
+    demo: true,
+  };
+  command(w, a, "test-employee", {});
+  assert.equal(w.employees.at(-1)?.employmentType, "Test");
+  assert.throws(
+    () => command({ ...w, demo: false }, a, "test-employee", {}),
+    DomainError,
+  );
+  w.securityAlerts = [
+    {
+      id: "risk",
+      email: "secret@example.com",
+      level: "high",
+      state: "atRisk",
+      detail: "risk",
+      at: new Date().toISOString(),
+    },
+  ];
+  w.externalItems = {
+    jira: [
+      { id: "1", title: "Private", status: "Open", url: "https://example.com" },
+    ],
+  };
+  assert.deepEqual(
+    project(w, { ...a, role: "EMPLOYEE", employeeId: w.employees[0].id })
+      .securityAlerts,
+    [],
+  );
+  assert.deepEqual(project(w, { ...a, role: "HR_ADMIN" }).externalItems, {});
+});

@@ -82,7 +82,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${sora.variable}`}>
-      <body className="min-h-screen font-sans">
+      {/* Browser tooling can add body attributes (for example, vc-init) before hydration.
+          Limit suppression to this element; descendants retain hydration checks. */}
+      <body className="min-h-screen font-sans" suppressHydrationWarning>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-white"
