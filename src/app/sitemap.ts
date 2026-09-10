@@ -7,6 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/", priority: 1, frequency: "monthly" as const, modified: "2026-09-10" },
     ...founders.map((founder) => ({ path: founder.portfolioUrl, priority: 0.7, frequency: "monthly" as const, modified: "2026-09-10" })),
     { path: "/heaterdeals/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
+    { path: "/local-lore/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
     { path: "/the-last-echo/", priority: 1, frequency: "weekly" as const, modified: "2026-08-06" },
     { path: "/the-last-echo/guides/", priority: 0.9, frequency: "weekly" as const, modified: "2026-08-06" },
     { path: "/the-last-echo/guides/game-systems-reference.html", priority: 0.9, frequency: "monthly" as const, modified: "2026-08-06" },
