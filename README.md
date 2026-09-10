@@ -1,7 +1,7 @@
 # runsIT — Company Website
 
-A company homepage for runsIT, with links to Neutronium, HeaterDeals, and
-The Last Echo, plus profiles for the three founders and their portfolios.
+A company homepage for runsIT, with links to Neutronium, HeaterDeals,
+The Last Echo, and Local Lore, plus profiles for the three founders and their portfolios.
 Built with **Next.js (App Router) + TypeScript + Tailwind CSS + Framer Motion**.
 
 Dark, high-end SaaS aesthetic, mobile-first, SEO-optimized, accessible, and
@@ -43,6 +43,7 @@ Neutronium is deployed separately on a DigitalOcean VPS; see [VPS instructions](
 | `/`              | Company description, product links, founders, and contact         |
 | `/heaterdeals/`  | HeaterDeals overview, legal information, and support               |
 | `/the-last-echo/` | The Last Echo game website                                       |
+| `/local-lore/`    | Local Lore playable browser demo                                |
 | `/neutronium/`   | Redirects to the Neutronium VPS on runsit.ca                       |
 | `/zainpi/`, `/raishaikh/`, `/mikaelsid/` | Founder portfolios                     |
 | `/services`, `/case-studies` | Redirect to the homepage products section            |

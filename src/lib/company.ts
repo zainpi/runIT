@@ -29,6 +29,16 @@ export const products = [
     action: "Explore The Last Echo",
     monogram: "",
   },
+  {
+    id: "local-lore",
+    name: "Local Lore",
+    category: "Browser game · Playable demo",
+    description:
+      "How well do you know your streets? Try three-round geography challenges with named answers, map pins, and instant scores.",
+    href: "/local-lore/",
+    action: "Play Local Lore",
+    monogram: "LL",
+  },
 ] as const;
 
 export type Founder = {
