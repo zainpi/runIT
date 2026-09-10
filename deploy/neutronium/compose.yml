@@ -6,6 +6,7 @@ services:
       POSTGRES_DB: neutronium
       POSTGRES_USER: neutronium
       POSTGRES_PASSWORD: ${NEUTRONIUM_POSTGRES_PASSWORD:?Set database password}
+      NEUTRONIUM_APP_DATABASE_PASSWORD: ${NEUTRONIUM_APP_DATABASE_PASSWORD:?Set a separate application database password}
     volumes:
       - postgres:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d:ro
@@ -23,8 +24,11 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      NEUTRONIUM_DATABASE_URL: postgres://neutronium:${NEUTRONIUM_POSTGRES_PASSWORD}@db:5432/neutronium
+      NEUTRONIUM_DATABASE_URL: postgres://neutronium_app:${NEUTRONIUM_APP_DATABASE_PASSWORD}@db:5432/neutronium
       NEUTRONIUM_DISABLE_DEMO: 'true'
+      NEUTRONIUM_PRIVATE_FILES_DIR: /app/private-files
+    volumes:
+      - private_files:/app/private-files
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +60,7 @@ services:
       - caddy_config:/config
     depends_on: [app]
 volumes:
+  private_files:
   postgres:
   caddy_data:
   caddy_config:

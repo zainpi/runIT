@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { PasswordManagerLink } from "./password-manager-link";
+import { ValidatedForm } from "./form";
 import {
   Workspace,
   TestEnvironment,
@@ -22,6 +24,7 @@ export function TestEnvironments({ w, run }: Props) {
     account?: TesterAccount;
   }>();
   const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState("");
   const environments = (w.testEnvironments || []).filter(
     (env) =>
       (archived || env.status === "active") &&
@@ -47,10 +50,12 @@ export function TestEnvironments({ w, run }: Props) {
     environmentForm && environmentForm !== "new" ? environmentForm : undefined;
   async function save(path: string, data: unknown, close: () => void) {
     setBusy(true);
+    setFormError("");
     try {
       await run(path, data, "Directory updated.");
       close();
-    } catch {
+    } catch (e) {
+      setFormError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -84,6 +89,7 @@ export function TestEnvironments({ w, run }: Props) {
           disabled={busy}
           onClick={() => {
             setEnvironmentForm("new");
+            setFormError("");
             setAccountForm(undefined);
           }}
         >
@@ -99,7 +105,7 @@ export function TestEnvironments({ w, run }: Props) {
         Show archived environments and accounts
       </label>
       {environmentForm && (
-        <form
+        <ValidatedForm
           key={editing?.id || "new"}
           className="nt-tool-card"
           onSubmit={(e) => {
@@ -115,6 +121,11 @@ export function TestEnvironments({ w, run }: Props) {
           }}
         >
           <h2>{editing ? "Edit environment" : "New environment"}</h2>
+          {formError && (
+            <p className="nt-message nt-error" role="alert">
+              {formError}
+            </p>
+          )}
           <label>
             Environment name
             <input
@@ -179,10 +190,10 @@ export function TestEnvironments({ w, run }: Props) {
           >
             Cancel
           </button>
-        </form>
+        </ValidatedForm>
       )}
       {accountForm && (
-        <form
+        <ValidatedForm
           key={accountForm.account?.id || accountForm.environmentId}
           className="nt-tool-card"
           onSubmit={(e) => {
@@ -203,6 +214,11 @@ export function TestEnvironments({ w, run }: Props) {
               ? "Edit tester account"
               : "Register tester account"}
           </h2>
+          {formError && (
+            <p className="nt-message nt-error" role="alert">
+              {formError}
+            </p>
+          )}
           <p>
             {
               w.testEnvironments?.find(
@@ -262,16 +278,9 @@ export function TestEnvironments({ w, run }: Props) {
                 ))}
             </select>
           </label>
-          <label>
-            Password manager link
-            <input
-              name="credentialUrl"
-              type="url"
-              maxLength={2000}
-              defaultValue={accountForm.account?.credentialUrl}
-              placeholder="https://your-password-manager.example/item"
-            />
-          </label>
+          <PasswordManagerLink
+            defaultValue={accountForm.account?.credentialUrl}
+          />
           <label>
             Account notes
             <textarea
@@ -307,7 +316,7 @@ export function TestEnvironments({ w, run }: Props) {
           >
             Cancel
           </button>
-        </form>
+        </ValidatedForm>
       )}
       {!environments.length && (
         <div className="nt-tool-card">
@@ -337,6 +346,7 @@ export function TestEnvironments({ w, run }: Props) {
               disabled={busy}
               onClick={() => {
                 setEnvironmentForm(env);
+                setFormError("");
                 setAccountForm(undefined);
               }}
             >
@@ -397,6 +407,7 @@ export function TestEnvironments({ w, run }: Props) {
                         disabled={busy || env.status === "archived"}
                         onClick={() => {
                           setAccountForm({ environmentId: env.id, account });
+                          setFormError("");
                           setEnvironmentForm(undefined);
                         }}
                       >
@@ -415,6 +426,7 @@ export function TestEnvironments({ w, run }: Props) {
             disabled={busy || env.status === "archived"}
             onClick={() => {
               setAccountForm({ environmentId: env.id });
+              setFormError("");
               setEnvironmentForm(undefined);
             }}
           >

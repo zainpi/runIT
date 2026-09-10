@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import Sidebar from "../_components/Sidebar";
 
@@ -28,12 +29,12 @@ export default async function AdminDashboardLayout({
           <p className="mt-2 text-sm text-[#5a4226]">
             {user.email ?? user.id} is signed in but is not on the admin allowlist.
           </p>
-          <a
-            href="/the-last-echo/admin/login"
+          <Link
+            href="/the-last-echo/admin/login/"
             className="pixel mt-4 inline-block text-lg text-[#3f7a24] underline"
           >
             Use a different account
-          </a>
+          </Link>
         </div>
       </main>
     );

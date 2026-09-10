@@ -2,7 +2,8 @@
   encode zstd gzip
   @root path /
   redir @root /neutronium/ 302
-  handle /neutronium/* {
+  @neutronium path /neutronium /neutronium/*
+  handle @neutronium {
     reverse_proxy app:3000 {
       header_up -CF-Connecting-IP
       header_up X-Forwarded-For {remote_host}

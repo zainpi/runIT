@@ -28,6 +28,8 @@ export type Employee = {
   managerId: string;
   startDate: string;
   location: string;
+  usageLocation?: string;
+  mailbox?: { status: "pending" | "manually_verified"; evidence?: Evidence };
   employmentType: string;
   status: "active" | "onboarding" | "offboarding" | "terminated";
   providerId?: string;
@@ -63,6 +65,7 @@ export type Grant = {
   source: string;
   expiresAt?: string;
   providerRef?: string;
+  evidence?: Evidence;
 };
 export type AccessRequest = {
   id: string;
@@ -71,6 +74,7 @@ export type AccessRequest = {
   level: string;
   reason: string;
   durationMinutes: number;
+  expiresAt?: string;
   status: "pending" | "more_info" | "approved" | "rejected" | "fulfilled";
   stages: ("manager" | "owner" | "admin")[];
   approvals: {
@@ -103,6 +107,8 @@ export type Step = {
   lease?: string;
   leaseUntil?: string;
   nextAttemptAt?: string;
+  evidence?: Evidence;
+  membershipIntent?: { groupId: string; userId: string; absentAt: string };
 };
 export type Job = {
   id: string;
@@ -135,7 +141,10 @@ export type Notification = {
   body: string;
   createdAt: string;
   read: boolean;
-  emailStatus: "pending" | "sent" | "unconfigured";
+  emailStatus: "pending" | "sent" | "unconfigured" | "failed";
+  dedupeKey?: string;
+  deliveryLease?: string;
+  deliveryLeaseUntil?: string;
   attempts?: number;
   nextAttemptAt?: string;
 };
@@ -148,7 +157,65 @@ export type Integration = {
   checkedAt?: string;
   error?: string;
 };
+export type Evidence = {
+  kind: "manual" | "provider" | "development";
+  performedBy: string;
+  performedAt: string;
+  confirmedBy: string;
+  confirmedAt: string;
+  provider: string;
+  target: string;
+  method: string;
+  note: string;
+};
+export type RequestKind =
+  | "general"
+  | "onboarding"
+  | "software"
+  | "equipment"
+  | "document"
+  | "contractor"
+  | "qa"
+  | "offboarding";
+export type Fulfillment =
+  | "open"
+  | "waiting_for_requester"
+  | "waiting_for_admin"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+export type ChecklistTask = {
+  id: string;
+  title: string;
+  required: boolean;
+  ownerId?: string;
+  dueAt?: string;
+  completedAt?: string;
+  evidence?: Evidence;
+};
+export type ChecklistTemplate = {
+  id: string;
+  name: string;
+  kind: RequestKind;
+  tasks: { title: string; required: boolean }[];
+};
 export type HelpRequest = {
+  kind?: RequestKind;
+  requesterId?: string;
+  ownerId?: string;
+  dueAt?: string;
+  priority?: "low" | "normal" | "high" | "urgent";
+  fulfillment?: Fulfillment;
+  accessRequestId?: string;
+  workflowId?: string;
+  applicationId?: string;
+  environmentId?: string;
+  testerAccountId?: string;
+  expiresAt?: string;
+  tasks?: ChecklistTask[];
+  evidence?: Evidence;
+  updatedAt?: string;
+  completedAt?: string;
   id: string;
   employeeId: string;
   subject: string;
@@ -160,7 +227,8 @@ export type HelpRequest = {
     author: string;
     body: string;
     at: string;
-    attachment?: { name: string; data: string };
+    attachment?: { name: string; data?: string; key?: string };
+    internal?: boolean;
   }[];
 };
 export type SecurityAlert = {
@@ -199,6 +267,50 @@ export type TestEnvironment = {
   updatedAt: string;
 };
 export type Workspace = {
+  pageInfo?: {
+    view: string;
+    cursor: string;
+    nextCursor: string | null;
+    shown: number;
+    ids?: string[];
+  };
+  directoryPageIds?: string[];
+  summary?: {
+    employees: number;
+    active: number;
+    pending: number;
+    workflows: number;
+  };
+  applicationGrantCounts?: Record<string, number>;
+  assignedTestAccounts?: {
+    requestId: string;
+    environment: string;
+    url: string;
+    username: string;
+    role: string;
+    notes: string;
+  }[];
+  checklistTemplates?: ChecklistTemplate[];
+  savedViews?: { id: string; actorId: string; name: string; filter: string }[];
+  microsoftReadiness?: {
+    checkedAt: string;
+    domains: { id: string; isVerified: boolean }[];
+    skus: { id: string; name: string; available: number; exchange: boolean }[];
+    dns?: Record<string, unknown[]>;
+  };
+  reconciliation?: {
+    attemptedAt: string;
+    succeededAt?: string;
+    status: "running" | "complete" | "failed";
+    error?: string;
+    coverage?: number;
+    findings: {
+      employeeId: string;
+      applicationId: string;
+      type: "unexpected" | "missing";
+      at: string;
+    }[];
+  };
   testEnvironments?: TestEnvironment[];
   helpRequests?: HelpRequest[];
   securityAlerts?: SecurityAlert[];
@@ -231,6 +343,7 @@ export class DomainError extends Error {
   constructor(
     message: string,
     public status = 400,
+    public retryAfterMs?: number,
   ) {
     super(message);
   }
@@ -482,6 +595,53 @@ export function seed(id = uid(), demo = true, name = "Acme Inc."): Workspace {
 export function project(w: Workspace, actor: Actor): Workspace {
   if (w.id !== actor.orgId) throw new DomainError("Workspace not found.", 404);
   const copy = structuredClone(w);
+  copy.savedViews = (copy.savedViews || []).filter(
+    (v) => v.actorId === actor.id,
+  );
+  if (!canAdmin(actor)) {
+    copy.checklistTemplates = [];
+    copy.microsoftReadiness = undefined;
+    copy.reconciliation = undefined;
+  }
+  copy.helpRequests = (copy.helpRequests || []).map((r) => ({
+    ...r,
+    messages: r.messages
+      .filter((m) => canAdmin(actor) || !m.internal)
+      .map((m) => ({
+        ...m,
+        attachment: m.attachment
+          ? { name: m.attachment.name, key: m.attachment.key }
+          : undefined,
+      })),
+  }));
+  copy.assignedTestAccounts = [];
+  if (actor.employeeId && !platformRoles.includes(actor.role))
+    for (const r of w.helpRequests || []) {
+      if (
+        r.employeeId !== actor.employeeId ||
+        r.fulfillment !== "completed" ||
+        r.kind !== "qa"
+      )
+        continue;
+      const env = w.testEnvironments?.find(
+        (e) => e.id === r.environmentId && e.status === "active",
+      );
+      const account = env?.accounts.find(
+        (a) =>
+          a.id === r.testerAccountId &&
+          a.employeeId === actor.employeeId &&
+          a.status === "active",
+      );
+      if (env && account)
+        copy.assignedTestAccounts.push({
+          requestId: r.id,
+          environment: env.name,
+          url: env.url,
+          username: account.username,
+          role: account.role,
+          notes: env.notes,
+        });
+    }
   if (!canAdmin(actor)) copy.testEnvironments = [];
   if (platformRoles.includes(actor.role)) {
     copy.employees = copy.employees.map((e) => ({

@@ -16,7 +16,7 @@ HEATERDEALS_CRON_SECRET=<at least 32 random bytes, base64 or high-entropy text>
 KEEPA_API_KEY=<Keepa API key>
 HEATERDEALS_APPLE_ID=<numeric App Store Connect app Apple ID>
 HEATERDEALS_BUNDLE_ID=com.pulsedeals.app
-HEATERDEALS_PRODUCT_ID=com.pulsedeals.subscription.monthly
+HEATERDEALS_PRODUCT_ID=com.pulsedeals.subscription.weekly
 
 # Discord community access
 HEATERDEALS_DISCORD_CLIENT_ID=<Discord application client ID>
@@ -102,3 +102,15 @@ fields are the integration point.
 Copy `.dev.vars.example` to `.dev.vars` and fill in development values. `.dev.vars` is ignored by
 Git. `npm run build:next` checks the Next.js app; `npm run build:cloudflare` runs the full OpenNext
 Worker bundle check.
+
+## Weekly membership and reciprocal Discord access (September 10, 2026)
+
+Apply `supabase/migrations/20260910010000_heaterdeals_memberships.sql` after the Discord and push migrations. It adds the product-tier allowlist, an atomic primary-country claim, short-lived paid Discord grants, and ordered Apple transaction recording. The new weekly product includes one country; existing monthly subscribers retain Pro access. New Pro purchase is disabled until a price is decided.
+
+`GET /heaterdeals/api/v1/membership` returns tier, source, primaryMarketplace, expiresAt. `PUT` with `{ "marketplace": "ca" }` records the first country for an active member. Feed, details (including UUID lookup), alerts, votes, enqueue and dispatch check membership. Pro adds countries, never exclusive local deals.
+
+Linking Discord only requires sign-in. Set `HEATERDEALS_DISCORD_PAID_ROLE_ID` (Standard) and optionally `HEATERDEALS_DISCORD_PRO_ROLE_ID` to roles controlled by the paid membership provider. They must differ from `HEATERDEALS_DISCORD_ROLE_ID`, which the app grants and revokes. Ordinary server membership and the app-granted role never unlock the app. The payment provider must remove paid roles after expiry. Role grants are verified with the bot API, cached for 10 minutes, and refreshed when older than 5 minutes. Failed checks do not extend access.
+
+Run internal sync at least every 5 minutes, including when push is disabled. It reconciles up to 100 stale Discord links per run and removes expired app access roles. Scale batch size/frequency as needed. Unlinking removes the Discord-derived grant; independent Apple access remains. Update the APNs worker with the migration because it now rechecks `heater_membership` instead of one product ID.
+
+Configure the live weekly product and one-week introductory offer in App Store Connect; the repository's StoreKit configuration changes local tests only. New/legacy product IDs are seeded in `heater_product_tiers`. Add explicit table entries for custom IDs or a future priced Pro product. No deployment or live payment-provider setup is recorded by these local edits.

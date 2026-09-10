@@ -4,10 +4,10 @@ import {
   checkBodySize,
   getAdminClient,
   handleApiError,
-  getProductID,
+  isSupportedAppleProduct,
   syncDiscordAccess,
 } from "@/lib/heaterdeals/server";
-import { asEnvironment, entitlementStatus, verifyNotification, verifyTransaction } from "@/lib/heaterdeals/apple";
+import { entitlementStatus, verifyNotification, verifyTransaction } from "@/lib/heaterdeals/apple";
 
 export const runtime = "nodejs";
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     const transaction = await verifyTransaction(signedTransactionInfo);
-    if (transaction.productId !== getProductID() || !transaction.originalTransactionId) {
+    if (!(await isSupportedAppleProduct(admin, transaction.productId)) || !transaction.originalTransactionId) {
       return apiJson(request, { ok: true, ignored: true });
     }
 
@@ -59,23 +59,12 @@ export async function POST(request: Request) {
     }
 
     const status = entitlementStatus(transaction, notification.notificationType);
-    const upsert = await admin.from("heater_entitlements").upsert({
-      account_id: accountID,
-      product_id: getProductID(),
-      original_transaction_id: transaction.originalTransactionId,
-      transaction_id: transaction.transactionId ?? null,
-      app_account_token: transaction.appAccountToken ?? null,
-      environment: asEnvironment(transaction.environment),
-      status,
-      expires_at: transaction.expiresDate ? new Date(transaction.expiresDate).toISOString() : null,
-      revoked_at: transaction.revocationDate ? new Date(transaction.revocationDate).toISOString() : null,
-      last_verified_at: new Date().toISOString(),
-      raw: { notificationType: notification.notificationType, transaction },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "account_id,product_id" });
+    const upsert = await admin.rpc("record_heater_apple_entitlement", {
+      p_account_id: accountID, p_transaction: transaction, p_status: status,
+    });
     if (upsert.error) throw upsert.error;
     try {
-      await syncDiscordAccess(admin, accountID, status === "active" || status === "grace_period");
+      await syncDiscordAccess(admin, accountID);
     } catch (error) {
       // Do not make Apple retry a valid notification solely because Discord is
       // temporarily unavailable. The next notification/status check repairs it.

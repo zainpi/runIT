@@ -1,4 +1,10 @@
 "use client";
+import { MicrosoftReadiness } from "./microsoft-readiness";
+import { SecuritySettings } from "./security-settings";
+import { EmployeeApprovals, OnboardingInvite } from "./employee-approvals";
+import { ValidatedForm } from "./form";
+import { requestJson } from "./http";
+import { Operations } from "./operations";
 import {
   useCallback,
   useEffect,
@@ -27,7 +33,7 @@ import {
 import { Icon, Mark } from "./icons";
 import Link from "next/link";
 import { TestEnvironments } from "./test-environments";
-import { HelpInbox, Connections, AccountRisk } from "./team-tools";
+import { Connections, AccountRisk } from "./team-tools";
 type Config = {
   socialProviders?: string[];
   demoAvailable: boolean;
@@ -39,6 +45,7 @@ type Config = {
 };
 type Dialog = { kind: string; id?: string };
 const titles: Record<string, string> = {
+  "employee-approvals": "Employee approvals",
   environments: "Test environments",
   help: "Employee help",
   security: "Account risk",
@@ -65,6 +72,8 @@ const titles: Record<string, string> = {
   notifications: "Notifications",
 };
 const descriptions: Record<string, string> = {
+  "employee-approvals":
+    "Review employee signups before granting company access and starting onboarding.",
   environments:
     "Staging, production, and the tester accounts that belong to each.",
   overview: "A little less IT admin. A lot more peace of mind.",
@@ -188,8 +197,8 @@ function Panel({
   );
 }
 async function api(path: string, data?: unknown, orgId?: string) {
-  const res = await fetch(
-    `/neutronium/api/${path}${data === undefined && orgId ? `?org=${encodeURIComponent(orgId)}` : ""}`,
+  return requestJson(
+    `/neutronium/api/${path}${data === undefined && orgId ? `${path.includes("?") ? "&" : "?"}org=${encodeURIComponent(orgId)}` : ""}`,
     data === undefined
       ? { cache: "no-store" }
       : {
@@ -201,11 +210,9 @@ async function api(path: string, data?: unknown, orgId?: string) {
           }),
         },
   );
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.error || "Request failed.");
-  return result;
 }
 export function Neutronium() {
+  const [mfaGate, setMfaGate] = useState(false);
   const [config, setConfig] = useState<Config>();
   const [w, setW] = useState<Workspace>();
   const [actor, setActor] = useState<Actor>();
@@ -215,6 +222,14 @@ export function Neutronium() {
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [recordCursor, setRecordCursor] = useState("");
+  const readQuery = useRef({
+    view: "overview",
+    q: "",
+    status: "all",
+    cursor: "",
+  });
+  readQuery.current = { view, q: search, status: filter, cursor: recordCursor };
   const [dialog, setDialog] = useState<Dialog>();
   const [busy, setBusy] = useState(false);
   const [mobile, setMobile] = useState(false);
@@ -231,27 +246,40 @@ export function Neutronium() {
   >([]);
   const org = useRef<string>();
   const refresh = useCallback(async () => {
-    const state = await api("state", undefined, org.current);
+    const query = new URLSearchParams(readQuery.current).toString();
+    const state = await api(`state?${query}`, undefined, org.current);
+    if (query !== new URLSearchParams(readQuery.current).toString())
+      return state;
     setW(state.workspace);
     setActor(state.actor);
     return state;
   }, []);
   const navigate = useCallback((v: string) => {
     setView(v);
+    setRecordCursor("");
     setSearch("");
     setFilter("all");
     setMobile(false);
-    window.history.replaceState(null, "", `/neutronium?view=${v}`);
+    const query = new URLSearchParams({ view: v });
+    if (org.current) query.set("org", org.current);
+    window.history.replaceState(null, "", `/neutronium/?${query}`);
   }, []);
   useEffect(() => {
     let alive = true;
+    const params = new URLSearchParams(location.search);
+    const requestedView = params.get("view");
+    const requestedOrg = params.get("org");
+    if (requestedOrg && /^[0-9a-f-]{36}$/i.test(requestedOrg))
+      org.current = requestedOrg;
+    const authError = params.get("authError");
+    if (authError) setError(authError);
     (async () => {
       try {
         const c = await api("config");
         if (!alive) return;
         setConfig(c);
         try {
-          const session = await api("session");
+          const session = await api("session", undefined, org.current);
           if (
             platformRoles.includes(session.actor.role) &&
             !session.actor.orgId
@@ -264,9 +292,16 @@ export function Neutronium() {
               !canManagePeople(state.actor) &&
               !platformRoles.includes(state.actor.role)
             )
-              navigate("home");
+              navigate(
+                requestedView && titles[requestedView] ? requestedView : "home",
+              );
           }
         } catch {
+          const status = await api("auth/status").catch(() => ({ user: null }));
+          if (status.user?.mfa_required && !status.user.mfa_verified_at) {
+            setMfaGate(true);
+            return;
+          }
           if (c.demoAvailable) {
             const state = await api("demo", {});
             if (alive) {
@@ -276,7 +311,7 @@ export function Neutronium() {
           }
         }
         if (alive) {
-          const v = new URLSearchParams(location.search).get("view");
+          const v = requestedView;
           if (v && titles[v]) setView(v);
         }
       } catch (e) {
@@ -315,6 +350,25 @@ export function Neutronium() {
         .then((r) => setCompanies(r.companies))
         .catch((e) => setError(e.message));
   }, [view, actor]);
+  useEffect(() => {
+    if (!actor?.orgId || actor.demo) return;
+    const t = setTimeout(() => {
+      void refresh().catch((e) => setError(e.message));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [
+    view,
+    search,
+    filter,
+    recordCursor,
+    actor?.id,
+    actor?.orgId,
+    actor?.demo,
+    refresh,
+  ]);
+  useEffect(() => {
+    setRecordCursor("");
+  }, [view, search, filter]);
   async function run(path: string, data: unknown, success = "Changes saved.") {
     setBusy(true);
     setError("");
@@ -356,6 +410,17 @@ export function Neutronium() {
       setBusy(false);
     }
   }
+  if (mfaGate)
+    return (
+      <main className="nt-root nt-security-gate">
+        {error && (
+          <div className="nt-message nt-error" role="alert">
+            {error}
+          </div>
+        )}
+        <SecuritySettings gate />
+      </main>
+    );
   if (loading)
     return (
       <div className="nt-root nt-loading">
@@ -371,6 +436,11 @@ export function Neutronium() {
         error={error}
         setError={setError}
         onReady={async () => {
+          const status = await api("auth/status");
+          if (status.user?.mfa_required && !status.user.mfa_verified_at) {
+            setMfaGate(true);
+            return;
+          }
           await refresh();
           navigate("overview");
         }}
@@ -410,6 +480,7 @@ export function Neutronium() {
           ...(canAdmin(actor) ? ["help", "security", "environments"] : []),
           "people",
           "onboarding",
+          "employee-approvals",
           "access",
           "applications",
           "permissions",
@@ -499,6 +570,9 @@ export function Neutronium() {
         </thead>
         <tbody>
           {w?.employees
+            .filter(
+              (e) => !w?.directoryPageIds || w.directoryPageIds.includes(e.id),
+            )
             .filter(
               (e) =>
                 matches(fullName(e), e.email, e.department, e.title) &&
@@ -635,12 +709,12 @@ export function Neutronium() {
   return (
     <div className="nt-root">
       <aside className={`nt-sidebar ${mobile ? "nt-sidebar-open" : ""}`}>
-        <a className="nt-brand" href="/neutronium">
+        <Link className="nt-brand" href={org.current ? `/neutronium/?org=${org.current}` : "/neutronium/"} onClick={(e) => { e.preventDefault(); navigate(employee ? "home" : platform ? "companies" : "overview"); }}>
           <Mark />
           <span>
             neutronium<span className="nt-brand-dot">.</span>
           </span>
-        </a>
+        </Link>
         <div className="nt-workspace-switch">
           <span className="nt-company-icon">
             {platform ? (
@@ -665,6 +739,7 @@ export function Neutronium() {
             <button
               key={n}
               className={view === n ? "nt-nav-active" : ""}
+              disabled={busy}
               onClick={() => navigate(n)}
             >
               <Icon
@@ -702,6 +777,7 @@ export function Neutronium() {
                   <button
                     className={view === n ? "nt-nav-active" : ""}
                     key={n}
+                    disabled={busy}
                     onClick={() => navigate(n)}
                   >
                     <Icon name={n} />
@@ -875,7 +951,12 @@ export function Neutronium() {
             </div>
             <div className="nt-heading-actions">
               {manage &&
-                ["overview", "people", "onboarding"].includes(view) &&
+                [
+                  "overview",
+                  "people",
+                  "onboarding",
+                  "employee-approvals",
+                ].includes(view) &&
                 actionButton("Onboard employee", "onboard")}
               {view === "templates" &&
                 manage &&
@@ -904,6 +985,7 @@ export function Neutronium() {
               "help",
               "security",
               "environments",
+              "employee-approvals",
             ].includes(view) && (
               <div className="nt-toolbar">
                 <label className="nt-search">
@@ -958,21 +1040,42 @@ export function Neutronium() {
                 )}
               </div>
             )}
+          {w?.pageInfo?.view === view && (
+            <div className="nt-toolbar" aria-label="Record pagination">
+              <span>{w.pageInfo.shown} records on this page</span>
+              <button
+                className="nt-button"
+                disabled={!recordCursor}
+                onClick={() => setRecordCursor("")}
+              >
+                First page
+              </button>
+              <button
+                className="nt-button"
+                disabled={!w.pageInfo.nextCursor}
+                onClick={() => setRecordCursor(w.pageInfo!.nextCursor!)}
+              >
+                Next page
+              </button>
+            </div>
+          )}
           {view === "overview" && w && (
             <>
               <div className="nt-stats">
                 {[
                   {
                     label: "Total employees",
-                    value: w.employees.filter((e) => e.status !== "terminated")
-                      .length,
+                    value:
+                      w.summary?.employees ??
+                      w.employees.filter((e) => e.status !== "terminated")
+                        .length,
                     icon: "people",
-                    note: `${w.employees.filter((e) => e.status === "active").length} active in your workspace`,
+                    note: `${w.summary?.active ?? w.employees.filter((e) => e.status === "active").length} active in your workspace`,
                     view: "people",
                   },
                   {
                     label: "Access requests",
-                    value: pending.length,
+                    value: w.summary?.pending ?? pending.length,
                     icon: "access",
                     note: pending.length
                       ? "Waiting for a decision"
@@ -981,7 +1084,7 @@ export function Neutronium() {
                   },
                   {
                     label: "Active workflows",
-                    value: activeJobs.length,
+                    value: w.summary?.workflows ?? activeJobs.length,
                     icon: "onboarding",
                     note: activeJobs.length
                       ? "Follow every step in real time"
@@ -1186,7 +1289,7 @@ export function Neutronium() {
           )}
           {view === "people" && w && (
             <Panel
-              title={`Employee directory · ${w.employees.length}`}
+              title={`Employee directory · ${w.summary?.employees ?? w.employees.length}`}
               action={
                 manage &&
                 actionButton("Offboard employee", "offboard", "exit", true)
@@ -1221,14 +1324,23 @@ export function Neutronium() {
           {view === "environments" && w && canAdmin(actor) && (
             <TestEnvironments w={w} run={run} />
           )}
+          {view === "employee-approvals" && w && manage && (
+            <EmployeeApprovals key={w.id} w={w} run={run} />
+          )}
           {view === "help" && w && !platform && (
-            <HelpInbox w={w} actor={actor} run={run} />
+            <Operations key={actor.id} w={w} actor={actor} run={run} />
           )}
           {view === "security" && w && canAdmin(actor) && (
             <AccountRisk w={w} run={run} />
           )}
           {view === "people" && w && manage && (
             <div className="nt-toolbar">
+              <button
+                className="nt-button"
+                onClick={() => navigate("employee-approvals")}
+              >
+                Review employee signups
+              </button>
               <a
                 className="nt-button"
                 href={`/neutronium/api/employees/export?org=${w.id}`}
@@ -1293,6 +1405,7 @@ export function Neutronium() {
               {applications
                 .filter(
                   (app) =>
+                    (!w.pageInfo?.ids || w.pageInfo.ids.includes(app.id)) &&
                     matches(app.name) &&
                     (view !== "apps" ||
                       w.grants.some(
@@ -1329,7 +1442,7 @@ export function Neutronium() {
                         <span>
                           People with active access
                           <strong>
-                            {
+                            {w.applicationGrantCounts?.[app.id] ??
                               new Set(
                                 w.grants
                                   .filter(
@@ -1338,8 +1451,7 @@ export function Neutronium() {
                                       g.status === "active",
                                   )
                                   .map((g) => g.employeeId),
-                              ).size
-                            }
+                              ).size}
                           </strong>
                         </span>
                         <span>
@@ -1461,7 +1573,11 @@ export function Neutronium() {
           {view === "templates" && w && (
             <div className="nt-template-grid">
               {w.templates
-                .filter((t) => matches(t.name, t.description))
+                .filter(
+                  (t) =>
+                    (!w.pageInfo?.ids || w.pageInfo.ids.includes(t.id)) &&
+                    matches(t.name, t.description),
+                )
                 .map((t) => (
                   <Panel key={t.id}>
                     <div className="nt-template-card">
@@ -1658,9 +1774,15 @@ export function Neutronium() {
                   </div>
                 )}
               </Panel>
-              {canAdmin(actor) && <Connections w={w} run={run} />}
+              {canAdmin(actor) && (
+                <>
+                  <MicrosoftReadiness w={w} run={run} />
+                  <Connections w={w} run={run} />
+                </>
+              )}
             </>
           )}
+          {view === "profile" && !actor.demo && <SecuritySettings />}
           {view === "profile" && !actor.demo && (
             <div className="nt-toolbar">
               {config?.socialProviders?.map((provider) => (
@@ -1896,7 +2018,23 @@ export function Neutronium() {
                       <strong>{n.title}</strong>
                       <p>{n.body}</p>
                       <small>
-                        {time(n.createdAt)} · Email: {n.emailStatus}
+                        {time(n.createdAt)} · Email:{" "}
+                        {n.emailStatus === "pending" ? "queued" : n.emailStatus}
+                        {canAdmin(actor) &&
+                          ["failed", "unconfigured"].includes(
+                            n.emailStatus,
+                          ) && (
+                            <button
+                              className="nt-link"
+                              onClick={() =>
+                                void run("notification-retry", {
+                                  id: n.id,
+                                }).catch(() => {})
+                              }
+                            >
+                              Retry delivery
+                            </button>
+                          )}
                       </small>
                     </div>
                     {!n.read && <span className="nt-live-dot" />}
@@ -2103,6 +2241,7 @@ function Auth({
     e.preventDefault();
     setBusy(true);
     setError("");
+    setMessage("");
     const data = Object.fromEntries(new FormData(e.currentTarget));
     try {
       if (mode === "organization") {
@@ -2164,7 +2303,18 @@ function Auth({
         <Link href="/">A product by runIT ↗</Link>
       </div>
       <div className="nt-auth-form">
-        <form onSubmit={submit}>
+        <ValidatedForm
+          key={`${mode}-${mode === "organization" ? signupRole : ""}`}
+          onSubmit={submit}
+          requiredMessages={{
+            name: "Enter your organization’s name, for example Acme Inc.",
+            email: "Enter your work email, for example you@company.com.",
+            password:
+              mode === "signup"
+                ? "Choose a password with at least 12 characters."
+                : "Enter your password to sign in.",
+          }}
+        >
           <span className="nt-eyebrow">WELCOME TO NEUTRONIUM</span>
           <h2>
             {mode === "organization"
@@ -2207,8 +2357,9 @@ function Auth({
           )}
           {mode === "organization" && signupRole === "employee" ? (
             <p>
-              Ask your company administrator to invite this email. Once invited,
-              sign in again to open your employee onboarding and requests.
+              Open the invitation link from your administrator to submit your
+              details or check your application. Your administrator must accept
+              your application before you can open this company’s workspace.
             </p>
           ) : mode === "organization" ? (
             <Field label="Organization name">
@@ -2235,11 +2386,16 @@ function Auth({
                   type="password"
                   name="password"
                   required
-                  minLength={12}
+                  minLength={mode === "signup" ? 12 : undefined}
+                  maxLength={128}
                   autoComplete={
                     mode === "signup" ? "new-password" : "current-password"
                   }
-                  placeholder="At least 12 characters"
+                  placeholder={
+                    mode === "signup"
+                      ? "At least 12 characters"
+                      : "Your password"
+                  }
                 />
               </Field>
             </>
@@ -2263,7 +2419,11 @@ function Auth({
             <button
               type="button"
               className="nt-link nt-auth-switch"
-              onClick={() => setMode(mode === "login" ? "signup" : "login")}
+              onClick={() => {
+                setMode(mode === "login" ? "signup" : "login");
+                setError("");
+                setMessage("");
+              }}
             >
               {mode === "login"
                 ? "New here? Create an account"
@@ -2350,7 +2510,7 @@ function Auth({
             Company data stays in your organization. Every sensitive action is
             checked and recorded.
           </small>
-        </form>
+        </ValidatedForm>
       </div>
     </div>
   );
@@ -2461,6 +2621,7 @@ function WorkspaceDialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState(0);
+  const [manualOnboarding, setManualOnboarding] = useState(false);
   const [customDuration, setCustomDuration] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(
     dialog.kind === "template"
@@ -2570,7 +2731,17 @@ function WorkspaceDialog({
         </div>
       )}
       <div className="nt-dialog-body">
-        {dialog.kind === "onboard" && (
+        {dialog.kind === "onboard" && !manualOnboarding && (
+          <OnboardingInvite
+            w={w}
+            manual={() => setManualOnboarding(true)}
+            reviews={() => {
+              close();
+              navigate("employee-approvals");
+            }}
+          />
+        )}
+        {dialog.kind === "onboard" && manualOnboarding && (
           <>
             <div className="nt-wizard-steps">
               {["Employee details", "Role & tools", "Review & launch"].map(
@@ -2612,6 +2783,35 @@ function WorkspaceDialog({
                     {field("firstName", "First name", "text", true)}
                     {field("lastName", "Last name", "text", true)}
                     {field("email", "Company email", "email", true)}
+                    <Field label="Verified Microsoft domain">
+                      <select
+                        value={form.email.split("@")[1] || ""}
+                        onChange={(e) => {
+                          const local = [form.firstName, form.lastName]
+                            .map((v) =>
+                              v
+                                .toLowerCase()
+                                .normalize("NFKD")
+                                .replace(/[^a-z0-9]/g, ""),
+                            )
+                            .filter(Boolean)
+                            .join(".");
+                          setForm({
+                            ...form,
+                            email: `${local}@${e.target.value}`,
+                          });
+                        }}
+                      >
+                        <option value="">
+                          Choose a domain to suggest an email
+                        </option>
+                        {w.microsoftReadiness?.domains
+                          .filter((d) => d.isVerified)
+                          .map((d) => (
+                            <option key={d.id}>{d.id}</option>
+                          ))}
+                      </select>
+                    </Field>
                     {field(
                       "personalEmail",
                       "Personal email (optional)",
@@ -2638,6 +2838,20 @@ function WorkspaceDialog({
                     </Field>
                     {field("startDate", "Start date", "date", true)}
                     {field("location", "Location")}
+                    <Field label="Country code for Microsoft licensing">
+                      <input
+                        name="usageLocation"
+                        placeholder="CA"
+                        maxLength={2}
+                        value={form.usageLocation || ""}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            usageLocation: e.target.value,
+                          } as typeof form)
+                        }
+                      />
+                    </Field>
                     <Field label="Employment type">
                       <select
                         value={form.employmentType}
@@ -2928,10 +3142,18 @@ function WorkspaceDialog({
             <Field label="Microsoft license SKU ID">
               <input
                 name="licenseId"
+                list="nt-license-skus"
                 defaultValue={t?.licenseId}
                 placeholder="Optional"
               />
             </Field>
+            <datalist id="nt-license-skus">
+              {w.microsoftReadiness?.skus.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} · {s.available} available
+                </option>
+              ))}
+            </datalist>
             <label className="nt-checkbox">
               <input
                 name="active"

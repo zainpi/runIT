@@ -7,6 +7,7 @@ import {
   getAdminClient,
   handleApiError,
   requireActiveSubscription,
+  requireMarketplaceAccess,
   requireSession,
 } from "@/lib/heaterdeals/server";
 import { HEATER_CATEGORIES, HEATER_MARKETPLACES } from "@/lib/heaterdeals/types";
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
     const cadence = body.cadence === "batched" || body.cadence === "digest" ? body.cadence : "instant";
     if (!body.name?.trim()) return apiError(request, 422, "invalid_request", "Alert name is required.");
 
+    await requireMarketplaceAccess(admin, session.sub, marketplace);
     const result = await admin
       .from("heater_alerts")
       .insert({
@@ -69,4 +71,45 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleApiError(request, error);
   }
+}
+
+// Stable client IDs make offline edits and retries safe without duplicating rules.
+export async function PUT(request: Request) {
+  const tooLarge = checkBodySize(request, 12_000);
+  if (tooLarge) return tooLarge;
+  try {
+    const session = await requireSession(request);
+    const admin = getAdminClient();
+    // Pausing existing alerts remains possible after subscription expiry.
+    const limit = await enforceRateLimit(request, admin, `alerts-sync:${session.sub}`, 120, 3_600);
+    if (limit) return limit;
+    const body = await request.json();
+    const validNumber = (value: unknown, min: number, max: number) =>
+      typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
+    if (typeof body.id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.id) ||
+        typeof body.name !== "string" || !body.name.trim() || body.name.length > 120 ||
+        !Array.isArray(body.categories) || body.categories.length > 8 ||
+        !body.categories.every((c: string) => (HEATER_CATEGORIES as readonly string[]).includes(c)) ||
+        !(HEATER_MARKETPLACES as readonly string[]).includes(body.marketplace) ||
+        !["instant", "batched", "digest"].includes(body.cadence) ||
+        !validNumber(body.minDiscount, 0, 100) || !validNumber(body.minHeat, 0, 100) ||
+        (body.minPrice != null && !validNumber(body.minPrice, 0, 100_000)) ||
+        (body.maxPrice != null && !validNumber(body.maxPrice, 0, 100_000)) ||
+        (body.minPrice != null && body.maxPrice != null && body.minPrice > body.maxPrice) ||
+        typeof body.keyword !== "string" || body.keyword.length > 120 || typeof body.isEnabled !== "boolean" ||
+        typeof body.primeOnly !== "boolean" || typeof body.fbaOnly !== "boolean") {
+      return apiError(request, 422, "invalid_alert", "Check the alert name, filters, and price range.");
+    }
+    if (body.isEnabled) await requireMarketplaceAccess(admin, session.sub, body.marketplace);
+    const result = await admin.from("heater_alerts").upsert({
+      account_id: session.sub, client_id: body.id, name: body.name.trim(), categories: body.categories,
+      min_discount: Math.round(body.minDiscount), min_heat: Math.round(body.minHeat),
+      min_price: body.minPrice ?? null, max_price: body.maxPrice ?? null,
+      marketplace: body.marketplace, cadence: body.cadence, keyword: body.keyword.trim(),
+      is_enabled: body.isEnabled, prime_only: body.primeOnly, fba_only: body.fbaOnly,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "account_id,client_id" });
+    if (result.error) throw result.error;
+    return apiJson(request, { ok: true });
+  } catch (error) { return handleApiError(request, error); }
 }

@@ -17,7 +17,7 @@ import {
 const textEncoder = new TextEncoder();
 const SESSION_TTL_SECONDS = 15 * 60;
 const REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
-const SUBSCRIPTION_PRODUCT_ID = "com.pulsedeals.subscription.monthly";
+const SUBSCRIPTION_PRODUCT_ID = "com.pulsedeals.subscription.weekly";
 const APPLE_ISSUER = "https://appleid.apple.com";
 const APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys";
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -85,6 +85,7 @@ type DiscordLinkRow = {
   access_granted: boolean;
   linked_at: string;
   updated_at: string;
+  membership_checked_at?: string | null;
 };
 
 type AppleJwk = JsonWebKey & { kid?: string };
@@ -101,6 +102,13 @@ export function getProductID(): string {
   return process.env.HEATERDEALS_PRODUCT_ID ?? SUBSCRIPTION_PRODUCT_ID;
 }
 
+export async function isSupportedAppleProduct(admin: SupabaseClient, productID?: string): Promise<boolean> {
+  if (!productID) return false;
+  const result = await admin.from("heater_product_tiers").select("product_id").eq("product_id", productID).maybeSingle();
+  if (result.error) throw result.error;
+  return Boolean(result.data);
+}
+
 export function getDiscordConfig(): DiscordConfig {
   const required = [
     "HEATERDEALS_DISCORD_CLIENT_ID",
@@ -112,6 +120,8 @@ export function getDiscordConfig(): DiscordConfig {
   const missing = required.find((name) => !process.env[name]);
   if (missing) throw new Error(`Missing server configuration: ${missing}`);
 
+  const paidRoles = [process.env.HEATERDEALS_DISCORD_PAID_ROLE_ID, process.env.HEATERDEALS_DISCORD_PRO_ROLE_ID].filter(Boolean);
+  if (paidRoles.includes(process.env.HEATERDEALS_DISCORD_ROLE_ID)) throw new Error("Paid Discord roles must differ from the app access role");
   return {
     clientID: process.env.HEATERDEALS_DISCORD_CLIENT_ID!,
     clientSecret: process.env.HEATERDEALS_DISCORD_CLIENT_SECRET!,
@@ -388,7 +398,6 @@ export async function completeDiscordLink(
 ): Promise<HeaterDiscordConnection> {
   const accountID = await consumeDiscordLinkState(admin, state);
   const config = getDiscordConfig();
-  if (!(await hasActiveSubscription(admin, accountID))) throw new Error("Active subscription required");
 
   let accessToken: string | null = null;
   try {
@@ -403,30 +412,70 @@ export async function completeDiscordLink(
     let member = await getDiscordMember(config, user.id);
     if (!member) throw new Error("Discord server access could not be granted");
 
-    if (!member.pending && !(member.roles ?? []).includes(config.roleID)) {
+    const active = await hasActiveSubscription(admin, accountID) || paidDiscordTier(member) !== null;
+    if (active && !member.pending && !(member.roles ?? []).includes(config.roleID)) {
       await addDiscordRole(config, user.id);
       member = { ...member, roles: [...(member.roles ?? []), config.roleID] };
     }
 
-    return await saveDiscordLink(admin, accountID, config, user, member, true);
+    await saveDiscordLink(admin, accountID, config, user, member, active);
+    return (await getDiscordConnection(admin, accountID))!;
   } finally {
     if (accessToken) await revokeDiscordToken(config, accessToken);
   }
 }
 
-export async function hasActiveSubscription(admin: SupabaseClient, accountID: string): Promise<boolean> {
-  const result = await admin
-    .from("heater_entitlements")
-    .select("id")
-    .eq("account_id", accountID)
-    .eq("product_id", getProductID())
-    .in("status", ["active", "grace_period"])
-    .gt("expires_at", new Date().toISOString())
-    .is("revoked_at", null)
-    .limit(1)
-    .maybeSingle();
+export type Membership = { tier: "none" | "standard" | "pro"; source: "none" | "apple" | "discord"; primaryMarketplace: HeaterMarketplace | null; expiresAt: string | null };
+
+export function paidDiscordTier(member: DiscordGuildMember | null): "standard" | "pro" | null {
+  if (!member || member.pending) return null;
+  const roles = member.roles ?? [];
+  const accessRole = process.env.HEATERDEALS_DISCORD_ROLE_ID;
+  const proRole = process.env.HEATERDEALS_DISCORD_PRO_ROLE_ID;
+  const paidRole = process.env.HEATERDEALS_DISCORD_PAID_ROLE_ID;
+  if (proRole && proRole !== accessRole && roles.includes(proRole)) return "pro";
+  if (paidRole && paidRole !== accessRole && roles.includes(paidRole)) return "standard";
+  return null;
+}
+
+async function readMembership(admin: SupabaseClient, accountID: string): Promise<Membership> {
+  const result = await admin.rpc("heater_membership", { p_account_id: accountID });
   if (result.error) throw result.error;
-  return Boolean(result.data);
+  const row = result.data?.[0];
+  if (!row) throw new Error("Account not found");
+  return { tier: row.tier, source: row.source, primaryMarketplace: row.primary_marketplace, expiresAt: row.expires_at };
+}
+
+export async function getMembership(admin: SupabaseClient, accountID: string, forceDiscord = false): Promise<Membership> {
+  const link = await admin.from("heater_discord_links").select("membership_checked_at").eq("account_id", accountID).maybeSingle();
+  if (link.error) throw link.error;
+  if (link.data && (forceDiscord || !link.data.membership_checked_at || Date.parse(link.data.membership_checked_at) < Date.now()-300_000)) {
+    try { await getDiscordConnection(admin, accountID); }
+    catch { /* Use only the bounded grant already verified; outages never extend it. */ }
+  }
+  return readMembership(admin, accountID);
+}
+
+export async function hasActiveSubscription(admin: SupabaseClient, accountID: string): Promise<boolean> {
+  return (await readMembership(admin, accountID)).tier !== "none";
+}
+
+export async function requireMarketplaceAccess(admin: SupabaseClient, accountID: string, marketplace: string): Promise<Membership> {
+  if (!(HEATER_MARKETPLACES as readonly string[]).includes(marketplace)) throw new Error("Invalid marketplace");
+  const membership = await requireActiveSubscription(admin, accountID);
+  if (membership.tier !== "pro" && membership.primaryMarketplace !== marketplace) throw new Error("Your membership includes your selected country");
+  return membership;
+}
+
+export async function refreshDiscordMemberships(admin: SupabaseClient): Promise<void> {
+  const result = await admin.from("heater_discord_links").select("account_id")
+    .or(`membership_checked_at.is.null,membership_checked_at.lt.${new Date(Date.now()-300_000).toISOString()}`)
+    .order("membership_checked_at", { ascending: true, nullsFirst: true }).limit(100);
+  if (result.error) throw result.error;
+  for (const row of result.data ?? []) {
+    try { await getDiscordConnection(admin, row.account_id); }
+    catch { /* A failed check cannot renew a paid grant. Retry on the next scheduled sync. */ }
+  }
 }
 
 export async function getDiscordConnection(
@@ -444,6 +493,14 @@ export async function getDiscordConnection(
   const config = getDiscordConfig();
   const row = result.data as DiscordLinkRow;
   let member = await getDiscordMember(config, row.discord_user_id);
+  const paidTier = paidDiscordTier(member);
+  const grant = await admin.from("heater_discord_links").update({
+    paid_tier: paidTier, paid_access_expires_at: paidTier ? new Date(Date.now()+600_000).toISOString() : null,
+    membership_checked_at: new Date().toISOString(),
+    membership_status: member ? (member.pending ? "pending" : "member") : "not_member",
+    is_pending: Boolean(member?.pending),
+  }).eq("id", row.id);
+  if (grant.error) throw grant.error;
   const activeSubscription = await hasActiveSubscription(admin, accountID);
   if (member) {
     const hasRole = (member.roles ?? []).includes(config.roleID);
@@ -469,41 +526,8 @@ export async function getDiscordConnection(
   return connection;
 }
 
-export async function syncDiscordAccess(
-  admin: SupabaseClient,
-  accountID: string,
-  activeSubscription: boolean,
-): Promise<void> {
-  const result = await admin
-    .from("heater_discord_links")
-    .select("id, account_id, discord_user_id, username, global_name, avatar_hash, guild_id, membership_status, is_pending, has_access_role, access_granted, linked_at, updated_at")
-    .eq("account_id", accountID)
-    .maybeSingle();
-  if (result.error) throw result.error;
-  if (!result.data) return;
-
-  const config = getDiscordConfig();
-  const row = result.data as DiscordLinkRow;
-  let member = await getDiscordMember(config, row.discord_user_id);
-  if (member) {
-    const hasRole = (member.roles ?? []).includes(config.roleID);
-    if (activeSubscription && !member.pending && !hasRole) {
-      await addDiscordRole(config, row.discord_user_id);
-      member = { ...member, roles: [...(member.roles ?? []), config.roleID] };
-    } else if (!activeSubscription && hasRole) {
-      await removeDiscordRole(config, row.discord_user_id);
-      member = { ...member, roles: (member.roles ?? []).filter((role) => role !== config.roleID) };
-    }
-  }
-  const connection = makeDiscordConnection(row, config, member, activeSubscription);
-  const update = await admin.from("heater_discord_links").update({
-    membership_status: member ? (member.pending ? "pending" : "member") : "not_member",
-    is_pending: Boolean(member?.pending),
-    has_access_role: connection.hasAccessRole,
-    access_granted: connection.accessGranted,
-    updated_at: new Date().toISOString(),
-  }).eq("id", row.id);
-  if (update.error) throw update.error;
+export async function syncDiscordAccess(admin: SupabaseClient, accountID: string): Promise<void> {
+  await getDiscordConnection(admin, accountID);
 }
 
 export async function unlinkDiscord(admin: SupabaseClient, accountID: string): Promise<void> {
@@ -779,20 +803,10 @@ export async function requireSession(request: Request): Promise<SessionClaims> {
   return verifySession(match[1]);
 }
 
-export async function requireActiveSubscription(admin: SupabaseClient, accountID: string): Promise<Record<string, unknown>> {
-  const result = await admin
-    .from("heater_entitlements")
-    .select("product_id, status, expires_at, environment")
-    .eq("account_id", accountID)
-    .eq("product_id", getProductID())
-    .in("status", ["active", "grace_period"])
-    .gt("expires_at", new Date().toISOString())
-    .is("revoked_at", null)
-    .limit(1)
-    .maybeSingle();
-  if (result.error) throw result.error;
-  if (!result.data) throw new Error("Active subscription required");
-  return result.data as Record<string, unknown>;
+export async function requireActiveSubscription(admin: SupabaseClient, accountID: string): Promise<Membership> {
+  const membership = await getMembership(admin, accountID);
+  if (membership.tier === "none") throw new Error("Active subscription required");
+  return membership;
 }
 
 export async function consumeRateLimit(
@@ -872,6 +886,7 @@ export function mapDeal(row: Record<string, unknown>): HeaterDeal {
     iconName: String(row.icon_name ?? "flame.fill"),
     priceHistory: Array.isArray(row.price_history) ? (row.price_history as Array<{ date: string; price: number }>) : [],
     offerListingID: row.offer_listing_id ? String(row.offer_listing_id) : null,
+    imageURL: typeof row.image_url === "string" ? row.image_url : null,
   };
 }
 
@@ -946,14 +961,21 @@ export async function getDealVoteSummaries(
   const uniqueASINs = Array.from(
     new Set(asins.map((asin) => asin.trim().toUpperCase()).filter(Boolean)),
   ).slice(0, 50);
+  const membership = await requireActiveSubscription(admin, accountID);
+  const allowedQuery = admin.from("heater_deals").select("asin").in("asin", uniqueASINs);
+  if (membership.tier !== "pro") allowedQuery.eq("marketplace", membership.primaryMarketplace ?? "unselected");
+  const allowedResult = await allowedQuery;
+  if (allowedResult.error) throw allowedResult.error;
+  const allowed = new Set((allowedResult.data ?? []).map(row => row.asin));
+  const accessibleASINs = uniqueASINs.filter(asin => allowed.has(asin));
   const summaries: Record<string, HeaterDealVoteSummary> = {};
-  for (const asin of uniqueASINs) summaries[asin] = emptyDealVoteSummary();
-  if (!uniqueASINs.length) return summaries;
+  for (const asin of accessibleASINs) summaries[asin] = emptyDealVoteSummary();
+  if (!accessibleASINs.length) return summaries;
 
   const result = await admin
     .from("heater_deal_votes")
     .select("account_id, asin, vote, updated_at")
-    .in("asin", uniqueASINs);
+    .in("asin", accessibleASINs);
   if (result.error) throw result.error;
 
   for (const row of (result.data ?? []) as Array<Record<string, unknown>>) {
@@ -988,12 +1010,15 @@ export async function submitDealVote(
   if (!/^[A-Z0-9]{6,32}$/.test(normalizedASIN)) throw new Error("Invalid deal ASIN");
   if (!(HEATER_DEAL_VOTES as readonly string[]).includes(vote)) throw new Error("Invalid deal vote");
 
-  const deal = await admin
+  const membership = await requireActiveSubscription(admin, accountID);
+  const dealQuery = admin
     .from("heater_deals")
     .select("asin")
     .eq("asin", normalizedASIN)
     .eq("status", "live")
     .limit(1);
+  if (membership.tier !== "pro") dealQuery.eq("marketplace", membership.primaryMarketplace ?? "unselected");
+  const deal = await dealQuery;
   if (deal.error) throw deal.error;
   if (!deal.data?.length) throw new Error("Deal not found");
 
@@ -1058,6 +1083,10 @@ export function handleApiError(request: Request, error: unknown): Response {
   if (message === "Invalid app account token") {
     return apiError(request, 400, "invalid_request", "The app account token is invalid.");
   }
+  if (message === "Your membership includes your selected country") {
+    return apiError(request, 403, "country_restricted", "Your membership includes one selected country. Pro includes multiple countries.");
+  }
+  if (message === "Invalid marketplace") return apiError(request, 422, "invalid_marketplace", "Choose a supported country.");
   if (message === "Active subscription required") {
     return apiError(request, 403, "subscription_required", "An active HeaterDeals subscription is required.");
   }

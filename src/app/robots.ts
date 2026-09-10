@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { site } from "@/lib/site";
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
@@ -6,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/the-last-echo/admin/", "/the-last-echo/admin"],
     },
-    sitemap: "https://runs-it.com/sitemap.xml",
-    host: "https://runs-it.com",
+    sitemap: `${site.url}/sitemap.xml`,
+    host: site.url,
   };
 }

@@ -3,8 +3,11 @@ import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
+import { founders } from "@/lib/company";
 export function SiteFrame({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  if (path === "/" || founders.some((founder) => path === founder.portfolioUrl || path === `/${founder.slug}`))
+    return <>{children}</>;
   if (path === "/neutronium" || path.startsWith("/neutronium/"))
     return <main id="main">{children}</main>;
   return (

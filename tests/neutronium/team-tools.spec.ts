@@ -44,7 +44,7 @@ test("employee help, admin file response, isolation, risk simulation and export"
     mimeType: "text/plain",
     buffer: Buffer.from("Order 123"),
   });
-  await page.getByRole("combobox", { name: "Status", exact: true }).selectOption("resolved");
+
   await page
     .getByRole("button", { name: "Send response", exact: true })
     .click();

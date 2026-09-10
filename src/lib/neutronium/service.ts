@@ -1,3 +1,10 @@
+import { countryCode } from "./country";
+import {
+  createOperation,
+  operationCommand,
+  evidence,
+  fulfillment,
+} from "./operations";
 import {
   Actor,
   Workspace,
@@ -199,24 +206,36 @@ export function command(
       return id;
     }
     case "help-create": {
-      requireRole(a, ["EMPLOYEE", "MANAGER", "APPROVER", ...admins]);
-      const e = find(w.employees, a.employeeId);
-      if (e.status !== "active" && e.status !== "onboarding")
-        throw new DomainError("Employee is not available.", 403);
-      const r = {
-        id: uid(),
-        employeeId: e.id,
-        subject: str(input.subject, "subject", true, 150),
-        body: str(input.body, "request", true, 4000),
-        status: "open" as const,
-        createdAt: now(),
-        messages: [],
-      };
-      (w.helpRequests ||= []).push(r);
-      audit(w, a, "Employee help requested", e.id, requestId);
-      notify(w, "admins", `${fullName(e)}: ${r.subject}`, r.body);
+      const r = createOperation(w, a, input, requestId);
+      if (["software", "contractor"].includes(r.kind || "")) {
+        const durationMinutes = r.expiresAt
+          ? Math.ceil((Date.parse(r.expiresAt) - Date.now()) / 60000)
+          : 0;
+        const linked = command(
+          w,
+          a,
+          "request",
+          {
+            employeeId: r.employeeId,
+            applicationId: r.applicationId,
+            level: input.level || "Standard",
+            durationMinutes,
+            reason: r.body,
+          },
+          requestId,
+        ) as string;
+        r.accessRequestId = linked;
+        if (r.expiresAt)
+          w.requests.find((x) => x.id === linked)!.expiresAt = r.expiresAt;
+      }
       return r.id;
     }
+    case "operation-update":
+    case "operation-note":
+    case "operation-task":
+    case "checklist-template":
+    case "saved-view":
+      return operationCommand(w, a, action, input, requestId);
     case "help-reply": {
       const r = find(w.helpRequests || [], input.id);
       const admin = admins.includes(a.role);
@@ -250,7 +269,18 @@ export function command(
         at: now(),
         attachment,
       });
+      if (status === "resolved" && r.kind && r.kind !== "general")
+        throw new DomainError(
+          "Complete this request using fulfillment and evidence.",
+        );
       r.status = status as typeof r.status;
+      r.fulfillment =
+        status === "resolved"
+          ? "completed"
+          : status === "waiting"
+            ? "waiting_for_requester"
+            : "open";
+      r.updatedAt = now();
       audit(
         w,
         a,
@@ -289,6 +319,9 @@ export function command(
         managerId,
         startDate,
         location: str(input.location ?? "", "location", false),
+        usageLocation: input.usageLocation
+          ? countryCode(input.usageLocation)
+          : undefined,
         employmentType: str(
           input.employmentType ?? "Full-time",
           "employment type",
@@ -378,6 +411,9 @@ export function command(
         status: "pending" as const,
         createdAt: now(),
         scheduledAt: at,
+        template: structuredClone(
+          w.templates.find((t) => t.id === e.templateId),
+        ),
         steps: steps([
           ["Disable sign-in", "disable"],
           ["Revoke active sessions", "sessions"],
@@ -396,6 +432,16 @@ export function command(
             "Preserve email and transfer data — administrator review",
             "preserve",
           ],
+          ["Confirm equipment return", "equipment_return"],
+          ["Confirm handover", "handover"],
+          ...(w.templates.find((t) => t.id === e.templateId)?.licenseId
+            ? [
+                ["Reclaim preserved Microsoft license", "unlicense"] as [
+                  string,
+                  string,
+                ],
+              ]
+            : []),
           ["Complete offboarding", "terminate"],
         ]),
       };
@@ -428,6 +474,8 @@ export function command(
       e.department = str(input.department, "department");
       e.managerId = managerId;
       e.location = str(input.location ?? "", "location", false);
+      if (input.usageLocation)
+        e.usageLocation = countryCode(input.usageLocation);
       audit(w, a, "Employee details updated", e.id, requestId, previous, {
         title: e.title,
         department: e.department,
@@ -469,7 +517,12 @@ export function command(
     }
     case "request": {
       requireRole(a, ["EMPLOYEE", "MANAGER", "APPROVER", ...admins]);
-      const e = find(w.employees, a.employeeId);
+      const e = find(
+        w.employees,
+        admins.includes(a.role)
+          ? input.employeeId || a.employeeId
+          : a.employeeId,
+      );
       if (e.status !== "active")
         throw new DomainError("Only active employees may request access.");
       const app = find(w.applications, input.applicationId);
@@ -681,9 +734,17 @@ export function command(
           "This temporary approval has expired. Complete the removal workflow instead.",
         );
       const note = str(input.note, "completion evidence", true, 2000);
+      const proof = evidence(a, {
+        ...input,
+        provider: input.provider || "Manual provider",
+        target: input.target || step.name,
+        method: input.method || "Administrator attestation",
+      });
+      step.evidence = proof;
       step.status = "success";
       step.error = `Manually verified: ${note}`;
       const grant = w.grants.find((g) => g.id === step.grantId);
+      if (grant) grant.evidence = proof;
       if (grant)
         grant.status =
           job.kind === "revoke" || job.kind === "offboard"
@@ -697,9 +758,22 @@ export function command(
         job.employeeId,
         requestId,
         undefined,
-        { step: step.name, evidence: note },
+        { step: step.name, evidence: proof },
       );
       return job.id;
+    }
+    case "notification-retry": {
+      requireRole(a, admins);
+      const n = find(w.notifications, input.id);
+      if (!["failed", "unconfigured"].includes(n.emailStatus))
+        throw new DomainError(
+          "Only failed or unconfigured notifications can be retried.",
+        );
+      n.emailStatus = "pending";
+      n.attempts = 0;
+      delete n.nextAttemptAt;
+      audit(w, a, "Notification delivery retried", n.id, requestId);
+      return n.id;
     }
     case "settings": {
       requireRole(a, admins);

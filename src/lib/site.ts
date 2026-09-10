@@ -3,14 +3,14 @@
  * Rebrand the entire website by editing the values here.
  */
 export const site = {
-  name: "runIT",
-  legalName: "runIT Automation",
-  tagline: "AI Automation Agency",
+  name: "runsIT",
+  legalName: "runsIT",
+  tagline: "Independent software studio",
   // Used for absolute URLs, sitemap, and structured data.
-  url: "https://runit.agency",
+  url: "https://runsit.ca",
   description:
-    "runIT is an AI automation agency that builds AI-powered systems and workflow automation to help businesses save time, cut costs, and scale without adding overhead.",
-  email: "hello@runit.agency",
+    "runsIT is an independent Canadian software company building business tools, consumer apps, and games. Explore Neutronium, HeaterDeals, and The Last Echo, and meet our three founders.",
+  email: "info@runs-it.com",
   phone: "+1 (555) 018-2240",
   phoneHref: "+15550182240",
   location: "Remote-first · Serving clients worldwide",

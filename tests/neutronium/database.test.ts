@@ -6,18 +6,27 @@ import { seed, uid } from "../../src/lib/neutronium/model";
 test("PostgreSQL migration: tenant isolation, atomic CAS, foreign keys, audit immutability", async () => {
   const db = new PGlite();
   try {
+    await db.exec("create role authenticated;");
     await db.exec(
-      "create role authenticated;",
+      await readFile("deploy/neutronium/migrations/001_initial.sql", "utf8"),
     );
     await db.exec(
       await readFile(
-        "deploy/neutronium/migrations/001_initial.sql",
+        "deploy/neutronium/migrations/002_social_auth.sql",
         "utf8",
       ),
     );
-    await db.exec(await readFile("deploy/neutronium/migrations/002_social_auth.sql", "utf8"));
+    await db.exec(
+      await readFile("deploy/neutronium/migrations/003_pilot.sql", "utf8"),
+    );
+    await db.exec(
+      await readFile("deploy/neutronium/migrations/004_mfa.sql", "utf8"),
+    );
     const owner = uid();
-    await db.query("insert into neutronium_users(id,email) values($1,'owner@example.com')", [owner]);
+    await db.query(
+      "insert into neutronium_users(id,email) values($1,'owner@example.com')",
+      [owner],
+    );
     const a = seed();
     const b = seed();
     await db.query("select neutronium_create($1,$2)", [

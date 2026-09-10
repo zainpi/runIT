@@ -48,3 +48,6 @@ Public health check: `/neutronium/api/config/`. Scheduler errors are logged; the
 This deployment initializes an empty Neutronium database. It does not copy or delete existing Supabase data. If a production workspace already exists, stop writes, export only its `neutronium_*` table data, and import into a separately tested VPS database. First import user IDs/emails into `neutronium_users`, preserving UUIDs so membership foreign keys remain valid. Supabase passwords and sessions are not compatible with this authentication system; issue fresh invitations with password setup. Preserve the existing encryption keyring for provider credentials. Validate tenant counts, memberships, audit events and workflows before DNS cutover. Keep the original database as a rollback source.
 
 The historical migration under `supabase/migrations` remains for existing installations; new VPS installations use `deploy/neutronium/migrations` exclusively.
+
+
+Pilot release upgrades: follow [the pilot upgrade guide](../../docs/neutronium-pilot.md) for migrations 003–005, the separate runtime login/password, private file storage and mandatory privileged-account MFA. Existing database volumes require explicit migration; restarting Compose does not apply new initialization scripts.

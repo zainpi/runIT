@@ -1,3 +1,4 @@
+import { countryCode } from "./country";
 import {
   createCipheriv,
   createDecipheriv,
@@ -12,9 +13,17 @@ import {
   Job,
   Step,
   fullName,
+  Evidence,
+  now,
 } from "./model";
 import { db } from "./store";
 export const microsoftFeatures = {
+  readiness: {
+    name: "Domain and license readiness",
+    permissions: ["Domain.Read.All", "LicenseAssignment.Read.All"],
+    reason:
+      "Read verified domains and available subscribed licenses before onboarding.",
+  },
   security: {
     name: "Account risk detection",
     permissions: ["IdentityRiskyUser.Read.All"],
@@ -34,7 +43,7 @@ export const microsoftFeatures = {
   },
   groups: {
     name: "Application and group access",
-    permissions: ["GroupMember.ReadWrite.All"],
+    permissions: ["GroupMember.ReadWrite.All", "GroupMember.Read.All"],
     reason:
       "Add or remove members of configured, non-privileged security groups.",
   },
@@ -62,6 +71,7 @@ export interface ProviderResult {
   status: "success" | "manual_required" | "skipped";
   reference?: string;
   note?: string;
+  evidence?: Evidence;
 }
 export interface IdentityProvider {
   createIdentity(employee: Employee, key: string): Promise<ProviderResult>;
@@ -181,11 +191,13 @@ export async function microsoftToken(
 }
 export async function storeToken(
   orgId: string,
-  token: { access_token: string; expires_in: number },
+  token: { access_token: string; expires_in: number; roles?: string[] },
 ) {
   const encrypted = encrypt(
     {
       token: token.access_token,
+      roles: token.roles || [],
+      clientId: process.env.NEUTRONIUM_MICROSOFT_CLIENT_ID,
       expiresAt: Date.now() + token.expires_in * 1000,
     },
     orgId,
@@ -229,7 +241,18 @@ export class MicrosoftProvider
     if (error) throw new DomainError("Credential store unavailable.", 503);
     if (data) {
       const stored = decrypt(data.ciphertext, data.key_version, this.w.id);
-      if (stored.expiresAt > Date.now() + 60_000) return stored.token as string;
+      const claims = JSON.parse(
+        Buffer.from(String(stored.token).split(".")[1], "base64url").toString(),
+      );
+      if (
+        stored.expiresAt > Date.now() + 60_000 &&
+        claims.tid === integration.tenantId &&
+        stored.clientId === process.env.NEUTRONIUM_MICROSOFT_CLIENT_ID &&
+        microsoftFeatures[feature].permissions.every((p) =>
+          stored.roles?.includes(p),
+        )
+      )
+        return stored.token as string;
     }
     const token = await microsoftToken(integration.tenantId);
     for (const scope of microsoftFeatures[feature].permissions)
@@ -259,6 +282,7 @@ export class MicrosoftProvider
       throw new DomainError(
         `Microsoft ${method} operation failed (${response.status}). Check permissions, resource configuration, and connection health.`,
         response.status === 429 || response.status >= 500 ? 503 : 422,
+        retryAfter(response.headers.get("retry-after")),
       );
     return response.status === 204 ? {} : response.json();
   }
@@ -277,6 +301,16 @@ export class MicrosoftProvider
         );
       return { status: "success", reference: existing.id };
     }
+    const usageLocation = countryCode(e.usageLocation);
+    const domain = e.email.split("@")[1];
+    const verified = await this.graph(
+      `/domains/${encodeURIComponent(domain)}`,
+      "readiness",
+    );
+    if (verified.isVerified !== true)
+      throw new DomainError(
+        "Verify the company email domain in Microsoft first.",
+      );
     const created = await this.graph("/users", "provisioning", "POST", {
       accountEnabled: true,
       displayName: fullName(e),
@@ -285,6 +319,7 @@ export class MicrosoftProvider
       userPrincipalName: e.email,
       mailNickname: e.email.split("@")[0],
       employeeId: microsoftWorkflowMarker(key),
+      usageLocation,
       passwordProfile: {
         forceChangePasswordNextSignIn: true,
         password: `N!${randomBytes(32).toString("base64url")}9a`,
@@ -318,31 +353,65 @@ export class MicrosoftProvider
     );
     return { status: "success" };
   }
-  async grant(
-    e: Employee,
-    app: Application,
-    level: string,
-  ): Promise<ProviderResult> {
-    if (!app.groupId || level !== "Standard")
-      return {
-        status: "manual_required",
-        note: "Configure a standard security group or grant this permission in the provider and verify completion.",
-      };
-    if (!e.providerId)
-      throw new DomainError("Employee has no matched Microsoft identity.");
-    const member = await this.graph(
-      `/groups/${app.groupId}/members/${encodeURIComponent(e.providerId)}`,
+  async validateGroup(groupId: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(groupId))
+      throw new DomainError("Invalid configured group ID.");
+    const g = await this.graph(
+      `/groups/${groupId}?$select=id,securityEnabled,mailEnabled,isAssignableToRole,groupTypes,onPremisesSyncEnabled`,
+      "groups",
+    );
+    if (
+      g.securityEnabled !== true ||
+      g.mailEnabled !== false ||
+      g.isAssignableToRole !== false ||
+      !Array.isArray(g.groupTypes) ||
+      g.groupTypes.length ||
+      g.onPremisesSyncEnabled === true
+    )
+      throw new DomainError(
+        "Only cloud-managed, non-privileged static security groups are supported.",
+      );
+  }
+  async membership(groupId: string, userId: string) {
+    return this.graph(
+      `/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}`,
       "groups",
       "GET",
       undefined,
       [404],
     );
-    if (!member.absent)
+  }
+  async grant(
+    e: Employee,
+    app: Application,
+    level: string,
+    key?: string,
+  ): Promise<ProviderResult> {
+    if (!app.groupId || level !== "Standard")
       return {
         status: "manual_required",
-        note: "This account is already a member of the configured group. Verify the existing access manually; Neutronium will not take ownership of, or automatically revoke, an untracked membership.",
+        note: "Configure a standard security group and verify access manually.",
       };
-    if (member.absent)
+    if (!e.providerId)
+      throw new DomainError("Employee has no matched Microsoft identity.");
+    await this.validateGroup(app.groupId);
+    const member = await this.membership(app.groupId, e.providerId);
+    const intent = this.w.jobs
+      .flatMap((j) => j.steps)
+      .find((s) => s.id === key)?.membershipIntent;
+    const owned =
+      intent?.groupId === app.groupId && intent.userId === e.providerId;
+    if (!member.absent && !owned)
+      return {
+        status: "manual_required",
+        note: "Pre-existing untracked membership requires manual review; no automatic ownership or revocation.",
+      };
+    if (member.absent) {
+      if (!owned)
+        return {
+          status: "manual_required",
+          note: "A durable membership intent is required before automated provisioning.",
+        };
       await this.graph(
         `/groups/${app.groupId}/members/$ref`,
         "groups",
@@ -351,7 +420,22 @@ export class MicrosoftProvider
           "@odata.id": `https://graph.microsoft.com/v1.0/directoryObjects/${e.providerId}`,
         },
       );
-    return { status: "success", reference: app.groupId };
+    }
+    const verified = await this.membership(app.groupId, e.providerId);
+    if (verified.absent || verified.id !== e.providerId)
+      throw new DomainError(
+        "Microsoft membership is not yet verified. Retry after replication completes.",
+        503,
+      );
+    return {
+      status: "success",
+      reference: app.groupId,
+      evidence: providerEvidence(
+        e.providerId,
+        app.groupId,
+        "Membership read after approved grant",
+      ),
+    };
   }
   async revoke(
     e: Employee,
@@ -361,8 +445,9 @@ export class MicrosoftProvider
     if (!reference || !e.providerId)
       return {
         status: "manual_required",
-        note: "No tracked group membership. Remove this access in the provider and verify completion.",
+        note: "No tracked group membership. Remove access manually and record evidence.",
       };
+    await this.validateGroup(reference);
     await this.graph(
       `/groups/${encodeURIComponent(reference)}/members/${encodeURIComponent(e.providerId)}/$ref`,
       "groups",
@@ -370,7 +455,20 @@ export class MicrosoftProvider
       undefined,
       [404],
     );
-    return { status: "success" };
+    const verified = await this.membership(reference, e.providerId);
+    if (!verified.absent)
+      throw new DomainError(
+        "Microsoft removal is not yet verified. Retry after replication completes.",
+        503,
+      );
+    return {
+      status: "success",
+      evidence: providerEvidence(
+        e.providerId,
+        reference,
+        "Membership absence verified after removal",
+      ),
+    };
   }
 }
 export class DevelopmentProvider
@@ -406,12 +504,40 @@ export async function executeStep(
     throw new DomainError(
       "Access cannot be granted after employee offboarding has started.",
     );
+  const accessRequest = w.requests.find((r) => r.id === job.requestId);
+  if (
+    job.kind === "grant" &&
+    accessRequest?.expiresAt &&
+    Date.parse(accessRequest.expiresAt) <= Date.now()
+  )
+    throw new DomainError(
+      "Approved access has expired; a new request is required.",
+    );
   const identity: IdentityProvider = w.demo
     ? new DevelopmentProvider()
     : new MicrosoftProvider(w);
-  if (step.operation === "identity") return identity.createIdentity(e, job.id);
+  if (step.operation === "identity") {
+    if (!w.demo && job.template?.licenseId) {
+      countryCode(e.usageLocation);
+      const p = new MicrosoftProvider(w),
+        skus = await p.graph("/subscribedSkus", "readiness");
+      const sku = skus.value?.find(
+        (s: { skuId: string }) => s.skuId === job.template!.licenseId,
+      );
+      if (!sku || sku.prepaidUnits.enabled - sku.consumedUnits <= 0)
+        throw new DomainError(
+          "An available Microsoft license is required before creating this employee.",
+        );
+    }
+    return identity.createIdentity(e, job.id);
+  }
   if (step.operation === "disable") return identity.disable(e);
   if (step.operation === "sessions") return identity.revokeSessions(e);
+  if (step.operation === "first_signin")
+    return {
+      status: "manual_required",
+      note: "Portal access is approved. Arrange secure Microsoft first sign-in and record how the employee's access was verified.",
+    };
   if (step.operation === "invitation")
     return w.demo
       ? {
@@ -422,7 +548,11 @@ export async function executeStep(
           status: "manual_required",
           note: "Invite this employee using People → Invite to portal, and arrange secure Microsoft first sign-in.",
         };
-  if (["preserve", "review_access"].includes(step.operation))
+  if (
+    ["preserve", "review_access", "equipment_return", "handover"].includes(
+      step.operation,
+    )
+  )
     return w.demo
       ? {
           status: "skipped",
@@ -433,18 +563,73 @@ export async function executeStep(
           note:
             step.operation === "preserve"
               ? "Confirm mailbox retention, ownership transfers, and device access in your providers. No data is deleted automatically."
-              : "Review and remove unmanaged groups, directory roles, and application assignments in Microsoft Entra.",
+              : step.operation === "equipment_return"
+                ? "Confirm equipment return or record an approved exception."
+                : step.operation === "handover"
+                  ? "Confirm work and account ownership handover."
+                  : "Review and remove unmanaged groups, directory roles, and application assignments in Microsoft Entra.",
         };
+  if (step.operation === "unlicense") {
+    const preserved = job.steps.find((s) => s.operation === "preserve");
+    if (
+      !preserved ||
+      (w.demo
+        ? !["success", "skipped"].includes(preserved.status)
+        : preserved.status !== "success" || !preserved.evidence)
+    )
+      throw new DomainError(
+        "Record mailbox and data preservation evidence before reclaiming a license.",
+      );
+    if (w.demo) return { status: "success" };
+    if (!e.providerId || !job.template?.licenseId)
+      throw new DomainError(
+        "No tracked Microsoft license available to reclaim.",
+      );
+    await new MicrosoftProvider(w).graph(
+      `/users/${encodeURIComponent(e.providerId)}/assignLicense`,
+      "licenses",
+      "POST",
+      { addLicenses: [], removeLicenses: [job.template.licenseId] },
+    );
+    return {
+      status: "success",
+      note: "Tracked license reclaimed after preservation review.",
+    };
+  }
   if (step.operation === "terminate") return { status: "success" };
   if (step.operation === "license") {
     if (w.demo) return { status: "success" };
     if (!e.providerId) throw new DomainError("Missing identity.");
-    await new MicrosoftProvider(w).graph(
-      `/users/${e.providerId}/assignLicense`,
-      "licenses",
-      "POST",
-      { addLicenses: [{ skuId: job.template!.licenseId }], removeLicenses: [] },
+    const p = new MicrosoftProvider(w);
+    const user = await p.graph(
+      `/users/${encodeURIComponent(e.providerId)}?$select=usageLocation,assignedLicenses`,
+      "inventory",
     );
+    countryCode(user.usageLocation);
+    const alreadyAssigned = user.assignedLicenses?.some(
+      (l: { skuId: string }) => l.skuId === job.template!.licenseId,
+    );
+    const skus = await p.graph("/subscribedSkus", "readiness");
+    const sku = skus.value?.find(
+      (s: { skuId: string }) => s.skuId === job.template!.licenseId,
+    );
+    if (
+      !sku ||
+      (!alreadyAssigned && sku.prepaidUnits.enabled - sku.consumedUnits <= 0)
+    )
+      throw new DomainError(
+        "Choose a subscribed license with available capacity.",
+      );
+    if (!alreadyAssigned)
+      await p.graph(
+        `/users/${e.providerId}/assignLicense`,
+        "licenses",
+        "POST",
+        {
+          addLicenses: [{ skuId: job.template!.licenseId }],
+          removeLicenses: [],
+        },
+      );
     return {
       status: "success",
       note: "License assigned. Mailbox readiness depends on Microsoft and the chosen email architecture.",
@@ -464,6 +649,7 @@ export async function executeStep(
         groupId: step.operation.slice(6),
       },
       "Standard",
+      step.id,
     );
   }
   const app = w.applications.find((app) => app.id === step.applicationId);
@@ -488,4 +674,29 @@ export async function executeStep(
   }
   const request = w.requests.find((r) => r.id === job.requestId);
   return provider.grant(e, app, request?.level || "Standard", step.id);
+}
+
+export function retryAfter(value: string | null) {
+  if (!value) return undefined;
+  const ms = /^\d+$/.test(value)
+    ? Number(value) * 1000
+    : Date.parse(value) - Date.now();
+  return Number.isFinite(ms) ? Math.max(0, Math.min(ms, 86400000)) : undefined;
+}
+export function providerEvidence(
+  userId: string,
+  groupId: string,
+  method: string,
+): Evidence {
+  return {
+    kind: "provider",
+    performedBy: "Microsoft Graph",
+    performedAt: now(),
+    confirmedBy: "Neutronium worker",
+    confirmedAt: now(),
+    provider: "Microsoft 365",
+    target: `${groupId}/${userId}`,
+    method,
+    note: "Observed configured group membership using Microsoft Graph.",
+  };
 }

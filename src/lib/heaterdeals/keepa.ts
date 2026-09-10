@@ -254,6 +254,8 @@ function normalizeDeal(deal: KeepaDeal, product: KeepaProduct | undefined, marke
     is_prime: isPrime,
     status: "live",
     icon_name: CATEGORY_ICONS[category],
+    image_url: typeof product?.imagesCSV === "string" && /^[A-Za-z0-9+_.%-]+\.(jpg|png)$/.test(product.imagesCSV.split(",")[0])
+      ? `https://m.media-amazon.com/images/I/${product.imagesCSV.split(",")[0]}` : null,
     price_history: historyFromProduct(product),
     offer_listing_id: typeof deal.offerListingId === "string"
       ? deal.offerListingId

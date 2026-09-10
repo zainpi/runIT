@@ -2526,6 +2526,89 @@
   margin: 16px 0;
   font-size: 13px;
 }
+.nt-mfa-qr {
+  width: fit-content;
+  padding: 12px;
+  margin: 16px 0;
+  background: #fff;
+  border: 1px solid #dce3d7;
+  border-radius: 8px;
+}
+.nt-security-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 24px;
+}
+.nt-security-gate > * {
+  width: 100%;
+  max-width: 560px;
+}
+.nt-join-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 36px 20px;
+}
+.nt-join-card {
+  width: 100%;
+  max-width: 620px;
+}
+.nt-join-card .nt-button {
+  margin: 8px 8px 0 0;
+  white-space: normal;
+}
+.nt-join-card .nt-brand {
+  display: block;
+  margin-bottom: 24px;
+}
+.nt-join-card .nt-link {
+  white-space: normal;
+}
+.nt-input-action {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.nt-input-action input {
+  min-width: 0;
+  flex: 1;
+}
+.nt-input-action button {
+  flex-shrink: 0;
+}
+.nt-password-link a {
+  color: #305d46;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.nt-form-errors {
+  display: block;
+}
+.nt-form-errors ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 8px 0 0;
+}
+.nt-form-errors .nt-link {
+  white-space: normal;
+  color: inherit;
+  text-align: left;
+  text-decoration: underline;
+}
+.nt-root input[aria-invalid="true"],
+.nt-root select[aria-invalid="true"],
+.nt-root textarea[aria-invalid="true"] {
+  border-color: #b34233;
+}
+.nt-mfa-qr img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
 .nt-tool-card input,
 .nt-tool-card textarea,
 .nt-tool-card select,

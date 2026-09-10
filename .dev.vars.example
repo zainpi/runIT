@@ -4,7 +4,7 @@ HEATERDEALS_CRON_SECRET=
 KEEPA_API_KEY=
 HEATERDEALS_APPLE_ID=
 HEATERDEALS_BUNDLE_ID=com.pulsedeals.app
-HEATERDEALS_PRODUCT_ID=com.pulsedeals.subscription.monthly
+HEATERDEALS_PRODUCT_ID=com.pulsedeals.subscription.weekly
 # Optional: base64-encoded AppleRootCA-G3.cer
 APPLE_ROOT_CA_G3_BASE64=
 
@@ -15,6 +15,9 @@ HEATERDEALS_DISCORD_CLIENT_SECRET=
 HEATERDEALS_DISCORD_BOT_TOKEN=
 HEATERDEALS_DISCORD_GUILD_ID=
 HEATERDEALS_DISCORD_ROLE_ID=
+# Separate roles supplied by your paid Discord membership provider; never the app access role.
+HEATERDEALS_DISCORD_PAID_ROLE_ID=
+HEATERDEALS_DISCORD_PRO_ROLE_ID=
 HEATERDEALS_DISCORD_REDIRECT_URI=https://runsit.ca/heaterdeals/api/v1/discord/callback
 HEATERDEALS_DISCORD_APP_CALLBACK=pulsedeals://discord/callback
 HEATERDEALS_DISCORD_SERVER_NAME=Pulse Deals

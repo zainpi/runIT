@@ -1,6 +1,7 @@
-# runIT — AI Automation Agency Website
+# runsIT — Company Website
 
-A premium, conversion-focused marketing site for an AI automation agency.
+A company homepage for runsIT, with links to Neutronium, HeaterDeals, and
+The Last Echo, plus profiles for the three founders and their portfolios.
 Built with **Next.js (App Router) + TypeScript + Tailwind CSS + Framer Motion**.
 
 Dark, high-end SaaS aesthetic, mobile-first, SEO-optimized, accessible, and
@@ -39,22 +40,27 @@ Neutronium is deployed separately on a DigitalOcean VPS; see [VPS instructions](
 
 | Route            | Description                                                      |
 | ---------------- | ---------------------------------------------------------------- |
-| `/`              | Home: hero, problem, services, benefits, process, testimonials, CTA |
-| `/services`      | Detailed services with outcomes & use cases                      |
-| `/case-studies`  | Example case studies with measurable results                     |
-| `/about`         | Mission, approach, expertise, ROI commitment                     |
-| `/contact`       | Contact details + full lead form                                 |
-| `/book`          | Consultation booking: questionnaire + calendar slot              |
+| `/`              | Company description, product links, founders, and contact         |
+| `/heaterdeals/`  | HeaterDeals overview, legal information, and support               |
+| `/the-last-echo/` | The Last Echo game website                                       |
+| `/neutronium/`   | Redirects to the Neutronium VPS on runsit.ca                       |
+| `/zainpi/`, `/raishaikh/`, `/mikaelsid/` | Founder portfolios                     |
+| `/services`, `/case-studies` | Redirect to the homepage products section            |
+| `/about`         | Redirects to the homepage company section                         |
+| `/contact`, `/book` | Redirect to the homepage contact section                       |
 | `/api/contact`   | Lead intake endpoint (validates; ready for your provider)        |
 
 ## Customize / rebrand
 
-Almost everything routes through two files:
+Homepage content is configured in:
 
-- **`src/lib/site.ts`** — brand name, tagline, URL, email, phone, location,
-  social links, navigation, and your **calendar booking URL** (`calendarUrl`).
-- **`src/lib/content.ts`** — services, benefits, process steps, testimonials,
-  and case studies.
+- **`src/lib/site.ts`** — company name, description, canonical domain, and email.
+- **`src/lib/company.ts`** — product descriptions and destinations, and founder
+  names, roles, and portfolio routes. The shared portfolio page is at
+  **`src/app/[founder]/page.tsx`**; only the configured founder slugs are served.
+- **`src/app/home.module.css`** — the homepage layout and responsive styles.
+
+Legacy agency pages retain their content in **`src/lib/content.ts`**.
 
 Colors, fonts, shadows, and animations live in **`tailwind.config.ts`** and
 **`src/app/globals.css`**.
@@ -78,8 +84,7 @@ your provider's embed (Calendly / Cal.com).
 - Per-page metadata, canonical URLs, Open Graph + Twitter cards.
 - Dynamically generated OG image (`src/app/opengraph-image.tsx`).
 - `sitemap.xml` and `robots.txt` (generated).
-- JSON-LD: `Organization` (global) + `ProfessionalService` with a service
-  catalog (home).
+- JSON-LD: `Organization` (global).
 - **Set the production domain in `src/lib/site.ts` (`url`)** so absolute URLs,
   sitemap, and structured data are correct.
 - Analytics-ready: drop your snippet into `src/app/layout.tsx` (e.g.

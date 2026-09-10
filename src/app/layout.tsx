@@ -3,6 +3,7 @@ import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import { SiteFrame } from "@/components/layout/SiteFrame";
 import { site } from "@/lib/site";
+import { founders } from "@/lib/company";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,18 +21,16 @@ const sora = Sora({
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: `${site.name} — ${site.tagline} | Business Automation Services`,
+    default: `${site.name} — ${site.tagline}`,
     template: `%s | ${site.name}`,
   },
   description: site.description,
   keywords: [
-    "AI Automation Agency",
-    "Business Automation Services",
-    "AI Workflow Automation",
-    "Process Automation",
-    "AI Consulting",
-    "Workflow Automation Solutions",
-    "Business Process Automation",
+    "runsIT",
+    "Canadian software company",
+    "Neutronium",
+    "HeaterDeals",
+    "The Last Echo",
   ],
   authors: [{ name: site.legalName }],
   creator: site.legalName,
@@ -43,7 +42,7 @@ export const metadata: Metadata = {
     siteName: site.name,
     title: `${site.name} — ${site.tagline}`,
     description: site.description,
-    locale: "en_US",
+    locale: "en_CA",
   },
   twitter: {
     card: "summary_large_image",
@@ -71,8 +70,11 @@ const organizationJsonLd = {
   url: site.url,
   description: site.description,
   email: site.email,
-  telephone: site.phone,
-  sameAs: [site.social.linkedin, site.social.x, site.social.youtube],
+  founder: founders.map((founder) => ({
+    "@type": "Person",
+    name: founder.name,
+    url: `${site.url}${founder.portfolioUrl}`,
+  })),
 };
 
 export default function RootLayout({

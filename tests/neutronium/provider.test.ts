@@ -7,6 +7,13 @@ import {
   microsoftWorkflowMarker,
 } from "../../src/lib/neutronium/providers";
 import { command } from "../../src/lib/neutronium/service";
+const validGroup = {
+  securityEnabled: true,
+  mailEnabled: false,
+  isAssignableToRole: false,
+  groupTypes: [],
+  onPremisesSyncEnabled: false,
+};
 class RecordingMicrosoft extends MicrosoftProvider {
   calls: { path: string; method: string; body: unknown }[] = [];
   responses: any[] = [];
@@ -42,7 +49,7 @@ test("Microsoft identity retries recover only the matching workflow marker", asy
 test("preexisting untracked Microsoft access is not taken over for automatic revocation", async () => {
   const w = seed();
   const provider = new RecordingMicrosoft(w);
-  provider.responses = [{ id: w.employees[0].providerId }];
+  provider.responses = [validGroup, { id: w.employees[0].providerId }];
   const result = await provider.grant(
     w.employees[0],
     { ...w.applications[0], groupId: "00000000-0000-0000-0000-000000000001" },
@@ -55,9 +62,15 @@ test("preexisting untracked Microsoft access is not taken over for automatic rev
 test("Microsoft membership removal uses the safe reference-only endpoint", async () => {
   const w = seed();
   const provider = new RecordingMicrosoft(w);
-  await provider.revoke(w.employees[0], w.applications[0], "group-id");
-  assert.equal(provider.calls[0].method, "DELETE");
-  assert(provider.calls[0].path.endsWith("/$ref"));
+  provider.responses = [validGroup, {}, { absent: true }];
+  await provider.revoke(
+    w.employees[0],
+    w.applications[0],
+    "00000000-0000-0000-0000-000000000001",
+  );
+  assert.equal(provider.calls[1].method, "DELETE");
+  assert(provider.calls[1].path.endsWith("/$ref"));
+  assert.equal(provider.calls[2].method, "GET");
 });
 test("production organizations refuse a development application adapter", async () => {
   const w = seed();
@@ -84,7 +97,12 @@ test("production organizations refuse a development application adapter", async 
 test("new Microsoft identities use a stable marker within the provider field limit", async () => {
   const w = seed();
   const provider = new RecordingMicrosoft(w);
-  provider.responses = [{ absent: true }, { id: "new-microsoft-user" }];
+  w.employees[0].usageLocation = "CA";
+  provider.responses = [
+    { absent: true },
+    { isVerified: true },
+    { id: "new-microsoft-user" },
+  ];
   const result = await provider.createIdentity(
     w.employees[0],
     "0b81cb8b-b1cc-46b1-8d4b-67145a31f7ce",
@@ -100,4 +118,58 @@ test("new Microsoft identities use a stable marker within the provider field lim
   );
   assert.equal(result.reference, "new-microsoft-user");
   assert(!JSON.stringify(result).includes(payload.passwordProfile.password));
+});
+
+test("durable grant intent recovers provider success without repeating mutation", async () => {
+  const w = seed(),
+    e = w.employees[0],
+    groupId = "00000000-0000-0000-0000-000000000001";
+  const step = {
+    id: "stable-step",
+    name: "Grant",
+    operation: "grant",
+    status: "running" as const,
+    attempts: 2,
+    membershipIntent: {
+      groupId,
+      userId: e.providerId!,
+      absentAt: new Date().toISOString(),
+    },
+  };
+  w.jobs.push({
+    id: "job",
+    employeeId: e.id,
+    kind: "grant",
+    status: "running",
+    steps: [step],
+    createdAt: new Date().toISOString(),
+    scheduledAt: new Date().toISOString(),
+  });
+  const p = new RecordingMicrosoft(w);
+  p.responses = [validGroup, { id: e.providerId }, { id: e.providerId }];
+  const r = await p.grant(
+    e,
+    { ...w.applications[0], groupId },
+    "Standard",
+    step.id,
+  );
+  assert.equal(r.status, "success");
+  assert.equal(r.evidence?.kind, "provider");
+  assert(p.calls.every((c) => c.method === "GET"));
+});
+test("privileged and dynamic groups fail before mutation; removal needs verified absence", async () => {
+  const w = seed(),
+    p = new RecordingMicrosoft(w),
+    groupId = "00000000-0000-0000-0000-000000000001";
+  p.responses = [{ ...validGroup, isAssignableToRole: true }];
+  await assert.rejects(
+    p.revoke(w.employees[0], w.applications[0], groupId),
+    /non-privileged/,
+  );
+  assert(p.calls.every((c) => c.method === "GET"));
+  p.responses = [validGroup, {}, { id: w.employees[0].providerId }];
+  await assert.rejects(
+    p.revoke(w.employees[0], w.applications[0], groupId),
+    /not yet verified/,
+  );
 });

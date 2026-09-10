@@ -5,7 +5,7 @@ import {
   getClientKey,
   getFeed,
   handleApiError,
-  requireActiveSubscription,
+  requireMarketplaceAccess,
   requireSession,
 } from "@/lib/heaterdeals/server";
 
@@ -27,12 +27,12 @@ export async function GET(request: Request) {
   try {
     const session = await requireSession(request);
     const admin = getAdminClient();
-    await requireActiveSubscription(admin, session.sub);
     const accountLimit = await enforceRateLimit(request, admin, `feed:account:${session.sub}`, 30, 60);
     if (accountLimit) return accountLimit;
     const deviceLimit = await enforceRateLimit(request, admin, `feed:client:${getClientKey(request, session.sub)}`, 60, 60);
     if (deviceLimit) return deviceLimit;
     const url = new URL(request.url);
+    await requireMarketplaceAccess(admin, session.sub, url.searchParams.get("marketplace") ?? "us");
     const response = await getFeed(admin, url.searchParams);
     return apiJson(request, { ok: true, ...response });
   } catch (error) {

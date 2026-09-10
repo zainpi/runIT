@@ -7,6 +7,8 @@ import {
   handleApiError,
   requireSession,
   syncDiscordAccess,
+  isSupportedAppleProduct,
+  getMembership,
 } from "@/lib/heaterdeals/server";
 import { entitlementStatus, verifyTransaction } from "@/lib/heaterdeals/apple";
 
@@ -24,11 +26,10 @@ export async function POST(request: Request) {
     if (!body.signedTransaction) return apiError(request, 400, "invalid_request", "signedTransaction is required.");
 
     const transaction = await verifyTransaction(body.signedTransaction);
-    const productID = process.env.HEATERDEALS_PRODUCT_ID ?? "com.pulsedeals.subscription.monthly";
     const bundleID = process.env.HEATERDEALS_BUNDLE_ID ?? "com.pulsedeals.app";
     if (
       transaction.bundleId !== bundleID ||
-      transaction.productId !== productID ||
+      !(await isSupportedAppleProduct(admin, transaction.productId)) ||
       !transaction.originalTransactionId ||
       !transaction.transactionId ||
       !transaction.appAccountToken
@@ -57,33 +58,19 @@ export async function POST(request: Request) {
     }
 
     const status = entitlementStatus(transaction);
-    const upsert = await admin
-      .from("heater_entitlements")
-      .upsert({
-        account_id: session.sub,
-        product_id: productID,
-        original_transaction_id: transaction.originalTransactionId,
-        transaction_id: transaction.transactionId,
-        app_account_token: transaction.appAccountToken,
-        environment: transaction.environment === "Sandbox" ? "Sandbox" : "Production",
-        status,
-        expires_at: transaction.expiresDate ? new Date(transaction.expiresDate).toISOString() : null,
-        revoked_at: transaction.revocationDate ? new Date(transaction.revocationDate).toISOString() : null,
-        last_verified_at: new Date().toISOString(),
-        raw: transaction,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "account_id,product_id" })
-      .select("product_id, status, expires_at, environment")
-      .single();
+    const upsert = await admin.rpc("record_heater_apple_entitlement", {
+      p_account_id: session.sub, p_transaction: transaction, p_status: status,
+    });
     if (upsert.error) throw upsert.error;
     try {
-      await syncDiscordAccess(admin, session.sub, status === "active" || status === "grace_period");
+      await syncDiscordAccess(admin, session.sub);
     } catch (error) {
       // Billing must remain successful even if Discord is temporarily down;
       // the next status read or Apple notification will reconcile the role.
       console.error("Discord access reconciliation failed after purchase", error);
     }
-    return apiJson(request, { ok: true, active: status === "active" || status === "grace_period", data: upsert.data });
+    const membership = await getMembership(admin, session.sub);
+    return apiJson(request, { ok: true, active: membership.tier !== "none", data: membership });
   } catch (error) {
     if (error instanceof Error && /verification|signed|certificate|Apple/i.test(error.message)) {
       return apiError(request, 400, "invalid_transaction", "The App Store transaction could not be verified.");

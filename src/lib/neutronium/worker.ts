@@ -1,4 +1,7 @@
-import { accountById } from "./accounts";
+import { workerMutation, readWorkerState } from "./worker-store";
+import { claimNotification, finishNotification } from "./notification-store";
+import { tenantQuery } from "./postgres";
+import { remindOperations } from "./operations";
 import { emailConfigured, sendEmail } from "./email";
 import {
   Actor,
@@ -13,8 +16,8 @@ import {
   fullName,
   steps,
 } from "./model";
-import { mutate, readWorkspace, db } from "./store";
-import { executeStep } from "./providers";
+import { mutate, readWorkspace } from "./store";
+import { executeStep, MicrosoftProvider } from "./providers";
 import { newGrant } from "./service";
 function system(w: Workspace): Actor {
   return {
@@ -67,6 +70,7 @@ export function scheduleExpirations(w: Workspace) {
 }
 export function claim(w: Workspace): { job: Job; step: Step } | null {
   scheduleExpirations(w);
+  remindOperations(w);
   for (const job of w.jobs) {
     if (
       !["pending", "running"].includes(job.status) ||
@@ -118,19 +122,57 @@ export function claim(w: Workspace): { job: Job; step: Step } | null {
   return null;
 }
 export async function tick(orgId: string, local = false) {
-  const claimed = await mutate(orgId, local, claim);
+  const claimed = local
+    ? await mutate(orgId, true, claim)
+    : await workerMutation(orgId, claim);
   if (!claimed) return false;
   const { job, step } = claimed;
+  const update = <T>(fn: (w: Workspace) => T) =>
+    local ? mutate(orgId, true, fn) : workerMutation(orgId, fn, job.id);
   try {
-    const w = await readWorkspace(orgId, local);
+    let w = local
+      ? await readWorkspace(orgId, true)
+      : await readWorkerState(orgId, job.id);
+    const application = w.applications.find((a) => a.id === step.applicationId);
+    const groupId = step.operation.startsWith("group:")
+      ? step.operation.slice(6)
+      : ["grant", "application"].includes(step.operation) &&
+          application?.mode === "microsoft"
+        ? application.groupId
+        : undefined;
+    if (!w.demo && groupId && !step.membershipIntent) {
+      const e = w.employees.find((e) => e.id === job.employeeId)!;
+      if (!e.providerId)
+        throw new DomainError("Employee has no matched Microsoft identity.");
+      const p = new MicrosoftProvider(w);
+      await p.validateGroup(groupId);
+      const member = await p.membership(groupId, e.providerId);
+      if (member.absent)
+        await update((state) => {
+          const current = state.jobs
+            .find((j) => j.id === job.id)!
+            .steps.find((s) => s.id === step.id)!;
+          if (current.lease !== step.lease || current.status !== "running")
+            throw new DomainError("Worker lease changed.", 409);
+          current.membershipIntent = {
+            groupId,
+            userId: e.providerId!,
+            absentAt: now(),
+          };
+        });
+      w = local
+        ? await readWorkspace(orgId, true)
+        : await readWorkerState(orgId, job.id);
+    }
     const result = await executeStep(w, job, step);
-    await mutate(orgId, local, (state) => {
+    await update((state) => {
       const currentJob = state.jobs.find((j) => j.id === job.id)!;
       const current = currentJob.steps.find((s) => s.id === step.id)!;
       if (current.lease !== step.lease || current.status !== "running") return;
       current.status = result.status;
       current.providerRef = result.reference;
       current.error = result.note;
+      current.evidence = result.evidence;
       delete current.leaseUntil;
       const e = state.employees.find((e) => e.id === job.employeeId)!;
       if (step.operation === "identity" && result.reference)
@@ -147,7 +189,9 @@ export async function tick(orgId: string, local = false) {
         );
         grant.status =
           result.status === "manual_required" ? "manual_required" : "active";
+        if (request?.expiresAt) grant.expiresAt = request.expiresAt;
         grant.providerRef = result.reference;
+        grant.evidence = result.evidence;
         current.grantId = grant.id;
       }
       if (step.operation.startsWith("revoke:")) {
@@ -156,9 +200,12 @@ export async function tick(orgId: string, local = false) {
         );
         if (grant) {
           grant.status = result.status === "success" ? "revoked" : "revoking";
+          grant.evidence = result.evidence;
           current.grantId = grant.id;
         }
       }
+      if (step.operation === "license" && result.status === "success")
+        e.mailbox = { status: "pending" };
       if (step.operation === "terminate") e.status = "terminated";
       if (result.status === "manual_required") {
         currentJob.status = "manual_required";
@@ -181,7 +228,7 @@ export async function tick(orgId: string, local = false) {
       );
     });
   } catch (error) {
-    await mutate(orgId, local, (w) => {
+    await update((w) => {
       const j = w.jobs.find((j) => j.id === job.id)!;
       const s = j.steps.find((s) => s.id === step.id)!;
       if (s.lease !== step.lease || s.status !== "running") return;
@@ -192,7 +239,12 @@ export async function tick(orgId: string, local = false) {
           ? error.message
           : "Provider connection interrupted. Retry after checking connection health.";
       s.nextAttemptAt = new Date(
-        Date.now() + Math.min(300_000, 1000 * 2 ** s.attempts),
+        Date.now() +
+          Math.max(
+            error instanceof DomainError ? error.retryAfterMs || 0 : 0,
+            Math.min(300_000, 1000 * 2 ** s.attempts) +
+              Math.floor(Math.random() * 1000),
+          ),
       ).toISOString();
       delete s.leaseUntil;
       j.status = s.status === "failed" ? "failed" : "pending";
@@ -212,63 +264,53 @@ export async function tick(orgId: string, local = false) {
   return true;
 }
 export async function deliverNotifications(orgId: string) {
-  const w = await readWorkspace(orgId);
-  const pending = w.notifications
-    .filter(
-      (n) =>
-        n.emailStatus === "pending" &&
-        (!n.nextAttemptAt || Date.parse(n.nextAttemptAt) <= Date.now()),
-    )
-    .slice(0, 10);
-  for (const n of pending) {
-    if (
-      !emailConfigured()
-    ) {
-      await mutate(orgId, false, (s) => {
-        const found = s.notifications.find((v) => v.id === n.id);
-        if (found) found.emailStatus = "unconfigured";
-      });
+  for (let i = 0; i < 10; i++) {
+    const configured = emailConfigured();
+    const n = await claimNotification(orgId, configured);
+    if (!n) break;
+    if (!configured) {
+      await finishNotification(orgId, n.id, n.deliveryLease, "unconfigured");
       continue;
     }
-    const addresses: string[] = [];
-    if (n.recipientId === "admins") {
-      const { data } = await db()
-        .from("neutronium_memberships")
-        .select("user_id")
-        .eq("organization_id", orgId)
-        .eq("active", true)
-        .in("role", ["ORG_OWNER", "ORG_ADMIN"]);
-      for (const member of data || []) {
-        const user = await accountById(member.user_id);
-        if (user?.email) addresses.push(user.email);
-      }
-    } else {
-      const e = w.employees.find((e) => e.id === n.recipientId);
-      if (e) addresses.push(e.email);
-    }
-    if (!addresses.length) continue;
-    let sent = false;
     try {
+      let addresses: string[] = [];
+      if (n.recipientId === "admins") {
+        const { rows } = await tenantQuery(
+          orgId,
+          "select u.email from neutronium_memberships m join neutronium_users u on u.id=m.user_id where m.organization_id=$1 and m.active and m.role in ('ORG_OWNER','ORG_ADMIN') and u.verified",
+          [orgId],
+        );
+        addresses = rows.map((r) => r.email);
+      } else {
+        const { rows } = await tenantQuery(
+          orgId,
+          "select payload->>'email' as email from neutronium_employees where organization_id=$1 and id::text=$2",
+          [orgId, n.recipientId],
+        );
+        addresses = rows.map((r) => r.email);
+        if (!addresses.length) {
+          const { rows } = await tenantQuery(
+            orgId,
+            "select u.email from neutronium_users u join neutronium_memberships m on m.user_id=u.id where m.organization_id=$1 and m.user_id::text=$2 and m.active and u.verified",
+            [orgId, n.recipientId],
+          );
+          addresses = rows.map((r) => r.email);
+        }
+      }
+      if (!addresses.length) {
+        await finishNotification(orgId, n.id, n.deliveryLease, "failed");
+        continue;
+      }
       await sendEmail({
         from: process.env.NEUTRONIUM_EMAIL_FROM!,
-        to: addresses,
+        to: [...new Set(addresses)],
         subject: `Neutronium · ${n.title}`,
         text: `${n.body}\n\nOpen your workspace: ${process.env.NEUTRONIUM_APP_URL}/neutronium`,
         idempotencyKey: n.id,
       });
-      sent = true;
+      await finishNotification(orgId, n.id, n.deliveryLease, "sent");
     } catch {
-      sent = false;
+      await finishNotification(orgId, n.id, n.deliveryLease, "pending");
     }
-    await mutate(orgId, false, (s) => {
-      const found = s.notifications.find((v) => v.id === n.id);
-      if (found) {
-        found.emailStatus = sent ? "sent" : "pending";
-        found.attempts = (found.attempts || 0) + 1;
-        found.nextAttemptAt = new Date(
-          Date.now() + Math.min(86400_000, 60_000 * 2 ** found.attempts),
-        ).toISOString();
-      }
-    });
   }
 }

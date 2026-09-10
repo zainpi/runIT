@@ -4,6 +4,7 @@ import { postgres } from "./postgres";
 import { hashPassword, verifyPassword } from "./passwords";
 import { DomainError } from "./model";
 import { emailConfigured, sendEmail } from "./email";
+import { safeAuthReturn } from "./onboarding-link";
 const sessionCookie = "neutronium_session";
 const digest = (token: string) =>
   createHash("sha256").update(token).digest("hex");
@@ -13,11 +14,14 @@ const cookieOptions = {
   sameSite: "lax" as const,
   path: "/neutronium",
 };
+export async function currentSessionHash() {
+  return digest((await cookies()).get(sessionCookie)?.value || "");
+}
 export async function currentUser() {
   const token = (await cookies()).get(sessionCookie)?.value;
   if (!token) return null;
   const { rows } = await postgres().query(
-    "select u.id,u.email,u.signup_role from neutronium_users u join neutronium_sessions s on s.user_id=u.id where s.token_hash=$1 and s.expires_at>now() and u.verified",
+    "select u.id,u.email,u.signup_role,s.mfa_verified_at,coalesce(m.enabled,false) as mfa_enabled,(coalesce(m.enabled,false) or exists(select 1 from neutronium_memberships mm where mm.user_id=u.id and mm.active and mm.role in ('ORG_OWNER','ORG_ADMIN','HR_ADMIN')) or exists(select 1 from neutronium_platform_members pm where pm.user_id=u.id)) as mfa_required from neutronium_users u join neutronium_sessions s on s.user_id=u.id left join neutronium_mfa m on m.user_id=u.id where s.token_hash=$1 and s.expires_at>now() and u.verified",
     [digest(token)],
   );
   return rows[0] || null;
@@ -25,7 +29,7 @@ export async function currentUser() {
 export async function issueSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   await postgres().query(
-    "insert into neutronium_sessions values($1,$2,now()+interval '8 hours')",
+    "insert into neutronium_sessions(token_hash,user_id,expires_at) values($1,$2,now()+interval '8 hours')",
     [digest(token), userId],
   );
   (await cookies()).set(sessionCookie, token, {
@@ -47,6 +51,7 @@ export async function sendLink(
   userId: string,
   email: string,
   kind: "signup" | "invite",
+  returnTo?: string,
 ) {
   const from = process.env.NEUTRONIUM_EMAIL_FROM;
   const origin = process.env.NEUTRONIUM_APP_URL;
@@ -57,8 +62,8 @@ export async function sendLink(
     );
   const token = randomBytes(32).toString("base64url");
   await postgres().query(
-    "insert into neutronium_auth_tokens values($1,$2,$3,now()+interval '24 hours')",
-    [digest(token), userId, kind],
+    "insert into neutronium_auth_tokens(token_hash,user_id,kind,expires_at,return_to) values($1,$2,$3,now()+interval '24 hours',$4)",
+    [digest(token), userId, kind, safeAuthReturn(returnTo)],
   );
   const link = new URL("/neutronium/api/auth/confirm/", origin);
   link.searchParams.set("token_hash", token);
@@ -67,8 +72,11 @@ export async function sendLink(
     await sendEmail({
       from,
       to: [email],
-      subject: "Confirm your Neutronium account",
-      text: `Open this link to sign in and set your password. It expires in 24 hours.\n\n${link}`,
+      subject:
+        kind === "invite"
+          ? "You’re invited to Neutronium"
+          : "Confirm your Neutronium account",
+      text: `${kind === "invite" ? "Open this link to accept your invitation and sign in. You can set your password in My profile." : "Open this link to confirm your email and continue to Neutronium. Your password is the one you chose when creating your account."} This link expires in 24 hours and can be used once.\n\n${link}`,
     });
   } catch {
     await postgres().query(
@@ -115,10 +123,12 @@ export async function accountAuth() {
         email,
         password,
         signupRole = "employee",
+        returnTo,
       }: {
         email: string;
         password: string;
         signupRole?: string;
+        returnTo?: string;
       }) {
         email = email.trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)
@@ -142,7 +152,7 @@ export async function accountAuth() {
               [email],
             )
           ).rows[0];
-        if (user) await sendLink(user.id, email, "signup");
+        if (user) await sendLink(user.id, email, "signup", returnTo);
         return { data: { session: null }, error: null };
       },
       async signInWithPassword({
@@ -175,10 +185,11 @@ export async function accountAuth() {
       }) {
         const client = await postgres().connect();
         let userId: string;
+        let returnTo: string;
         try {
           await client.query("begin");
           const { rows } = await client.query(
-            "delete from neutronium_auth_tokens where token_hash=$1 and kind=$2 and expires_at>now() returning user_id",
+            "delete from neutronium_auth_tokens where token_hash=$1 and kind=$2 and expires_at>now() returning user_id,return_to",
             [digest(token_hash), type],
           );
           if (!rows[0]) {
@@ -186,6 +197,7 @@ export async function accountAuth() {
             return { error: true };
           }
           userId = rows[0].user_id;
+          returnTo = safeAuthReturn(rows[0].return_to);
           await client.query(
             "update neutronium_users set verified=true where id=$1",
             [userId],
@@ -202,7 +214,7 @@ export async function accountAuth() {
           client.release();
         }
         await issueSession(userId);
-        return { error: null };
+        return { error: null, returnTo };
       },
       async updateUser({ password }: { password: string }) {
         const user = await currentUser();

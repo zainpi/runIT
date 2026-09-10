@@ -1,4 +1,5 @@
-import { database } from "./postgres";
+import { externalizeAttachments } from "./files";
+import { database, postgres } from "./postgres";
 import { Workspace, DomainError } from "./model";
 const buckets = [
   "employees",
@@ -98,6 +99,7 @@ export async function mutate<T>(
     try {
       const w = await readWorkspace(id, true);
       const value = fn(w);
+      await externalizeAttachments(w);
       w.revision++;
       const tmp = path.join(root, `${id}.${crypto.randomUUID()}.tmp`);
       await fs.writeFile(tmp, JSON.stringify(w), { mode: 0o600 });
@@ -111,6 +113,7 @@ export async function mutate<T>(
     const w = await readWorkspace(id);
     const revision = w.revision;
     const value = fn(w);
+    await externalizeAttachments(w);
     const { data, error } = await db().rpc("neutronium_save", {
       p_org: id,
       p_revision: revision,
@@ -126,6 +129,7 @@ export async function mutate<T>(
 }
 export async function listWorkspaces(
   local = false,
+  cursor?: string,
 ): Promise<{ id: string; name: string; revision: number }[]> {
   if (local && developmentEnabled()) {
     const { fs, root } = await localRoot();
@@ -139,11 +143,10 @@ export async function listWorkspaces(
       }),
     );
   }
-  const { data, error } = await db()
-    .from("neutronium_organizations")
-    .select("id,name,revision")
-    .limit(500);
-  if (error) throw new DomainError("Could not list organizations.", 503);
-  return data || [];
+  const { rows } = await postgres().query(
+    "select * from neutronium_list_organizations($1,$2)",
+    [cursor || null, 100],
+  );
+  return rows;
 }
 export { buckets };

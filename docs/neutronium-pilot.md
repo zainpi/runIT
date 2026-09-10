@@ -1,0 +1,55 @@
+# Neutronium pilot implementation
+
+## Delivered behavior
+
+Employee help now supports general, onboarding, software, equipment, document, contractor, QA and offboarding requests. Requests have owners, priority, deadlines, checklists, private admin notes and separate fulfillment status. Software/contractor requests create a linked request using the existing staged approval policy; completion cannot bypass it. Contractor expiry is an absolute timestamp carried into the grant. Lifecycle service requests link to the existing onboarding/offboarding jobs. QA completion requires an active tester account assigned to the subject employee; the employee sees only their assigned environment/account metadata, never the full directory or password-manager links.
+
+Checklist templates are copied when requests are created. Required tasks block completion. Manual evidence records actor, claimed performer, date, provider, target, method and explanation. Provider verification remains a separate evidence kind. Saved inbox views include overdue, unassigned, waiting, expiring and failed workflow filters. Daily reminders are deduplicated. Pilot activity reports overdue work, completion duration, outstanding removals and manual workflow actions over a 30-day window.
+
+Private attachment bytes live outside workspace JSON and outside the public directory. Download links expire after 60 seconds, are bound to the company/user/session and reauthorize the request at download time. Attachments remain limited to 50 KB and are downloaded as opaque binary files. A restartable backfill migrates legacy attachments using stable message IDs. No malware scanning or document preview is implied.
+
+Microsoft identity creation validates an ISO country code and the live domain. License selection/preflight checks subscribed capacity. The UI suggests an email from a verified domain; existing accounts are never adopted by identity creation unless the workflow marker matches. Configured group operations require static, cloud-managed, non-role-assignable security groups. The worker persists a pre-mutation absence observation, then reads back membership before recording success; retry recovers a prior accepted grant. Pre-existing untracked membership pauses for review. Removal uses `/$ref` and verifies absence. Offboarding includes equipment/handover reviews and gates tracked license reclamation on preservation evidence.
+
+Readiness displays Microsoft-reported domains, SKUs and DNS service/verification records (DNS packs currently cover the first 20 domains). No DNS writes occur. License assignment sets mailbox readiness to pending. Mailbox verification is explicitly a manual admin attestation; there is no mail-content access, DKIM automation or shared-mailbox conversion. Reconciliation reads all returned pages for configured groups and matched employees, retains prior findings after failures, and never remediates drift automatically.
+
+Production owner/admin/HR and platform accounts must enroll and verify TOTP before accessing company APIs. Social sign-in does not bypass this. Recovery codes are hashed, single-use and revoke other sessions. Replacing an authenticator requires a fresh second factor and signs out every session. My profile lists/revokes active sessions. The account audit is append-only.
+
+## Persistence and remaining scale work
+
+Migration 003 moves service conversations from organization metadata into company-scoped records with indexes. The service inbox uses SQL keyset pagination and scoped transactional writes of changed records, audit and notifications. Existing workspace saves only update changed payloads and share the company revision lock with the new repository, preventing a legacy stale save from overwriting it. Attachment downloads and production employee-session checks use targeted record reads. Notification delivery claims a bounded SQL queue with a lease, stable delivery key, bounded retry and explicit failed/unconfigured states. Worker company dispatch uses a persisted cursor rather than permanently stopping at 500 companies.
+
+The main directory, access, workflow, application, template, audit and notification screens use SQL keyset pages. Overview counts and the pilot report use SQL aggregates. Routine domain commands and worker claims load the affected transactional records and write only changes under the company revision lock. Worker selection skips active leases and delayed retries before applying the batch limit, so earlier leased jobs cannot starve later work. Provider calls run after the claim transaction commits.
+
+Migration 005 introduces the non-owner `neutronium_app` login and tenant-scoped RLS policies. Company SQL checks out a scoped connection and resets its context before pool reuse. Runtime-role tests verify unscoped reads return no business records, cross-company writes fail, and the application cannot assign platform membership. Authentication tables remain available to trusted server authentication code. Tenant context is set by that code: this protects omitted SQL filters, not a compromised application server capable of selecting a different context.
+
+Reference employee/application/template catalogs still load company-wide to support existing assignment forms. A selected employee's transactional history is loaded as a unit for command validation. Provider sync and some integration/administrative paths still use the legacy workspace compatibility functions. Conversation/checklist data remains together in each service-request record. These are explicit remaining limits for much larger installations; reference search and further integration repository migration should precede a large-company rollout.
+
+## Upgrade
+
+1. Keep a copy of the previous release and take database, private-file and keyring backups. Stop application/scheduler writes during the upgrade.
+2. Apply `003_pilot.sql`, then `004_mfa.sql` and `005_runtime_rls.sql`, using `psql -v ON_ERROR_STOP=1`. They are versioned one-time migrations; do not rerun them on an already-upgraded database. Existing installations must already have migrations 001 and 002.
+3. Set a distinct, URL-safe random `NEUTRONIUM_APP_DATABASE_PASSWORD` and run `006_runtime_password.sh` as the database owner with `POSTGRES_USER`, `POSTGRES_DB` and connection environment set for the target database. New Compose installations run it during database initialization. Existing database volumes do not rerun initialization scripts. Configure the application URL to connect as `neutronium_app`, never the migration owner; Compose now supplies this login. Keep the owner password only for migrations/backups.
+4. Set the encryption keyring before allowing login: MFA secrets use the existing AES-GCM keyring. Preserve old versions during rotation. Configure `NEUTRONIUM_PRIVATE_FILES_DIR`; Compose mounts the new `private_files` volume at `/app/private-files`. The optional `NEUTRONIUM_FILE_SIGNING_KEY` should be a separate random 32+ character value; otherwise the scheduler secret signs downloads.
+5. Build/start the updated application. Existing privileged accounts enter enrollment-required mode. They can authenticate, enroll and verify before accessing company data. Keep a trusted operator available for lost-factor recovery; never disable the gate globally.
+6. From a trusted source checkout with production database/keyring/file-directory configuration, run `npx tsx scripts/neutronium/migrate-private-files.ts`. This reads legacy attachments, writes stable private files and removes inline bytes. It can be retried; do not delete the pre-upgrade backup.
+7. Verify one request, a private download, a role boundary, admin MFA and the worker before resuming the scheduler. No production migration or deployment was executed by this implementation task.
+
+`backup.sh` now emits a database dump and matching private-file tarball. Stop writers when creating a consistent pair, copy both off-host and preserve the encrypted keyring separately. Before restoring into a new cluster, create the `neutronium_runtime` group and `neutronium_app` login with the role statements from migration 005, grant the group to the login, and set its password using script 006; database dumps do not include cluster roles. Restore into an isolated replacement database/volume with `pg_restore --no-owner`; extract private files into the private volume with app-user ownership, and restore the correct keyring. Validate counts, a known attachment, MFA and tenant boundaries before switching traffic. An embedded PostgreSQL snapshot/restore is exercised by the test suite; an actual VPS `pg_dump`/`pg_restore` drill is still required.
+
+Rollback: restore the pre-upgrade database, attachment backup and matching previous application together. Do not deploy the previous application against the new data as a shortcut: it expects inline conversation metadata and the original session-table shape. Retain post-upgrade data for reconciliation if rolling back after accepting new work.
+
+## Microsoft configuration and live validation
+
+Add only permissions needed by enabled features. Readiness uses `Domain.Read.All` and `LicenseAssignment.Read.All`. Group operations use `GroupMember.ReadWrite.All` plus read access to group properties/membership (`GroupMember.Read.All`). Identity and license actions retain their existing feature permissions. Re-consent after registration changes. Feature toggles gate execution, not the `.default` permission grant. Reconciliation shares the configured group scope; it does not inspect unrelated SaaS access or unmatched directory accounts.
+
+Use a disposable tenant with one admin, a verified domain, an Exchange-capable spare license and a non-privileged static security group:
+
+- Verify admin MFA, connect/consent, read domains/SKUs and reject missing permissions.
+- Create an employee with country `CA`; verify the workflow-owned identity and selected license. Confirm mailbox status stays pending until an administrator checks Exchange/Outlook and records evidence.
+- Submit/approve configured group access; verify the Microsoft membership and Neutronium evidence. Retry after a simulated connection interruption and confirm no duplicate grant.
+- Let temporary access expire; verify actual membership absence. Test an unavailable provider and ensure it remains unverified.
+- Run reconciliation, then interrupt a later collection read; last successful findings/timestamp must remain intact.
+- Offboard, verify local sign-in denial, preserve mail/data explicitly, and only then reclaim the tracked license. No automatic user/file/mailbox deletion occurs.
+- Send an invitation/reminder through the configured transactional email provider and verify sent/failed states. This is independent from the employee's mailbox.
+
+Live Microsoft consent, provider replication behavior, licensed mailbox delivery, real email delivery, MFA in the deployed environment and VPS restoration are externally unverified. CSP/GDAP resale, mail migration, DNS mutation, SharePoint ACL automation and new SaaS provisioning connectors remain outside this pilot release.

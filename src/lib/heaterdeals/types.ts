@@ -33,6 +33,7 @@ export type HeaterDeal = {
   iconName: string;
   priceHistory: Array<{ date: string; price: number }>;
   offerListingID: string | null;
+  imageURL?: string | null;
 };
 
 export const HEATER_DEAL_VOTES = ["good", "bought", "bad"] as const;

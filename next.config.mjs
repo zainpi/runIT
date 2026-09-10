@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  ...(process.env.NEUTRONIUM_DIST_DIR ? { distDir: process.env.NEUTRONIUM_DIST_DIR } : {}),
   ...(process.env.NEUTRONIUM_STANDALONE === "true"
     ? { eslint: { ignoreDuringBuilds: true }, typescript: { ignoreBuildErrors: true } }
     : {}),
@@ -55,20 +56,19 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      { source: "/", destination: "/the-last-echo/", permanent: true },
-      { source: "/services", destination: "/", permanent: true },
-      { source: "/case-studies", destination: "/", permanent: true },
+      { source: "/services", destination: "/#products", permanent: true },
+      { source: "/case-studies", destination: "/#products", permanent: true },
       {
         source: "/about",
-        destination: "/the-last-echo/about.html",
+        destination: "/#company",
         permanent: true,
       },
       {
         source: "/contact",
-        destination: "/the-last-echo/support.html",
+        destination: "/#contact",
         permanent: true,
       },
-      { source: "/book", destination: "/", permanent: true },
+      { source: "/book", destination: "/#contact", permanent: true },
     ];
   },
 };

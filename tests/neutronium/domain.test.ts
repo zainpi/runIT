@@ -414,7 +414,7 @@ test("help conversations isolate employees and restrict attachments to admins", 
   });
   assert.equal(
     project(w, employee).helpRequests?.[0].messages[0].attachment?.data,
-    "YQ==",
+    undefined,
   );
   assert.equal(w.helpRequests?.[0].status, "resolved");
   assert.throws(

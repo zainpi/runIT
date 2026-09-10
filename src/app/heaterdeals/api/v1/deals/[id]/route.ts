@@ -7,6 +7,7 @@ import {
   handleApiError,
   mapDeal,
   requireActiveSubscription,
+  requireMarketplaceAccess,
   requireSession,
 } from "@/lib/heaterdeals/server";
 
@@ -25,9 +26,16 @@ export async function GET(
     const deviceLimit = await enforceRateLimit(request, admin, `deal:client:${getClientKey(request, session.sub)}`, 100, 60);
     if (deviceLimit) return deviceLimit;
     const { id } = await params;
-    const result = await admin.from("heater_deals").select("*").eq("id", id).maybeSingle();
+    const market = new URL(request.url).searchParams.get("marketplace");
+    const query = admin.from("heater_deals").select("*");
+    if (/^[A-Z0-9]{10}$/.test(id) && ["us", "ca", "de", "uk"].includes(market ?? "")) {
+      query.eq("asin", id).eq("marketplace", market!);
+    } else if (/^[0-9a-f-]{36}$/i.test(id)) { query.eq("id", id); }
+    else { return apiError(request, 422, "invalid_deal", "A valid deal and marketplace are required."); }
+    const result = await query.maybeSingle();
     if (result.error) throw result.error;
     if (!result.data) return apiError(request, 404, "not_found", "Deal not found.");
+    await requireMarketplaceAccess(admin, session.sub, result.data.marketplace);
     return apiJson(request, { ok: true, data: mapDeal(result.data as Record<string, unknown>) });
   } catch (error) {
     return handleApiError(request, error);

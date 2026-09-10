@@ -1,3 +1,39 @@
+import { runCommand } from "@/lib/neutronium/command-store";
+import {
+  createOnboardingLink,
+  readInvitation,
+  submitApplication,
+  listEmployeeApplications,
+  revokeOnboardingLink,
+  reviewEmployeeApplication,
+} from "@/lib/neutronium/employee-applications";
+import { joinPath, safeAuthReturn } from "@/lib/neutronium/onboarding-link";
+import { serviceRequestContext } from "@/lib/neutronium/pilot-store";
+import { readView } from "@/lib/neutronium/read-model";
+import {
+  mfaStatus,
+  resetMfa,
+  enrollMfa,
+  challengeMfa,
+  listSessions,
+  revokeSession,
+} from "@/lib/neutronium/mfa";
+import { syncReadiness, reconcile } from "@/lib/neutronium/microsoft-readiness";
+import { evidence } from "@/lib/neutronium/operations";
+import { postgres } from "@/lib/neutronium/postgres";
+import {
+  listServiceRequests,
+  mutateServiceRequest,
+  readServiceRequest,
+} from "@/lib/neutronium/pilot-store";
+import { cookies } from "next/headers";
+import {
+  attachmentFor,
+  fileTicket,
+  verifyFileTicket,
+  sessionBinding,
+} from "@/lib/neutronium/files";
+import { readPilotReport } from "@/lib/neutronium/pilot-report";
 import { currentUser } from "@/lib/neutronium/accounts";
 import {
   socialProviders,
@@ -42,7 +78,6 @@ import {
   fullName,
   now,
 } from "@/lib/neutronium/model";
-import { command } from "@/lib/neutronium/service";
 import { tick, deliverNotifications } from "@/lib/neutronium/worker";
 import {
   microsoftFeatures,
@@ -95,7 +130,23 @@ export async function GET(req: NextRequest, ctx: Context) {
         authConfigured: !!process.env.NEUTRONIUM_DATABASE_URL,
         microsoftFeatures,
       });
+    if (path === "auth/mfa") return json(await mfaStatus());
+    if (path === "auth/sessions")
+      return json({ sessions: await listSessions() });
     if (path === "auth/status") return json({ user: await currentUser() });
+    if (path === "onboarding/invitation") {
+      await rateLimit(
+        `join-preview:${req.headers.get("x-forwarded-for") || "unknown"}`,
+        120,
+        60,
+      );
+      return json(
+        await readInvitation(
+          req.nextUrl.searchParams.get("token") || "",
+          await currentUser(),
+        ),
+      );
+    }
     if (path.startsWith("auth/social/") && path.endsWith("/callback")) {
       try {
         const result = await finishSocial(
@@ -105,10 +156,10 @@ export async function GET(req: NextRequest, ctx: Context) {
           req.nextUrl.searchParams.get("code") || "",
         );
         return NextResponse.redirect(
-          new URL(`/neutronium?auth=${result || "ready"}`, appOrigin(req)),
+          new URL(`/neutronium/?auth=${result || "ready"}`, appOrigin(req)),
         );
       } catch (e) {
-        const url = new URL("/neutronium", appOrigin(req));
+        const url = new URL("/neutronium/", appOrigin(req));
         url.searchParams.set(
           "authError",
           e instanceof DomainError
@@ -119,27 +170,44 @@ export async function GET(req: NextRequest, ctx: Context) {
       }
     }
     if (path === "auth/confirm") {
-      const token_hash = req.nextUrl.searchParams.get("token_hash");
-      const type = req.nextUrl.searchParams.get("type");
-      if (
-        !token_hash ||
-        !["invite", "signup", "recovery", "email"].includes(type || "")
-      )
-        throw new DomainError("Invalid authentication link.");
-      const { error } = await (
-        await accountAuth()
-      ).auth.verifyOtp({
-        token_hash,
-        type: type as "invite" | "signup" | "recovery" | "email",
-      });
-      if (error)
-        throw new DomainError(
-          "This sign-in link is expired or already used.",
-          401,
+      const destination = new URL("/neutronium/", appOrigin(req));
+      try {
+        const token_hash = req.nextUrl.searchParams.get("token_hash");
+        const type = req.nextUrl.searchParams.get("type");
+        if (
+          !token_hash ||
+          token_hash.length > 256 ||
+          !["invite", "signup", "recovery", "email"].includes(type || "")
+        )
+          throw new DomainError(
+            "This confirmation link is incomplete or invalid. Open the full link from your latest Neutronium email.",
+          );
+        const { error, returnTo } = await (
+          await accountAuth()
+        ).auth.verifyOtp({
+          token_hash,
+          type: type as "invite" | "signup" | "recovery" | "email",
+        });
+        if (error)
+          throw new DomainError(
+            "This confirmation link has expired or was already used. Try signing in if you already confirmed your email. Otherwise, create your account again with the same email to request a new confirmation, or ask your administrator for a new invitation.",
+            401,
+          );
+        const target = new URL(safeAuthReturn(returnTo), appOrigin(req));
+        destination.pathname = target.pathname;
+        destination.search = target.search;
+      } catch (e) {
+        destination.searchParams.set(
+          "authError",
+          e instanceof DomainError
+            ? e.message
+            : "We couldn’t confirm your email right now. Please try the link again in a few minutes.",
         );
-      return NextResponse.redirect(
-        new URL("/neutronium?view=profile", appOrigin(req)),
-      );
+      }
+      const response = NextResponse.redirect(destination);
+      response.headers.set("Cache-Control", "no-store");
+      response.headers.set("Referrer-Policy", "no-referrer");
+      return response;
     }
     if (path === "microsoft/callback") {
       const a = await actorFor();
@@ -199,10 +267,12 @@ export async function GET(req: NextRequest, ctx: Context) {
         );
       });
       return NextResponse.redirect(
-        new URL("/neutronium?view=integrations&connected=1", appOrigin(req)),
+        new URL("/neutronium/?view=integrations&connected=1", appOrigin(req)),
       );
     }
     const a = await actorFor(req.nextUrl.searchParams.get("org") || undefined);
+    if (path === "onboarding/applications")
+      return json(await listEmployeeApplications(a, req.nextUrl.searchParams));
     if (path === "employees/export") {
       requireRole(a, [...admins, "HR_ADMIN"]);
       const w = await readWorkspace(a.orgId, a.demo);
@@ -245,7 +315,46 @@ export async function GET(req: NextRequest, ctx: Context) {
         },
       });
     }
+    if (path === "operations/context")
+      return json(
+        await serviceRequestContext(
+          a,
+          req.nextUrl.searchParams.get("id") || "",
+        ),
+      );
+    if (path === "operations")
+      return json(await listServiceRequests(a, req.nextUrl.searchParams));
     if (path === "session") return json({ actor: a });
+    if (path === "pilot/report") {
+      requireRole(a, admins);
+      return json(await readPilotReport(a));
+    }
+    if (path === "files/download") {
+      const jar = await cookies();
+      const binding = sessionBinding(
+        jar.get(a.demo ? "neutronium_demo" : "neutronium_session")?.value || "",
+      );
+      const link = verifyFileTicket(
+        req.nextUrl.searchParams.get("ticket") || "",
+        a,
+        binding,
+      );
+      const file = await attachmentFor(
+        await readServiceRequest(a, link.requestId),
+        a,
+        link.requestId,
+        link.messageId,
+      );
+      return new NextResponse(new Uint8Array(file.bytes), {
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+          "Content-Security-Policy": "sandbox",
+        },
+      });
+    }
     if (path === "companies") {
       requireRole(a, platformRoles);
       let all = a.demo
@@ -287,8 +396,8 @@ export async function GET(req: NextRequest, ctx: Context) {
         await mutate(a.orgId, a.demo, (w) =>
           audit(w, a, "Operator inspected workspace", w.name, uid()),
         );
-      const w = await readWorkspace(a.orgId, a.demo);
-      return json({ actor: a, workspace: project(w, a) });
+      const workspace = await readView(a, req.nextUrl.searchParams);
+      return json({ actor: a, workspace });
     }
     throw new DomainError("Not found.", 404);
   } catch (e) {
@@ -314,23 +423,83 @@ export async function POST(req: NextRequest, ctx: Context) {
         await tick(a.orgId, true);
         return json({ ok: true });
       }
-      const organizations = await listWorkspaces();
+      const batch = await postgres().connect();
+      let organizations: Awaited<ReturnType<typeof listWorkspaces>>;
+      try {
+        await batch.query("begin");
+        const { rows } = await batch.query(
+          "select after_id from neutronium_worker_cursor where id=true for update",
+        );
+        organizations = await listWorkspaces(
+          false,
+          rows[0]?.after_id || undefined,
+        );
+        if (!organizations.length && rows[0]?.after_id)
+          organizations = await listWorkspaces();
+        await batch.query("commit");
+      } catch (e) {
+        await batch.query("rollback");
+        throw e;
+      } finally {
+        batch.release();
+      }
       const failed: string[] = [];
+      const started = Date.now();
+      let processed = 0;
       for (const o of organizations) {
+        if (processed >= 20 || Date.now() - started > 40000) break;
         try {
-          for (let i = 0; i < 10; i++) if (!(await tick(o.id))) break;
+          for (let i = 0; i < 3 && Date.now() - started < 40000; i++)
+            if (!(await tick(o.id))) break;
           await deliverNotifications(o.id);
         } catch {
           failed.push(o.id);
         }
+        processed++;
+        await postgres().query(
+          "update neutronium_worker_cursor set after_id=$1 where id=true",
+          [o.id],
+        );
       }
       return json(
-        { ok: !failed.length, organizations: organizations.length, failed },
+        { ok: !failed.length, organizations: processed, failed },
         failed.length ? 503 : 200,
       );
     }
     sameOrigin(req);
     const input = await body(req);
+    if (path === "onboarding/apply") {
+      const user = await currentUser();
+      if (!user)
+        throw new DomainError(
+          "Sign in and confirm your email before submitting your details.",
+          401,
+        );
+      if (user.mfa_required && !user.mfa_verified_at)
+        throw new DomainError(
+          "Verify your authenticator code before continuing.",
+          403,
+        );
+      await rateLimit(`join-apply:${user.id}`, 10, 60);
+      return json({
+        application: await submitApplication(
+          String(input.token || ""),
+          user,
+          input,
+        ),
+      });
+    }
+    if (path === "auth/mfa/reset") {
+      await resetMfa(String(input.token || ""));
+      return json({ ok: true });
+    }
+    if (path === "auth/mfa/enroll") return json(await enrollMfa());
+    if (path === "auth/mfa/challenge")
+      return json(await challengeMfa(String(input.token || "")));
+    if (path === "auth/sessions/revoke") {
+      await revokeSession(String(input.id));
+      return json({ ok: true });
+    }
     if (path === "auth/social") {
       await rateLimit(
         `social:${req.headers.get("x-forwarded-for") || "unknown"}`,
@@ -382,12 +551,22 @@ export async function POST(req: NextRequest, ctx: Context) {
         );
       await rateLimit(`auth-email:${input.email.trim().toLowerCase()}`, 10, 60);
       const auth = await accountAuth();
+      let returnTo: string | undefined;
+      if (path === "signup" && input.joinToken) {
+        returnTo = joinPath(input.joinToken);
+        if (!(await readInvitation(input.joinToken)).available)
+          throw new DomainError(
+            "This invitation is no longer available. Sign in to check an existing application, or ask your administrator for a new link.",
+            410,
+          );
+      }
       const result =
         path === "signup"
           ? await auth.auth.signUp({
               email: input.email,
               password: input.password,
-              signupRole: input.signupRole,
+              signupRole: returnTo ? "employee" : input.signupRole,
+              returnTo,
             })
           : await auth.auth.signInWithPassword({
               email: input.email,
@@ -396,7 +575,7 @@ export async function POST(req: NextRequest, ctx: Context) {
       if (result.error)
         throw new DomainError(
           path === "login"
-            ? "Email or password was not accepted."
+            ? "We couldn’t sign you in. Check your email and password, and confirm your email using the link we sent before signing in."
             : "Account creation failed. Check your email or try signing in.",
           400,
         );
@@ -417,7 +596,9 @@ export async function POST(req: NextRequest, ctx: Context) {
         !input.name.trim() ||
         input.name.length > 100
       )
-        throw new DomainError("Enter an organization name.");
+        throw new DomainError(
+          "Enter your organization’s name, using 100 characters or fewer.",
+        );
       const w = seed(uid(), false, input.name.trim());
       audit(
         w,
@@ -439,6 +620,62 @@ export async function POST(req: NextRequest, ctx: Context) {
       typeof input.orgId === "string" ? input.orgId : undefined,
     );
     await rateLimit(`commands:${a.id}`, 120, 60);
+    if (path === "onboarding/link") {
+      const link = await createOnboardingLink(a);
+      return json({
+        ...link,
+        url: new URL(link.path, appOrigin(req)).toString(),
+      });
+    }
+    if (path === "onboarding/revoke-link") {
+      await revokeOnboardingLink(a, String(input.id || ""));
+      return json({ ok: true });
+    }
+    if (path === "onboarding/review")
+      return json({ application: await reviewEmployeeApplication(a, input) });
+    if (path === "microsoft/readiness") {
+      await syncReadiness(a);
+      return json({ ok: true });
+    }
+    if (path === "microsoft/reconcile") {
+      await reconcile(a);
+      return json({ ok: true });
+    }
+    if (path === "mailbox/verify") {
+      requireRole(a, admins);
+      await mutate(a.orgId, a.demo, (w) => {
+        const e = w.employees.find((e) => e.id === input.employeeId);
+        if (!e?.providerId)
+          throw new DomainError("Match or create a Microsoft identity first.");
+        const proof = evidence(a, {
+          ...input,
+          provider: "Exchange Online",
+          target: e.email,
+        });
+        e.mailbox = { status: "manually_verified", evidence: proof };
+        audit(w, a, "Mailbox manually verified", e.id, uid(), undefined, {
+          evidence: proof,
+        });
+      });
+      return json({ ok: true });
+    }
+    if (path === "files/link") {
+      const requestId = String(input.requestId),
+        messageId = String(input.messageId);
+      await attachmentFor(
+        await readServiceRequest(a, requestId),
+        a,
+        requestId,
+        messageId,
+      );
+      const jar = await cookies();
+      const binding = sessionBinding(
+        jar.get(a.demo ? "neutronium_demo" : "neutronium_session")?.value || "",
+      );
+      return json({
+        url: `/neutronium/api/files/download?ticket=${encodeURIComponent(fileTicket(a, requestId, messageId, binding))}`,
+      });
+    }
     if (path === "password") {
       if (a.demo)
         throw new DomainError("Development personas do not have passwords.");
@@ -754,9 +991,22 @@ export async function POST(req: NextRequest, ctx: Context) {
       );
       return json({ ok: true });
     }
-    const result = await mutate(a.orgId, a.demo, (w) =>
-      command(w, a, path, input),
-    );
+    if (
+      [
+        "help-create",
+        "help-reply",
+        "operation-update",
+        "operation-note",
+        "operation-task",
+        "checklist-template",
+        "saved-view",
+      ].includes(path)
+    )
+      return json({
+        ok: true,
+        result: await mutateServiceRequest(a, path, input),
+      });
+    const result = await runCommand(a, path, input);
     return json({ ok: true, result });
   } catch (e) {
     return fail(e);

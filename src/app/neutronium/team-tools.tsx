@@ -131,21 +131,12 @@ export function HelpInbox({
                   {m.attachment && (
                     <button
                       className="nt-link"
-                      onClick={() => {
-                        const bytes = Uint8Array.from(
-                          atob(m.attachment!.data),
-                          (c) => c.charCodeAt(0),
-                        );
-                        const url = URL.createObjectURL(
-                          new Blob([bytes], {
-                            type: "application/octet-stream",
-                          }),
-                        );
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = m.attachment!.name;
-                        a.click();
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                      onClick={async () => {
+                        const result = (await run("files/link", {
+                          requestId: active.id,
+                          messageId: m.id,
+                        })) as { url: string };
+                        window.location.assign(result.url);
                       }}
                     >
                       Download {m.attachment.name}

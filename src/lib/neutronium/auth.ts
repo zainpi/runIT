@@ -1,3 +1,4 @@
+import { tenantQuery } from "./postgres";
 import { cookies } from "next/headers";
 import { accountAuth } from "./accounts";
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
@@ -65,6 +66,11 @@ export async function actorFor(orgId?: string): Promise<Actor> {
     data: { user },
   } = await client.auth.getUser();
   if (!user) throw new DomainError("Sign in to continue.", 401);
+  if (user.mfa_required && !user.mfa_verified_at)
+    throw new DomainError(
+      "Complete multi-factor authentication to continue.",
+      403,
+    );
   const { data: platform } = await db()
     .from("neutronium_platform_members")
     .select("role")
@@ -117,16 +123,13 @@ export async function actorFor(orgId?: string): Promise<Actor> {
       403,
     );
   if (member.employee_id) {
-    const workspace = await readWorkspace(member.organization_id);
-    const employee = workspace.employees.find(
-      (e) => e.id === member.employee_id,
+    const record = await tenantQuery(
+      member.organization_id,
+      "select payload,exists(select 1 from neutronium_jobs where organization_id=$1 and employee_id=$2 and payload->>'kind'='offboard' and (payload->>'scheduledAt')::timestamptz<=now()) as offboard_due from neutronium_employees where organization_id=$1 and id=$2",
+      [member.organization_id, member.employee_id],
     );
-    const offboardDue = workspace.jobs.some(
-      (j) =>
-        j.employeeId === member.employee_id &&
-        j.kind === "offboard" &&
-        Date.parse(j.scheduledAt) <= Date.now(),
-    );
+    const employee = record.rows[0]?.payload;
+    const offboardDue = record.rows[0]?.offboard_due;
     if (!employee || employee.status === "terminated" || offboardDue)
       throw new DomainError("Your employee portal access has ended.", 403);
   }
@@ -161,7 +164,13 @@ export function sameOrigin(request: Request) {
 export async function rateLimit(key: string, limit = 20, seconds = 60) {
   if (developmentEnabled()) return;
   const { data, error } = await db().rpc("neutronium_rate_limit", {
-    p_key: createHmac("sha256", process.env.NEUTRONIUM_CRON_SECRET || (() => { throw new DomainError("Configure NEUTRONIUM_CRON_SECRET.", 503); })())
+    p_key: createHmac(
+      "sha256",
+      process.env.NEUTRONIUM_CRON_SECRET ||
+        (() => {
+          throw new DomainError("Configure NEUTRONIUM_CRON_SECRET.", 503);
+        })(),
+    )
       .update(key)
       .digest("hex"),
     p_limit: limit,

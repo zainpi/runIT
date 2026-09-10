@@ -5,7 +5,6 @@ import {
   beginDiscordLink,
   getAdminClient,
   handleApiError,
-  requireActiveSubscription,
   requireSession,
 } from "@/lib/heaterdeals/server";
 
@@ -29,7 +28,6 @@ export async function POST(request: Request) {
   try {
     const session = await requireSession(request);
     const admin = getAdminClient();
-    await requireActiveSubscription(admin, session.sub);
     const limit = await enforceRateLimit(request, admin, `discord:start:${session.sub}`, 5, 3_600);
     if (limit) return limit;
     const result = await beginDiscordLink(admin, session.sub);

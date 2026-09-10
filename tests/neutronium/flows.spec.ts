@@ -16,6 +16,9 @@ test("company → onboard → employee → request → manager → revoke → of
     .getByRole("button", { name: "Onboard employee", exact: true })
     .first()
     .click();
+  await page
+    .getByRole("button", { name: "Enter details manually", exact: true })
+    .click();
   await page.getByLabel("First name", { exact: true }).fill("Sam");
   await page.getByLabel("Last name", { exact: true }).fill("Lee");
   await page
@@ -92,11 +95,9 @@ test("company → onboard → employee → request → manager → revoke → of
     .getByRole("button", { name: "Handle a departure", exact: false })
     .click();
   const offboard = page.getByRole("dialog");
-  await offboard
-    .getByLabel("Employee", { exact: true })
-    .selectOption({
-      label: `Sam Lee — ${state.employees.find((e: any) => e.id === actor.employeeId).email}`,
-    });
+  await offboard.getByLabel("Employee", { exact: true }).selectOption({
+    label: `Sam Lee — ${state.employees.find((e: any) => e.id === actor.employeeId).email}`,
+  });
   await offboard
     .getByLabel(/Type .* to confirm/)
     .fill(state.employees.find((e: any) => e.id === actor.employeeId).email);

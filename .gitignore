@@ -41,3 +41,6 @@ next-env.d.ts
 /deploy/neutronium/backups/
 
 /deploy/neutronium/bootstrap-credentials.txt
+
+/.next-neutronium-test/
+/.next-neutronium-release/
