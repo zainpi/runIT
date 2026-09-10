@@ -12,6 +12,13 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "d1_databases": [{
+    "binding": "LOCAL_LORE_DB",
+    "database_name": "local-lore",
+    "database_id": "125038bb-ee87-415a-aa6a-f2d73ce93873",
+    "migrations_dir": "migrations/local-lore"
+  }],
+  "vars": { "LOCAL_LORE_IMAGE_DAILY_LIMIT": "250" },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",

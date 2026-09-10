@@ -32,9 +32,9 @@ export const products = [
   {
     id: "local-lore",
     name: "Local Lore",
-    category: "Browser game · Playable demo",
+    category: "Browser game · Toronto",
     description:
-      "How well do you know your streets? Try three-round geography challenges with named answers, map pins, and instant scores.",
+      "Know your Toronto. Explore real Street View photos, name the intersection or drop a map pin, and build your local knowledge across three-round games.",
     href: "/local-lore/",
     action: "Play Local Lore",
     monogram: "LL",
