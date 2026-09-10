@@ -208,7 +208,7 @@ function paintPins() {
       continue;
     }
     const pos = project(point, mapCenter, mapZoom);
-    el.hidden = pos.x < 3 || pos.x > 97 || pos.y < 3 || pos.y > 91;
+    el.hidden = pos.x < 3 || pos.x > 97 || pos.y < 3 || pos.y > 85;
     el.style.left = pos.x + "%";
     el.style.top = pos.y + "%";
   }
@@ -512,7 +512,7 @@ $("map").onclick = (e) => {
   const box = $("map").getBoundingClientRect(),
     x = ((e.clientX - box.left) / box.width) * 100,
     y = ((e.clientY - box.top) / box.height) * 100;
-  if (x < 3 || x > 97 || y < 3 || y > 91) return;
+  if (x < 3 || x > 97 || y < 3 || y > 85) return;
   pin = unproject(x, y, mapCenter, mapZoom);
   paintPins();
   updateSubmit();
@@ -536,7 +536,7 @@ $("map").onkeydown = (e) => {
   if (e.key === "ArrowRight") pos.x += step;
   pin = unproject(
     Math.max(3, Math.min(97, pos.x)),
-    Math.max(3, Math.min(91, pos.y)),
+    Math.max(3, Math.min(85, pos.y)),
     mapCenter,
     mapZoom,
   );
