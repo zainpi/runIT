@@ -2,6 +2,13 @@
 
 Public game: https://runsit.ca/local-lore/
 
+The custom domains `runsit.ca` and `www.runsit.ca` route to the **`runit`**
+Worker. The repository currently triggers builds for both `runit` and
+`runsit-ca`; the historical Wrangler default names the latter. Explicitly use
+`--name runit` when managing the live game's secrets, and verify the
+`Workers Builds: runit` check for production. Do not infer domain routing from
+the Wrangler default alone.
+
 Local Lore uses real Google Street View photos and Static Maps, with 17
 independently sourced OpenStreetMap intersections and five Toronto landmarks.
 Three-round daily, intersection practice, and landmark games support named
@@ -84,7 +91,7 @@ For local Worker HTTP testing, apply D1 migrations with `--local`, then use
 For schema changes, apply the versioned D1 migration with `--remote` before
 releasing dependent code. Commit only the intended changes, then push through
 the existing GitHub-connected Cloudflare Workers Builds pipeline. Do not use
-local `wrangler deploy`. Wait for the `runsit-ca` build and verify the public
+local `wrangler deploy`. Wait for the `runit` build and verify the public
 configuration, real images, three-round submission flow, and saved history.
 Revert the code commit through the same pipeline for a UI/API rollback;
 preserve D1 data and do not drop tables as a rollback shortcut.
