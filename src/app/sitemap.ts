@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = [
+    { path: "/local-lore/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
     { path: "/the-last-echo/", priority: 1, frequency: "weekly" as const, modified: "2026-08-06" },
     { path: "/the-last-echo/guides/", priority: 0.9, frequency: "weekly" as const, modified: "2026-08-06" },
     { path: "/the-last-echo/guides/game-systems-reference.html", priority: 0.9, frequency: "monthly" as const, modified: "2026-08-06" },

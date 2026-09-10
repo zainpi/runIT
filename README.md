@@ -95,3 +95,10 @@ form fields with inline errors, and `prefers-reduced-motion` support.
 Company IT administration lives at `/neutronium/`, with company, employee, and operator interfaces. Run `npm run dev` to open an isolated Acme development workspace, and `npm run neutronium:worker` in a second terminal for unattended local workflows.
 
 See [Neutronium setup and architecture](docs/neutronium.md) for the database migration, production environment variables, Microsoft consent setup, demo walkthrough, and tests.
+
+## Local Lore
+
+Play the browser demo at [runsit.ca/local-lore/](https://runsit.ca/local-lore/).
+It is served from `public/local-lore/` through a Next.js rewrite. The existing
+site navigation links directly to the game. See [Local Lore deployment](docs/local-lore.md)
+for its sample-content limits and update workflow.

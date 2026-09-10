@@ -35,6 +35,8 @@ const nextConfig = {
   },
   async rewrites() {
     return [
+      { source: "/local-lore", destination: "/local-lore/index.html" },
+      { source: "/local-lore/", destination: "/local-lore/index.html" },
       {
         source: "/the-last-echo",
         destination: "/the-last-echo/index.html",
