@@ -282,3 +282,16 @@ test('default provider fetch keeps the native global receiver', async (t) => {
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('content-type'), 'image/png');
 });
+
+test('large landmarks allow nearby exterior cameras but reject distant imagery', async (t) => {
+  const h = harness(); t.after(() => h.db.close());
+  const started = await h.start('landmark');
+  const target = await h.target(started.data.current);
+  const cookie = started.response.headers.get('set-cookie').split(';')[0];
+  const request = () => new Request(origin + started.data.current.scene_url, {headers:{cookie}});
+  const provider = metres => async url => String(url).includes('metadata')
+    ? Response.json({status:'OK',pano_id:'landmark-camera',location:{lat:target.latitude+metres/111195,lng:target.longitude}})
+    : new Response(new Uint8Array([1,2,3]),{headers:{'Content-Type':'image/jpeg'}});
+  assert.equal((await handleLocalLore(request(),h.env,{fetch:provider(110)})).status,200);
+  assert.equal((await handleLocalLore(request(),h.env,{fetch:provider(170)})).status,503);
+});

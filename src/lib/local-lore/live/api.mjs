@@ -345,7 +345,8 @@ async function metadata(ctx, target) {
       .run();
   }
   const camera = { latitude: data.location.lat, longitude: data.location.lng };
-  if (distance(camera, target) > 100)
+  // Large landmark footprints can put a street camera beyond 100 m from the OSM centre.
+  if (distance(camera, target) > (target.type === "landmark" ? 150 : 100))
     fail("The photo has moved too far from this place. Skip this round.", 503);
   return {
     pano: data.pano_id,
