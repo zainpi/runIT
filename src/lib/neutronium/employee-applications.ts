@@ -52,7 +52,12 @@ function text(value: unknown, label: string, max: number, required = false) {
   return value.trim();
 }
 function id(value: unknown) {
-  if (typeof value !== "string" || !/^[0-9a-f-]{36}$/i.test(value))
+  if (
+    typeof value !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+  )
     throw new DomainError("Invalid application or invitation.");
   return value;
 }

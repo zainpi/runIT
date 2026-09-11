@@ -22,7 +22,7 @@
     "@supabase/supabase-js": "^2.110.0",
     "framer-motion": "^11.3.24",
     "jose": "^6.2.12",
-    "next": "^15.5.19",
+    "next": "^15.5.25",
     "nodemailer": "^10.0.2",
     "otpauth": "^9.4.1",
     "pg": "^8.23.0",
@@ -42,11 +42,17 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^15.5.19",
-    "postcss": "^8.4.41",
+    "eslint-config-next": "^15.5.25",
+    "postcss": "^8.5.28",
     "tailwindcss": "^3.4.10",
     "tsx": "^4.23.13",
     "typescript": "^5.5.4",
     "wrangler": "^4.105.0"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "$postcss",
+      "sharp": "^0.35.4"
+    }
   }
 }

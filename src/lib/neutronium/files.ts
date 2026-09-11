@@ -15,7 +15,12 @@ function root() {
   );
 }
 function path(orgId: string, key: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(orgId) || !/^[0-9a-f-]{36}$/i.test(key))
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      orgId,
+    ) ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)
+  )
     throw new DomainError("File not found.", 404);
   return join(root(), orgId, key);
 }

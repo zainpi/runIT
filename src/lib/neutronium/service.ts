@@ -1,4 +1,5 @@
 import { countryCode } from "./country";
+import { hasControlCharacters, isCalendarDate, isHttpsUrl } from "./validation";
 import {
   createOperation,
   operationCommand,
@@ -25,7 +26,12 @@ import {
 } from "./model";
 type Input = Record<string, unknown>;
 function str(v: unknown, label: string, required = true, max = 200) {
-  if (typeof v !== "string" || v.length > max || (required && !v.trim()))
+  if (
+    typeof v !== "string" ||
+    v.length > max ||
+    hasControlCharacters(v) ||
+    (required && !v.trim())
+  )
     throw new DomainError(`Enter a valid ${label}.`);
   return v.trim();
 }
@@ -38,7 +44,7 @@ function directoryUrl(v: unknown, required = true) {
   } catch {
     throw new DomainError("Enter a complete HTTPS URL.");
   }
-  if (url.protocol !== "https:" || url.username || url.password)
+  if (!isHttpsUrl(value))
     throw new DomainError("Use an HTTPS URL without embedded credentials.");
   return url.toString();
 }
@@ -64,6 +70,8 @@ function find<T extends { id: string }>(list: T[], id: unknown) {
   return item;
 }
 function schedule(v: unknown) {
+  if (v !== undefined && typeof v !== "string")
+    throw new DomainError("Invalid schedule date.");
   const s = typeof v === "string" && v ? new Date(v) : new Date();
   if (isNaN(s.getTime())) throw new DomainError("Invalid schedule date.");
   return s.toISOString();
@@ -307,7 +315,8 @@ export function command(
           throw new DomainError("Choose an active manager.");
       }
       const startDate = str(input.startDate, "start date");
-      schedule(startDate);
+      if (!isCalendarDate(startDate))
+        throw new DomainError("Choose a valid start date.");
       const e: Employee = {
         id: uid(),
         firstName: str(input.firstName, "first name"),
@@ -483,7 +492,8 @@ export function command(
         e.personalEmail = input.personalEmail ? email(input.personalEmail) : "";
       if (input.startDate !== undefined) {
         const date = str(input.startDate, "start date");
-        schedule(date);
+        if (!isCalendarDate(date))
+          throw new DomainError("Choose a valid start date.");
         e.startDate = date;
       }
       if (input.employmentType !== undefined) {
@@ -523,7 +533,15 @@ export function command(
       const applications = arr(input.applications);
       applications.forEach((id) => find(w.applications, id));
       const groups = arr(input.groups ?? []);
-      if (!w.demo && groups.some((g) => !/^[0-9a-f-]{36}$/i.test(g)))
+      if (
+        !w.demo &&
+        groups.some(
+          (g) =>
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              g,
+            ),
+        )
+      )
         throw new DomainError("Microsoft groups must use their object IDs.");
       const next: Template = {
         id: input.id ? find(w.templates, input.id).id : uid(),
@@ -562,6 +580,12 @@ export function command(
       const app = find(w.applications, input.applicationId);
       if (app.mode === "coming_soon")
         throw new DomainError("This application is not available yet.");
+      if (
+        typeof input.durationMinutes !== "number" &&
+        (typeof input.durationMinutes !== "string" ||
+          !/^\d+$/.test(input.durationMinutes))
+      )
+        throw new DomainError("Choose a valid access duration.");
       const duration = Number(input.durationMinutes);
       if (!Number.isInteger(duration) || duration < 0 || duration > 43200)
         throw new DomainError(
@@ -856,7 +880,12 @@ export function command(
       if (owner) find(w.employees, owner);
       app.ownerId = owner;
       const groupId = str(input.groupId ?? "", "group ID", false);
-      if (groupId && !/^[0-9a-f-]{36}$/i.test(groupId))
+      if (
+        groupId &&
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          groupId,
+        )
+      )
         throw new DomainError("Enter a Microsoft group object ID.");
       app.groupId = groupId;
       audit(
@@ -899,6 +928,10 @@ export function command(
         throw new DomainError("Import a maximum of 200 records.");
       let count = 0;
       for (const raw of input.employees) {
+        if (!raw || typeof raw !== "object" || Array.isArray(raw))
+          throw new DomainError(
+            "Each imported employee must be a JSON object.",
+          );
         const r = raw as Input;
         const address = email(r.email);
         if (w.employees.some((e) => e.email === address)) continue;

@@ -132,3 +132,8 @@ To review demand, aggregate `pulsedeals_country_requests` by `country_code` and 
 ## Referral weeks
 
 Apply `supabase/migrations/20260911000000_pulsedeals_referrals.sql` after the rename migration. Configure the `referral-week` Apple promotional offers, server keys, environment, and feature flag before enabling claims. The full product rules, API contract, recovery procedure, and release checks are in the companion `PulseDeals/docs/referrals-rollout.md`. Billing uploads and Apple webhooks continue using the same entitlement RPC; it now records referral rewards atomically.
+
+
+### Yearly billing
+
+Apply `20260911030000_pulsedeals_yearly.sql` after the membership and rename migrations (and after referrals in the normal rollout order). It adds `com.pulsedeals.subscription.yearly` as Standard and `com.pulsedeals.subscription.pro.yearly` as Pro to the shared product-tier allowlist. Existing products and entitlements are preserved. The app offers Standard at US$89.99/year and uses a working Pro price of US$234.99/year, rounded from the weekly ratio; live prices and other storefronts still require App Store Connect configuration. Both yearly products use a one-year billing period, eligible one-week introductory trial, and the `referral-week` promotion in the existing subscription group. Local migration tests cover annual purchases, restores, renewals, upgrades/downgrades, refunds, country restrictions, and referral redemption product retention.

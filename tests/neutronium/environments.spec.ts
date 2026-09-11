@@ -8,9 +8,10 @@ test("manage environment URLs and associated tester accounts", async ({
   ).toBeVisible();
   await page
     .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("button", { name: "Settings", exact: true })
+    .getByRole("button", { name: "Apps", exact: true })
     .click();
   await page
+    .getByRole("navigation", { name: "Apps pages" })
     .getByRole("button", { name: "Test environments", exact: true })
     .click();
   await page

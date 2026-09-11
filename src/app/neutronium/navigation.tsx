@@ -121,18 +121,14 @@ export function workspaceSections(actor: Actor): WorkspaceSection[] {
         "applications",
         "permissions",
         "integrations",
-        ...(canAdmin(actor) ? ["security"] : []),
+        ...(canAdmin(actor) ? ["security", "environments"] : []),
       ],
     },
     {
       label: "Settings",
       icon: "settings",
       hint: "Company and activity history",
-      views: [
-        "settings",
-        "audit",
-        ...(canAdmin(actor) ? ["environments"] : []),
-      ],
+      views: ["settings", "audit"],
     },
   ];
 }

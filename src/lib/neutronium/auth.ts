@@ -4,6 +4,7 @@ import { accountAuth } from "./accounts";
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 import { Actor, DomainError, Role, platformRoles } from "./model";
 import { db, developmentEnabled, readWorkspace } from "./store";
+import { isUuid } from "./validation";
 const cookieName = "neutronium_demo";
 let ephemeralKey: string | undefined;
 async function demoKey() {
@@ -40,6 +41,7 @@ export async function setDemo(actor: Actor) {
   });
 }
 export async function actorFor(orgId?: string): Promise<Actor> {
+  if (orgId && !isUuid(orgId)) throw new DomainError("Invalid workspace ID.");
   const jar = await cookies();
   const signed = jar.get(cookieName)?.value;
   if (signed && developmentEnabled()) {
@@ -143,12 +145,14 @@ export async function actorFor(orgId?: string): Promise<Actor> {
   };
 }
 export async function signOut() {
-  (await cookies()).delete(cookieName);
-  try {
-    await (await accountAuth()).auth.signOut();
-  } catch {
-    /* demo has no database session */
-  }
+  await (await accountAuth()).auth.signOut();
+  (await cookies()).set(cookieName, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/neutronium",
+    maxAge: 0,
+  });
 }
 export function appOrigin(request: Request) {
   const configured = process.env.NEUTRONIUM_APP_URL;
@@ -176,6 +180,15 @@ export async function rateLimit(key: string, limit = 20, seconds = 60) {
     p_limit: limit,
     p_seconds: seconds,
   });
-  if (error || !data)
-    throw new DomainError("Too many attempts. Please try again shortly.", 429);
+  if (error)
+    throw new DomainError(
+      "Neutronium is temporarily unavailable. Please try again shortly.",
+      503,
+    );
+  if (!data)
+    throw new DomainError(
+      "Too many attempts. Please try again shortly.",
+      429,
+      seconds * 1000,
+    );
 }

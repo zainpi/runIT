@@ -5,7 +5,7 @@ import { MicrosoftReadiness } from "./microsoft-readiness";
 import { SecuritySettings } from "./security-settings";
 import { EmployeeApprovals, OnboardingInvite } from "./employee-approvals";
 import { ValidatedForm } from "./form";
-import { requestJson } from "./http";
+import { RequestError, requestJson } from "./http";
 import { Operations } from "./operations";
 import {
   useCallback,
@@ -244,6 +244,8 @@ export function Neutronium() {
   readQuery.current = { view, q: search, status: filter, cursor: recordCursor };
   const [dialog, setDialog] = useState<Dialog>();
   const [busy, setBusy] = useState(false);
+  const actionPending = useRef(false);
+  const refreshSequence = useRef(0);
   const [mobile, setMobile] = useState(false);
   useEffect(() => {
     if (!mobile) return;
@@ -316,14 +318,20 @@ export function Neutronium() {
   }, [w]);
   const org = useRef<string>();
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current;
+    const workspaceId = org.current;
     const query = new URLSearchParams(readQuery.current).toString();
     const targetJob = new URLSearchParams(location.search).get("job");
     const state = await api(
       `state?${query}${targetJob ? `&job=${encodeURIComponent(targetJob)}` : ""}`,
       undefined,
-      org.current,
+      workspaceId,
     );
-    if (query !== new URLSearchParams(readQuery.current).toString())
+    if (
+      sequence !== refreshSequence.current ||
+      workspaceId !== org.current ||
+      query !== new URLSearchParams(readQuery.current).toString()
+    )
       return state;
     setW(state.workspace);
     setActor(state.actor);
@@ -374,7 +382,9 @@ export function Neutronium() {
                 requestedView && titles[requestedView] ? requestedView : "home",
               );
           }
-        } catch {
+        } catch (e) {
+          if (!(e instanceof RequestError) || ![401, 403].includes(e.status))
+            throw e;
           const status = await api("auth/status").catch(() => ({ user: null }));
           if (status.user?.mfa_required && !status.user.mfa_verified_at) {
             setMfaGate(true);
@@ -407,13 +417,24 @@ export function Neutronium() {
     let running = false;
     const interval = setInterval(
       async () => {
-        if (running) return;
+        if (
+          running ||
+          actionPending.current ||
+          document.visibilityState === "hidden"
+        )
+          return;
         running = true;
         try {
           if (actor.demo) await api("worker", {});
           if (actor.orgId) await refresh();
-        } catch {
-          /* Surface errors on explicit actions; temporary polling errors retry. */
+        } catch (e) {
+          if (e instanceof RequestError && [401, 403].includes(e.status)) {
+            refreshSequence.current++;
+            setActor(undefined);
+            setW(undefined);
+            setDialog(undefined);
+            setError(e.message);
+          }
         } finally {
           running = false;
         }
@@ -427,11 +448,11 @@ export function Neutronium() {
       api("companies")
         .then((r) => setCompanies(r.companies))
         .catch((e) => setError(e.message));
-  }, [view, actor]);
+  }, [view, actor?.id, actor?.role]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!actor?.orgId || actor.demo) return;
     const t = setTimeout(() => {
-      void refresh().catch((e) => setError(e.message));
+      void refresh().catch((e) => setError((current) => current || e.message));
     }, 200);
     return () => clearTimeout(t);
   }, [
@@ -448,11 +469,20 @@ export function Neutronium() {
     setRecordCursor("");
   }, [view, search, filter]);
   async function run(path: string, data: unknown, success = "Changes saved.") {
+    if (actionPending.current)
+      throw new Error("Please wait for the current action to finish.");
+    actionPending.current = true;
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const r = await api(path, data, org.current);
-      await refresh();
+      // A failed read must not turn a committed write into a retryable save error.
+      await refresh().catch(() => {
+        setError(
+          "Your changes were saved, but the latest workspace could not load. Refresh to see them.",
+        );
+      });
       setNotice(success);
       setDialog(undefined);
       return r;
@@ -460,10 +490,14 @@ export function Neutronium() {
       setError((e as Error).message);
       throw e;
     } finally {
+      actionPending.current = false;
       setBusy(false);
     }
   }
   async function persona(value: string) {
+    if (actionPending.current) return;
+    actionPending.current = true;
+    refreshSequence.current++;
     setBusy(true);
     setError("");
     try {
@@ -485,6 +519,7 @@ export function Neutronium() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      actionPending.current = false;
       setBusy(false);
     }
   }
@@ -920,10 +955,25 @@ export function Neutronium() {
             <button
               className="nt-icon-button"
               aria-label="Sign out"
+              disabled={busy}
               onClick={async () => {
-                await api("logout", {});
-                setActor(undefined);
-                setW(undefined);
+                if (actionPending.current) return;
+                actionPending.current = true;
+                setBusy(true);
+                setError("");
+                refreshSequence.current++;
+                try {
+                  await api("logout", {});
+                  setActor(undefined);
+                  setW(undefined);
+                  setDialog(undefined);
+                  setNotice("");
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  actionPending.current = false;
+                  setBusy(false);
+                }
               }}
             >
               <Icon name="exit" size={17} />
@@ -1951,12 +2001,20 @@ export function Neutronium() {
                 <button
                   key={provider}
                   className="nt-button"
+                  disabled={busy}
                   onClick={async () => {
+                    if (actionPending.current) return;
+                    actionPending.current = true;
+                    setBusy(true);
+                    setError("");
                     try {
                       const r = await api("auth/social", { provider });
                       location.assign(r.url);
                     } catch (e) {
                       setError((e as Error).message);
+                    } finally {
+                      actionPending.current = false;
+                      setBusy(false);
                     }
                   }}
                 >
@@ -1982,7 +2040,7 @@ export function Neutronium() {
                   are skipped. After import, Microsoft sync matches company
                   emails to provider identity IDs.
                 </p>
-                <form
+                <ValidatedForm
                   onSubmit={async (e) => {
                     e.preventDefault();
                     try {
@@ -1995,7 +2053,11 @@ export function Neutronium() {
                         "Employee inventory imported.",
                       );
                     } catch (err) {
-                      setError((err as Error).message);
+                      setError(
+                        err instanceof SyntaxError
+                          ? "Employee records must be a valid JSON array. Check the brackets, commas, and quoted field names."
+                          : (err as Error).message,
+                      );
                     }
                   }}
                 >
@@ -2004,6 +2066,7 @@ export function Neutronium() {
                       name="employees"
                       rows={9}
                       required
+                      maxLength={90_000}
                       placeholder={
                         '[\n  {"firstName": "Sam", "lastName": "Lee", "email": "sam@company.com", "department": "Engineering"}\n]'
                       }
@@ -2015,7 +2078,7 @@ export function Neutronium() {
                   >
                     Import employees <Icon name="import" size={16} />
                   </button>
-                </form>
+                </ValidatedForm>
               </div>
             </Panel>
           )}
@@ -2121,7 +2184,7 @@ export function Neutronium() {
                   Contact your company administrator to update your profile.
                 </p>
                 {!actor.demo && (
-                  <form
+                  <ValidatedForm
                     onSubmit={(ev) => {
                       ev.preventDefault();
                       void run(
@@ -2140,6 +2203,7 @@ export function Neutronium() {
                         type="password"
                         name="password"
                         minLength={12}
+                        maxLength={128}
                         required
                         autoComplete="new-password"
                       />
@@ -2147,7 +2211,7 @@ export function Neutronium() {
                     <button className="nt-button" disabled={busy}>
                       Save password
                     </button>
-                  </form>
+                  </ValidatedForm>
                 )}
               </div>
             </Panel>
@@ -2158,6 +2222,7 @@ export function Neutronium() {
               action={
                 <button
                   className="nt-button"
+                  disabled={busy}
                   onClick={() =>
                     void run(
                       "notifications-read",
@@ -2193,6 +2258,7 @@ export function Neutronium() {
                           ) && (
                             <button
                               className="nt-link"
+                              disabled={busy}
                               onClick={() =>
                                 void run("notification-retry", {
                                   id: n.id,
@@ -2245,13 +2311,22 @@ export function Neutronium() {
                         <td>
                           <button
                             className="nt-link"
+                            disabled={busy}
                             onClick={async () => {
+                              if (actionPending.current) return;
+                              actionPending.current = true;
+                              setBusy(true);
+                              const previousOrg = org.current;
                               org.current = c.id;
                               try {
                                 await refresh();
                                 navigate("jobs");
                               } catch (e) {
+                                org.current = previousOrg;
                                 setError((e as Error).message);
+                              } finally {
+                                actionPending.current = false;
+                                setBusy(false);
                               }
                             }}
                           >
@@ -2278,7 +2353,7 @@ export function Neutronium() {
                 {["PLATFORM_OWNER", "PLATFORM_SUPPORT"].includes(
                   actor.role,
                 ) && (
-                  <form
+                  <ValidatedForm
                     onSubmit={(e) => {
                       e.preventDefault();
                       void run(
@@ -2299,7 +2374,7 @@ export function Neutronium() {
                     <button className="nt-button nt-primary" disabled={busy}>
                       Save note
                     </button>
-                  </form>
+                  </ValidatedForm>
                 )}
               </div>
             </Panel>
@@ -2757,7 +2832,7 @@ function Settings({
 }) {
   return (
     <Panel title="Organization settings">
-      <form
+      <ValidatedForm
         className="nt-settings-form"
         onSubmit={(e) => {
           e.preventDefault();
@@ -2775,12 +2850,14 @@ function Settings({
               name="name"
               defaultValue={w.name}
               required
+              maxLength={200}
               disabled={!canEdit}
             />
           </Field>
           <Field label="Company domain">
             <input
               name="domain"
+              maxLength={200}
               defaultValue={w.domain}
               placeholder="company.com"
               disabled={!canEdit}
@@ -2821,7 +2898,7 @@ function Settings({
         <button className="nt-button nt-primary" disabled={busy || !canEdit}>
           Save settings
         </button>
-      </form>
+      </ValidatedForm>
     </Panel>
   );
 }
@@ -2918,6 +2995,7 @@ function WorkspaceDialog({
   ) => (
     <Field label={label}>
       <input
+        name={key}
         type={type}
         value={form[key] || ""}
         required={required}
@@ -2981,7 +3059,7 @@ function WorkspaceDialog({
                 </span>
               ))}
             </div>
-            <form
+            <ValidatedForm
               onSubmit={(ev) => {
                 ev.preventDefault();
                 if (step < 2) {
@@ -3217,11 +3295,11 @@ function WorkspaceDialog({
                   <Icon name="arrow" size={15} />
                 </button>
               </div>
-            </form>
+            </ValidatedForm>
           </>
         )}
         {dialog.kind === "offboard" && (
-          <form
+          <ValidatedForm
             onSubmit={(ev) => {
               ev.preventDefault();
               const data = Object.fromEntries(new FormData(ev.currentTarget));
@@ -3305,10 +3383,10 @@ function WorkspaceDialog({
                 Confirm offboarding <Icon name="arrow" size={16} />
               </button>
             </div>
-          </form>
+          </ValidatedForm>
         )}
         {dialog.kind === "template" && (
-          <form
+          <ValidatedForm
             onSubmit={(ev) => {
               ev.preventDefault();
               const f = new FormData(ev.currentTarget);
@@ -3401,10 +3479,10 @@ function WorkspaceDialog({
                 Save template
               </button>
             </div>
-          </form>
+          </ValidatedForm>
         )}
         {dialog.kind === "request" && (
-          <form
+          <ValidatedForm
             onSubmit={(ev) => {
               ev.preventDefault();
               const values = Object.fromEntries(new FormData(ev.currentTarget));
@@ -3498,7 +3576,7 @@ function WorkspaceDialog({
                 Submit request <Icon name="arrow" size={16} />
               </button>
             </div>
-          </form>
+          </ValidatedForm>
         )}
         {dialog.kind === "request-detail" && request && (
           <>
@@ -3545,7 +3623,7 @@ function WorkspaceDialog({
               </div>
             ))}
             {mayApprove(w, actor, request) ? (
-              <form
+              <ValidatedForm
                 onSubmit={(ev) => {
                   ev.preventDefault();
                   const f = new FormData(ev.currentTarget);
@@ -3586,10 +3664,10 @@ function WorkspaceDialog({
                     Approve
                   </button>
                 </div>
-              </form>
+              </ValidatedForm>
             ) : request.status === "more_info" &&
               request.employeeId === actor.employeeId ? (
-              <form
+              <ValidatedForm
                 onSubmit={(ev) => {
                   ev.preventDefault();
                   safeRun(
@@ -3608,7 +3686,7 @@ function WorkspaceDialog({
                 <button className="nt-button nt-primary" disabled={busy}>
                   Send reply
                 </button>
-              </form>
+              </ValidatedForm>
             ) : (
               <div className="nt-inline-note">
                 <Icon name="permissions" />
@@ -3673,7 +3751,7 @@ function WorkspaceDialog({
                         .every((previous) =>
                           ["success", "skipped"].includes(previous.status),
                         ) && (
-                        <form
+                        <ValidatedForm
                           onSubmit={(ev) => {
                             ev.preventDefault();
                             safeRun(
@@ -3699,7 +3777,7 @@ function WorkspaceDialog({
                           <button className="nt-button" disabled={busy}>
                             Confirm completed manually
                           </button>
-                        </form>
+                        </ValidatedForm>
                       )}
                   </div>
                 </div>
@@ -3778,7 +3856,7 @@ function WorkspaceDialog({
             {canManagePeople(actor) && (
               <details className="nt-edit-details">
                 <summary>Edit employee details</summary>
-                <form
+                <ValidatedForm
                   onSubmit={(ev) => {
                     ev.preventDefault();
                     safeRun(
@@ -3867,11 +3945,11 @@ function WorkspaceDialog({
                   <button className="nt-button nt-primary" disabled={busy}>
                     Save employee details
                   </button>
-                </form>
+                </ValidatedForm>
               </details>
             )}
             {canAdmin(actor) && !w.demo && (
-              <form
+              <ValidatedForm
                 onSubmit={(ev) => {
                   ev.preventDefault();
                   safeRun(
@@ -3912,7 +3990,7 @@ function WorkspaceDialog({
                 <button className="nt-button nt-primary" disabled={busy}>
                   Invite to portal
                 </button>
-              </form>
+              </ValidatedForm>
             )}
             {w.demo && (
               <div className="nt-inline-note">
@@ -3923,7 +4001,7 @@ function WorkspaceDialog({
           </>
         )}
         {dialog.kind === "application" && app && (
-          <form
+          <ValidatedForm
             onSubmit={(ev) => {
               ev.preventDefault();
               safeRun(
@@ -3984,10 +4062,10 @@ function WorkspaceDialog({
                 Save configuration
               </button>
             </div>
-          </form>
+          </ValidatedForm>
         )}
         {dialog.kind === "connect" && (
-          <form
+          <ValidatedForm
             onSubmit={async (ev) => {
               ev.preventDefault();
               try {
@@ -4046,7 +4124,7 @@ function WorkspaceDialog({
             <button className="nt-button nt-primary">
               Continue to Microsoft <Icon name="arrow" size={16} />
             </button>
-          </form>
+          </ValidatedForm>
         )}
       </div>
     </dialog>

@@ -13,7 +13,12 @@ export async function listServiceRequests(a: Actor, params: URLSearchParams) {
     throw new DomainError("Not permitted.", 403);
   const limit = 25;
   const cursor = params.get("cursor") || "";
-  if (cursor && !/^[0-9a-f-]{36}$/i.test(cursor))
+  if (
+    cursor &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      cursor,
+    )
+  )
     throw new DomainError("Invalid cursor.");
   const filter = params.get("filter") || "all",
     q = (params.get("q") || "").slice(0, 150);
@@ -142,7 +147,11 @@ export async function mutateServiceRequest(
       helpRequests: [],
     } as import("./model").Workspace;
     if (input.id) {
-      if (!/^[0-9a-f-]{36}$/i.test(String(input.id)))
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          String(input.id),
+        )
+      )
         throw new DomainError("Invalid request ID.");
       w.helpRequests = (
         await client.query(
@@ -213,7 +222,9 @@ export async function mutateServiceRequest(
   }
 }
 export async function readServiceRequest(a: Actor, id: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(id))
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  )
     throw new DomainError("Request not found.", 404);
   if (a.demo) return readWorkspace(a.orgId, true);
   const records = await tenantQuery(

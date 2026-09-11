@@ -61,7 +61,11 @@ export async function commandOnClient(
       ).rows.map((r) => r.payload);
     let employeeId = input.employeeId || a.employeeId;
     if (["decision", "reply", "retry", "manual-complete"].includes(action)) {
-      if (!/^[0-9a-f-]{36}$/i.test(String(input.id || "")))
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          String(input.id || ""),
+        )
+      )
         throw new DomainError("Invalid record ID.");
       const bucket = ["decision", "reply"].includes(action)
         ? "requests"
@@ -77,7 +81,11 @@ export async function commandOnClient(
       employeeId = record.employeeId;
     }
     if (employeeId) {
-      if (!/^[0-9a-f-]{36}$/i.test(String(employeeId)))
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          String(employeeId),
+        )
+      )
         throw new DomainError("Invalid employee ID.");
       for (const bucket of ["requests", "jobs", "grants"] as const)
         w[bucket] = (
@@ -88,7 +96,11 @@ export async function commandOnClient(
         ).rows.map((r) => r.payload);
     }
     if (action === "notification-retry") {
-      if (!/^[0-9a-f-]{36}$/i.test(String(input.id || "")))
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          String(input.id || ""),
+        )
+      )
         throw new DomainError("Invalid notification ID.");
       w.notifications = (
         await client.query(

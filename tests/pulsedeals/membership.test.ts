@@ -11,7 +11,7 @@ const other = "22222222-2222-2222-2222-222222222222";
 async function database() {
   const db = new PGlite();
   await db.exec("create role anon; create role authenticated; create role service_role;");
-  for (const file of ["20260807160000_heaterdeals_backend.sql", "20260904000000_heaterdeals_discord.sql", "20260910000000_heaterdeals_push.sql", "20260910010000_heaterdeals_memberships.sql", "20260910020000_pulsedeals_rename.sql"]) {
+  for (const file of ["20260807160000_heaterdeals_backend.sql", "20260904000000_heaterdeals_discord.sql", "20260910000000_heaterdeals_push.sql", "20260910010000_heaterdeals_memberships.sql", "20260910020000_pulsedeals_rename.sql", "20260911030000_pulsedeals_yearly.sql"]) {
     await db.exec((await readFile(`supabase/migrations/${file}`, "utf8")).replace("create extension if not exists pgcrypto;", ""));
   }
   await db.query("insert into pulsedeals_accounts(id,apple_sub,app_account_token) values ($1,'member',$1),($2,'other',$2)", [account, other]);
@@ -135,4 +135,30 @@ test("existing account keeps its purchase token when signing in from another dev
   assert.equal(result.id, account);
   assert.equal(patch.email, "member@example.test");
   assert.equal(patch.app_account_token, undefined);
+});
+
+test("yearly purchases, renewals, tier changes and refunds preserve the selected country", async () => {
+  const db = await database();
+  try {
+    // Migration retries keep legacy and weekly products intact.
+    await db.exec(await readFile("supabase/migrations/20260911030000_pulsedeals_yearly.sql", "utf8"));
+    assert.equal((await db.query("select * from pulsedeals_product_tiers")).rows.length, 5);
+    const yearly = transaction({ productId: "com.pulsedeals.subscription.yearly", expiresDate: Date.now() + 365 * 86_400_000 });
+    await record(db, yearly);
+    await db.query("select claim_pulsedeals_marketplace($1,'fr')", [account]);
+    assert.equal((await membership(db)).tier, "standard");
+    await assert.rejects(db.query("select claim_pulsedeals_marketplace($1,'uk')", [account]), /selected country/);
+    await record(db, yearly); // Restoring the same signed transaction is idempotent.
+    await assert.rejects(record(db, yearly, "active", other), /another account/);
+    await record(db, { ...yearly, transactionId: "annual-renewal", signedDate: 2000 });
+    assert.equal((await membership(db)).tier, "standard");
+    await record(db, { ...yearly, productId: "com.pulsedeals.subscription.pro.yearly", transactionId: "annual-upgrade", signedDate: 3000 });
+    assert.equal((await membership(db)).tier, "pro");
+    assert.equal((await membership(db)).primary_marketplace, "fr");
+    await record(db, { ...yearly, transactionId: "annual-downgrade", signedDate: 4000 });
+    assert.equal((await membership(db)).tier, "standard");
+    assert.equal((await membership(db)).primary_marketplace, "fr");
+    await record(db, { ...yearly, transactionId: "annual-downgrade", revocationDate: Date.now(), signedDate: 5000 }, "revoked");
+    assert.equal((await membership(db)).tier, "none");
+  } finally { await db.close(); }
 });

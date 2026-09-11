@@ -1,5 +1,6 @@
 import { DomainError, type Workspace } from "./model";
 import { countryCode } from "./country";
+import { hasControlCharacters, isCalendarDate } from "./validation";
 export const employmentTypes = [
   "Full-time",
   "Part-time",
@@ -54,7 +55,8 @@ export function intakeDetails(
     const value = input[key] ?? "";
     if (
       typeof value !== "string" ||
-      value.length > (key === "note" ? 2000 : 254)
+      value.length > (key === "note" ? 2000 : 254) ||
+      hasControlCharacters(value)
     )
       throw new DomainError(`Enter a valid ${key}.`);
     result[key] = value.trim();
@@ -69,13 +71,7 @@ export function intakeDetails(
       throw new DomainError(
         `Choose a valid ${key === "employmentType" ? "employment type" : "work arrangement"}.`,
       );
-  if (
-    result.startDate &&
-    (!/^\d{4}-\d{2}-\d{2}$/.test(result.startDate) ||
-      !Number.isFinite(Date.parse(result.startDate)) ||
-      new Date(result.startDate).toISOString().slice(0, 10) !==
-        result.startDate)
-  )
+  if (result.startDate && !isCalendarDate(result.startDate))
     throw new DomainError("Choose a valid start date.");
   if (result.usageLocation)
     result.usageLocation = countryCode(result.usageLocation);

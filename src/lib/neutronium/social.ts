@@ -16,7 +16,12 @@ function provider(name: string) {
   if (!clientId || !secret)
     throw new DomainError(`${name} sign-in is not configured.`, 503);
   const tenant = process.env.NEUTRONIUM_MICROSOFT_LOGIN_TENANT_ID || "";
-  if (name === "microsoft" && !/^[a-f0-9-]{36}$/i.test(tenant))
+  if (
+    name === "microsoft" &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      tenant,
+    )
+  )
     throw new DomainError("Configure the Microsoft sign-in tenant ID.", 503);
   return name === "google"
     ? {

@@ -94,6 +94,14 @@ test("PostgreSQL migration: tenant isolation, atomic CAS, foreign keys, audit im
       limited.push(r.rows[0].ok);
     }
     assert.deepEqual(limited, [true, true, false]);
+    const burst = await Promise.all(
+      Array.from({ length: 30 }, () =>
+        db.query<{ ok: boolean }>("select neutronium_rate_limit($1,5,60) ok", [
+          "refresh-burst",
+        ]),
+      ),
+    );
+    assert.equal(burst.filter((result) => result.rows[0].ok).length, 5);
   } finally {
     await db.close();
   }

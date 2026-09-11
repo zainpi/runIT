@@ -60,7 +60,12 @@ export async function readViewOnClient(
     const view = params.get("view") || "overview",
       selected = pageBuckets[view],
       cursor = params.get("cursor") || "";
-    if (cursor && !/^[0-9a-f-]{36}$/i.test(cursor))
+    if (
+      cursor &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        cursor,
+      )
+    )
       throw new DomainError("Invalid page cursor.");
     const q = (params.get("q") || "").slice(0, 150),
       status = params.get("status") || "all";
@@ -180,7 +185,11 @@ export async function readViewOnClient(
 
     const targetJob = params.get("job");
     if (targetJob) {
-      if (!/^[0-9a-f-]{36}$/i.test(targetJob))
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          targetJob,
+        )
+      )
         throw new DomainError("Invalid workflow link.");
       const job = (
         await client.query(

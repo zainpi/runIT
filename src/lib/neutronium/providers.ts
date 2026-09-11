@@ -150,7 +150,11 @@ export function decrypt(ciphertext: string, version: string, orgId: string) {
 export async function microsoftToken(
   tenantId: string,
 ): Promise<{ access_token: string; expires_in: number; roles: string[] }> {
-  if (!/^[0-9a-f-]{36}$/i.test(tenantId))
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      tenantId,
+    )
+  )
     throw new DomainError("Invalid Microsoft tenant identifier.");
   const clientId = process.env.NEUTRONIUM_MICROSOFT_CLIENT_ID,
     secret = process.env.NEUTRONIUM_MICROSOFT_CLIENT_SECRET;
@@ -354,7 +358,11 @@ export class MicrosoftProvider
     return { status: "success" };
   }
   async validateGroup(groupId: string) {
-    if (!/^[0-9a-f-]{36}$/i.test(groupId))
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        groupId,
+      )
+    )
       throw new DomainError("Invalid configured group ID.");
     const g = await this.graph(
       `/groups/${groupId}?$select=id,securityEnabled,mailEnabled,isAssignableToRole,groupTypes,onPremisesSyncEnabled`,

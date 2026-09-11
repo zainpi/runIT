@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm } from "./form";
 import { useState } from "react";
 import { Workspace, fullName } from "@/lib/neutronium/model";
 type Run = (path: string, data: unknown, success?: string) => Promise<unknown>;
@@ -96,7 +97,7 @@ export function MicrosoftReadiness({ w, run }: { w: Workspace; run: Run }) {
                 {e.mailbox.evidence.method}: {e.mailbox.evidence.note}
               </p>
             )}
-            <form
+            <ValidatedForm
               onSubmit={(ev) => {
                 ev.preventDefault();
                 void act("mailbox/verify", {
@@ -124,7 +125,7 @@ export function MicrosoftReadiness({ w, run }: { w: Workspace; run: Run }) {
               <button className="nt-button" disabled={busy}>
                 Record manual verification
               </button>
-            </form>
+            </ValidatedForm>
           </details>
         ))}
       <h3>Access reconciliation</h3>

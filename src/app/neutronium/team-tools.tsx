@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm } from "./form";
 import { useState } from "react";
 import { Actor, Workspace, canAdmin, fullName } from "@/lib/neutronium/model";
 type Run = (path: string, data: unknown, success?: string) => Promise<unknown>;
@@ -48,7 +49,7 @@ export function HelpInbox({
         <span>{requests.length} requests</span>
       </div>
       {!admin && (
-        <form
+        <ValidatedForm
           className="nt-tool-card"
           onSubmit={async (e) => {
             e.preventDefault();
@@ -84,7 +85,7 @@ export function HelpInbox({
           <button className="nt-button nt-primary" disabled={busy}>
             Send request
           </button>
-        </form>
+        </ValidatedForm>
       )}
       <div className="nt-inbox-layout">
         <div className="nt-tool-card">
@@ -131,12 +132,20 @@ export function HelpInbox({
                   {m.attachment && (
                     <button
                       className="nt-link"
+                      disabled={busy}
                       onClick={async () => {
-                        const result = (await run("files/link", {
-                          requestId: active.id,
-                          messageId: m.id,
-                        })) as { url: string };
-                        window.location.assign(result.url);
+                        setBusy(true);
+                        try {
+                          const result = (await run("files/link", {
+                            requestId: active.id,
+                            messageId: m.id,
+                          })) as { url: string };
+                          window.location.assign(result.url);
+                        } catch {
+                          // The workspace displays the error from run.
+                        } finally {
+                          setBusy(false);
+                        }
                       }}
                     >
                       Download {m.attachment.name}
@@ -144,7 +153,7 @@ export function HelpInbox({
                   )}
                 </article>
               ))}
-              <form
+              <ValidatedForm
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const form = e.currentTarget;
@@ -211,7 +220,7 @@ export function HelpInbox({
                 <button className="nt-button nt-primary" disabled={busy}>
                   Send response
                 </button>
-              </form>
+              </ValidatedForm>
             </>
           ) : (
             <p>Select a request to read the conversation and respond.</p>
@@ -246,7 +255,7 @@ export function Connections({ w, run }: { w: Workspace; run: Run }) {
           {w.demo ? (
             <p>Sign in to a production workspace to connect this provider.</p>
           ) : (
-            <form
+            <ValidatedForm
               onSubmit={async (e) => {
                 e.preventDefault();
                 const form = e.currentTarget;
@@ -310,7 +319,7 @@ export function Connections({ w, run }: { w: Workspace; run: Run }) {
               >
                 Sync saved connection
               </button>
-            </form>
+            </ValidatedForm>
           )}
           <ul>
             {w.externalItems?.[provider]?.map((item) => (

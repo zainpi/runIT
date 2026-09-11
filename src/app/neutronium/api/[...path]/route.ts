@@ -1,4 +1,6 @@
 import { resendConfirmation } from "@/lib/neutronium/accounts";
+import { readJsonBody } from "@/lib/neutronium/request-body";
+import { isUuid } from "@/lib/neutronium/validation";
 import {
   peopleOverview,
   workspaceAttention,
@@ -106,7 +108,7 @@ const json = (data: unknown, status = 200) =>
     },
   });
 function fail(e: unknown) {
-  return json(
+  const response = json(
     {
       error:
         e instanceof DomainError
@@ -115,22 +117,28 @@ function fail(e: unknown) {
     },
     e instanceof DomainError ? e.status : 500,
   );
-}
-async function body(req: Request) {
-  const raw = await req.text();
-  if (raw.length > 100_000) throw new DomainError("Request too large.", 413);
-  try {
-    const value = JSON.parse(raw);
-    if (!value || typeof value !== "object" || Array.isArray(value))
-      throw new Error("object required");
-    return value;
-  } catch {
-    throw new DomainError("Invalid JSON.");
-  }
+  if (e instanceof DomainError && e.status === 429)
+    response.headers.set(
+      "Retry-After",
+      String(Math.max(1, Math.ceil((e.retryAfterMs || 60_000) / 1000))),
+    );
+  return response;
 }
 export async function GET(req: NextRequest, ctx: Context) {
   try {
     const path = (await ctx.params).path.join("/");
+    if (path !== "config")
+      await rateLimit(
+        `read-ip:${req.headers.get("x-forwarded-for") || "unknown"}`,
+        600,
+        60,
+      );
+    if (path.startsWith("auth/"))
+      await rateLimit(
+        `auth-read:${req.headers.get("x-forwarded-for") || "unknown"}`,
+        120,
+        60,
+      );
     if (path === "config")
       return json({
         socialProviders: socialProviders(),
@@ -301,6 +309,7 @@ export async function GET(req: NextRequest, ctx: Context) {
       );
     }
     const a = await actorFor(req.nextUrl.searchParams.get("org") || undefined);
+    await rateLimit(`reads:${a.id}`, 240, 60);
     if (path === "people/overview")
       return json(await peopleOverview(a, req.nextUrl.searchParams));
     if (path === "attention") return json(await workspaceAttention(a));
@@ -321,7 +330,7 @@ export async function GET(req: NextRequest, ctx: Context) {
       ] as const;
       const cell = (v: string) =>
         '"' +
-        (/^[=+@\-\t\r\n]/.test(v) ? "'" : "") +
+        (/^[=+@\-]/.test(v.trimStart()) || /^[\t\r\n]/.test(v) ? "'" : "") +
         v.replace(/"/g, '""') +
         '"';
       const csv = [
@@ -444,10 +453,12 @@ export async function POST(req: NextRequest, ctx: Context) {
       const secret = process.env.NEUTRONIUM_CRON_SECRET;
       const provided =
         req.headers.get("authorization")?.replace(/^Bearer /, "") || "";
+      const providedBytes = Buffer.from(provided);
+      const secretBytes = Buffer.from(secret || "");
       const trusted =
         !!secret &&
-        provided.length === secret.length &&
-        timingSafeEqual(Buffer.from(provided), Buffer.from(secret));
+        providedBytes.length === secretBytes.length &&
+        timingSafeEqual(providedBytes, secretBytes);
       if (!trusted) {
         sameOrigin(req);
         const a = await actorFor();
@@ -500,7 +511,18 @@ export async function POST(req: NextRequest, ctx: Context) {
       );
     }
     sameOrigin(req);
-    const input = await body(req);
+    await rateLimit(
+      `post:${req.headers.get("x-forwarded-for") || "unknown"}`,
+      240,
+      60,
+    );
+    const input = await readJsonBody(req);
+    if (input.orgId !== undefined && !isUuid(input.orgId))
+      throw new DomainError("Invalid workspace ID.");
+    if (input.joinToken !== undefined && typeof input.joinToken !== "string")
+      throw new DomainError("Invalid employee invitation.");
+    const joinToken =
+      typeof input.joinToken === "string" ? input.joinToken : undefined;
     if (path === "onboarding/apply" || path === "onboarding/edit-own") {
       const user = await currentUser();
       if (!user)
@@ -575,8 +597,8 @@ export async function POST(req: NextRequest, ctx: Context) {
         60,
       );
       await rateLimit(`auth-resend:${email}`, 3, 300);
-      const returnTo = input.joinToken ? joinPath(input.joinToken) : undefined;
-      if (input.joinToken && !(await readInvitation(input.joinToken)).available)
+      const returnTo = joinToken ? joinPath(joinToken) : undefined;
+      if (joinToken && !(await readInvitation(joinToken)).available)
         throw new DomainError(
           "This invitation is no longer available. Sign in to view an existing application.",
           410,
@@ -604,9 +626,16 @@ export async function POST(req: NextRequest, ctx: Context) {
       await rateLimit(`auth-email:${input.email.trim().toLowerCase()}`, 10, 60);
       const auth = await accountAuth();
       let returnTo: string | undefined;
-      if (path === "signup" && input.joinToken) {
-        returnTo = joinPath(input.joinToken);
-        if (!(await readInvitation(input.joinToken)).available)
+      if (
+        path === "signup" &&
+        input.signupRole !== undefined &&
+        (typeof input.signupRole !== "string" ||
+          !["admin", "employee"].includes(input.signupRole))
+      )
+        throw new DomainError("Choose a valid account type.");
+      if (path === "signup" && joinToken) {
+        returnTo = joinPath(joinToken);
+        if (!(await readInvitation(joinToken)).available)
           throw new DomainError(
             "This invitation is no longer available. Sign in to check an existing application, or ask your administrator for a new link.",
             410,
@@ -617,7 +646,11 @@ export async function POST(req: NextRequest, ctx: Context) {
           ? await auth.auth.signUp({
               email: input.email,
               password: input.password,
-              signupRole: returnTo ? "employee" : input.signupRole,
+              signupRole: returnTo
+                ? "employee"
+                : typeof input.signupRole === "string"
+                  ? input.signupRole
+                  : undefined,
               returnTo,
             })
           : await auth.auth.signInWithPassword({
@@ -647,6 +680,11 @@ export async function POST(req: NextRequest, ctx: Context) {
         data: { user },
       } = await (await accountAuth()).auth.getUser();
       if (!user) throw new DomainError("Sign in first.", 401);
+      if (user.mfa_required && !user.mfa_verified_at)
+        throw new DomainError(
+          "Verify your authenticator code before creating a workspace.",
+          403,
+        );
       await rateLimit(`create:${user.id}`, 3, 3600);
       if (
         typeof input.name !== "string" ||
@@ -677,6 +715,18 @@ export async function POST(req: NextRequest, ctx: Context) {
       typeof input.orgId === "string" ? input.orgId : undefined,
     );
     await rateLimit(`commands:${a.id}`, 120, 60);
+    if (
+      [
+        "microsoft/readiness",
+        "microsoft/reconcile",
+        "microsoft/sync",
+        "security/sync",
+        "connections/connect",
+        "connections/sync",
+      ].includes(path)
+    )
+      await rateLimit(`provider-sync:${a.orgId}:${path}`, 5, 60);
+    if (path === "invite") await rateLimit(`invitations:${a.id}`, 10, 60);
     if (path === "onboarding/link") {
       const link = await createOnboardingLink(a);
       return json({
@@ -804,14 +854,15 @@ export async function POST(req: NextRequest, ctx: Context) {
           "Development workspaces cannot connect a real tenant.",
         );
       const tenant = String(input.tenantId || "");
-      if (!/^[0-9a-f-]{36}$/i.test(tenant))
+      if (!isUuid(tenant))
         throw new DomainError("Enter your Microsoft tenant ID.");
       const clientId = process.env.NEUTRONIUM_MICROSOFT_CLIENT_ID;
       if (!clientId)
         throw new DomainError("Microsoft OAuth is not configured.", 503);
       const features = Array.isArray(input.features)
         ? input.features.filter(
-            (f: unknown) => typeof f === "string" && f in microsoftFeatures,
+            (f: unknown) =>
+              typeof f === "string" && Object.hasOwn(microsoftFeatures, f),
           )
         : [];
       if (!features.length)

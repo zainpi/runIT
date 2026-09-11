@@ -17,7 +17,11 @@ export function postgres() {
 // A checked-out connection is scoped before any tenant SQL and scrubbed before reuse.
 // Runtime RLS denies company rows when the context is absent.
 export async function tenantConnection(orgId: string): Promise<PoolClient> {
-  if (!/^[0-9a-f-]{36}$/i.test(orgId))
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      orgId,
+    )
+  )
     throw new DomainError("Invalid company.", 400);
   const client = await postgres().connect();
   try {

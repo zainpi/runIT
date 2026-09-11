@@ -165,7 +165,10 @@ export async function revokeSession(id: string) {
   if (!user) throw new DomainError("Sign in first.", 401);
   if (user.mfa_required && !user.mfa_verified_at)
     throw new DomainError("Complete MFA first.", 403);
-  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new DomainError("Invalid session.");
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  )
+    throw new DomainError("Invalid session.");
   await postgres().query(
     "delete from neutronium_sessions where user_id=$1 and id=$2",
     [user.id, id],

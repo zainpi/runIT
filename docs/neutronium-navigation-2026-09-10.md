@@ -12,8 +12,8 @@ available through the tool finder.
 | Home | Quick actions, attention items, company totals, people, setup checklist, recent activity |
 | People | Directory, Workflows, Role templates, Import employees |
 | Requests | Employee approvals, Access requests, Employee help |
-| Apps | Applications, Permissions, Integrations, Account risk |
-| Settings | Company settings, Audit log, Test environments |
+| Apps | Applications, Permissions, Integrations, Account risk, Test environments |
+| Settings | Company settings, Audit log |
 
 Role restrictions are preserved. HR sees its existing tools; employees have
 Home, My apps, Requests, and Get help. Managers and approvers also have access

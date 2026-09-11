@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import QRCode from "qrcode";
 import { ValidatedForm } from "./form";
@@ -30,6 +30,7 @@ export function SecuritySettings({ gate = false }: { gate?: boolean }) {
   const [sessions, setSessions] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const acting = useRef(false);
   useEffect(() => {
     call("mfa")
       .then(setStatus)
@@ -69,6 +70,8 @@ export function SecuritySettings({ gate = false }: { gate?: boolean }) {
     };
   }, [enrollmentUri]);
   async function act(fn: () => Promise<void>) {
+    if (acting.current) return;
+    acting.current = true;
     setBusy(true);
     setError("");
     try {
@@ -76,6 +79,7 @@ export function SecuritySettings({ gate = false }: { gate?: boolean }) {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      acting.current = false;
       setBusy(false);
     }
   }
@@ -204,7 +208,12 @@ export function SecuritySettings({ gate = false }: { gate?: boolean }) {
           >
             <label>
               Current authenticator or recovery code
-              <input name="token" autoComplete="one-time-code" required />
+              <input
+                name="token"
+                autoComplete="one-time-code"
+                required
+                maxLength={64}
+              />
             </label>
             <button className="nt-button" disabled={busy}>
               Reset authenticator and sign out
@@ -221,6 +230,7 @@ export function SecuritySettings({ gate = false }: { gate?: boolean }) {
               {new Date(s.created_at).toLocaleString()}{" "}
               <button
                 className="nt-button"
+                disabled={busy}
                 onClick={() =>
                   void act(async () => {
                     if (s.current)
@@ -231,7 +241,10 @@ export function SecuritySettings({ gate = false }: { gate?: boolean }) {
                       });
                     else await call("sessions/revoke", { id: s.id });
                     if (s.current) window.location.reload();
-                    else setSessions(sessions.filter((x) => x.id !== s.id));
+                    else
+                      setSessions((current) =>
+                        current.filter((x) => x.id !== s.id),
+                      );
                   })
                 }
               >
@@ -244,12 +257,16 @@ export function SecuritySettings({ gate = false }: { gate?: boolean }) {
       {gate && (
         <button
           className="nt-button"
+          disabled={busy}
           onClick={() =>
-            void fetch("/neutronium/api/logout", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: "{}",
-            }).then(() => window.location.reload())
+            void act(async () => {
+              await requestJson("/neutronium/api/logout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+              });
+              window.location.reload();
+            })
           }
         >
           Sign out

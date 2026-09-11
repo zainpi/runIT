@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import { requestJson } from "./http";
+import { ValidatedForm } from "./form";
 import {
   Actor,
   Workspace,
@@ -47,12 +49,10 @@ export function Operations({
   useEffect(() => {
     let live = true;
     const timer = setTimeout(() => {
-      fetch(
-        `/neutronium/api/operations?${new URLSearchParams({ filter, q, cursor })}`,
+      requestJson(
+        `/neutronium/api/operations?${new URLSearchParams({ filter, q, cursor, org: w.id })}`,
       )
-        .then(async (r) => {
-          const v = await r.json();
-          if (!r.ok) throw new Error(v.error);
+        .then((v) => {
           if (live) {
             setPage(v);
             setError("");
@@ -66,7 +66,7 @@ export function Operations({
       live = false;
       clearTimeout(timer);
     };
-  }, [filter, q, cursor, w.revision, actor.id]);
+  }, [filter, q, cursor, w.id, w.revision, actor.id]);
   const active = page.items.find((r) => r.id === selected);
   const [context, setContext] = useState<Pick<Workspace, "requests" | "jobs">>({
     requests: [],
@@ -76,12 +76,10 @@ export function Operations({
     setContext({ requests: [], jobs: [] });
     if (!selected || !admin) return;
     let live = true;
-    fetch(
-      `/neutronium/api/operations/context?id=${encodeURIComponent(selected)}`,
+    requestJson(
+      `/neutronium/api/operations/context?${new URLSearchParams({ id: selected, org: w.id })}`,
     )
-      .then(async (r) => {
-        const value = await r.json();
-        if (!r.ok) throw new Error(value.error);
+      .then((value) => {
         if (live) setContext(value);
       })
       .catch((e) => {
@@ -90,17 +88,15 @@ export function Operations({
     return () => {
       live = false;
     };
-  }, [selected, admin, w.revision, actor.id]);
+  }, [selected, admin, w.id, w.revision, actor.id]);
   const [metrics, setMetrics] = useState<ReturnType<typeof pilotReport> | null>(
     null,
   );
   useEffect(() => {
     if (!admin) return;
     let live = true;
-    fetch("/neutronium/api/pilot/report")
-      .then(async (r) => {
-        const value = await r.json();
-        if (!r.ok) throw new Error(value.error);
+    requestJson(`/neutronium/api/pilot/report?org=${encodeURIComponent(w.id)}`)
+      .then((value) => {
         if (live) setMetrics(value);
       })
       .catch((e) => {
@@ -109,7 +105,7 @@ export function Operations({
     return () => {
       live = false;
     };
-  }, [admin, w.revision, actor.id]);
+  }, [admin, w.id, w.revision, actor.id]);
   async function submit(path: string, data: unknown) {
     setBusy(true);
     setError("");
@@ -171,7 +167,7 @@ export function Operations({
       )}
       <details className="nt-tool-card" open={!admin}>
         <summary>Create service request</summary>
-        <form
+        <ValidatedForm
           onSubmit={(e) => {
             e.preventDefault();
             const form = e.currentTarget;
@@ -280,7 +276,7 @@ export function Operations({
           <button className="nt-button nt-primary" disabled={busy}>
             Send request
           </button>
-        </form>
+        </ValidatedForm>
       </details>
       <div className="nt-toolbar">
         <input
@@ -320,6 +316,7 @@ export function Operations({
         ))}
         <button
           className="nt-button"
+          disabled={busy}
           onClick={() =>
             void submit("saved-view", { filter, name: label(filter) })
           }
@@ -381,6 +378,7 @@ export function Operations({
                   {m.attachment && (
                     <button
                       className="nt-link"
+                      disabled={busy}
                       onClick={() =>
                         void submit("files/link", {
                           requestId: active.id,
@@ -395,7 +393,7 @@ export function Operations({
                   )}
                 </article>
               ))}
-              <form
+              <ValidatedForm
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const form = e.currentTarget,
@@ -407,15 +405,22 @@ export function Operations({
                       setError("Files must be at most 50 KB.");
                       return;
                     }
-                    attachment = {
-                      name: file.name,
-                      data: btoa(
-                        Array.from(
-                          new Uint8Array(await file.arrayBuffer()),
-                          (b) => String.fromCharCode(b),
-                        ).join(""),
-                      ),
-                    };
+                    try {
+                      attachment = {
+                        name: file.name,
+                        data: btoa(
+                          Array.from(
+                            new Uint8Array(await file.arrayBuffer()),
+                            (b) => String.fromCharCode(b),
+                          ).join(""),
+                        ),
+                      };
+                    } catch {
+                      setError(
+                        "The file could not be read. Select it again and retry.",
+                      );
+                      return;
+                    }
                   }
                   const r = await submit(
                     data.get("internal") ? "operation-note" : "help-reply",
@@ -448,7 +453,7 @@ export function Operations({
                 <button className="nt-button" disabled={busy}>
                   Send response
                 </button>
-              </form>
+              </ValidatedForm>
               {w.assignedTestAccounts
                 ?.filter((a) => a.requestId === active.id)
                 .map((a) => (
@@ -476,7 +481,7 @@ export function Operations({
                     </p>
                   )}
                   {admin && (
-                    <form
+                    <ValidatedForm
                       onSubmit={(e) => {
                         e.preventDefault();
                         void submit("operation-task", {
@@ -493,14 +498,14 @@ export function Operations({
                           ? "Reopen task"
                           : "Confirm task completed"}
                       </button>
-                    </form>
+                    </ValidatedForm>
                   )}
                 </details>
               ))}
               {admin && (
                 <details>
                   <summary>Manage fulfillment</summary>
-                  <form
+                  <ValidatedForm
                     key={active.id + active.updatedAt}
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -663,7 +668,7 @@ export function Operations({
                     <button className="nt-button" disabled={busy}>
                       Save fulfillment
                     </button>
-                  </form>
+                  </ValidatedForm>
                 </details>
               )}
             </>
@@ -681,7 +686,7 @@ export function Operations({
               {t.name} · {t.tasks.length} tasks
             </p>
           ))}
-          <form
+          <ValidatedForm
             onSubmit={(e) => {
               e.preventDefault();
               const data = new FormData(e.currentTarget);
@@ -714,7 +719,7 @@ export function Operations({
             <button className="nt-button" disabled={busy}>
               Save template
             </button>
-          </form>
+          </ValidatedForm>
         </details>
       )}
     </section>

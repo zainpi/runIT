@@ -24,7 +24,9 @@ async function localRoot() {
   return { fs, path, root };
 }
 function validId(id: string) {
-  if (!/^[0-9a-f-]{36}$/.test(id))
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
+  )
     throw new DomainError("Invalid workspace.", 400);
 }
 export async function readWorkspace(
@@ -134,7 +136,9 @@ export async function listWorkspaces(
   if (local && developmentEnabled()) {
     const { fs, root } = await localRoot();
     const files = (await fs.readdir(root)).filter((f) =>
-      /^[0-9a-f-]{36}\.json$/.test(f),
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$/.test(
+        f,
+      ),
     );
     return Promise.all(
       files.map(async (f) => {

@@ -16,7 +16,7 @@ const code = "ABCDEF123456";
 async function database() {
   const db = new PGlite();
   await db.exec("create role anon; create role authenticated; create role service_role;");
-  for (const file of ["20260807160000_heaterdeals_backend.sql", "20260904000000_heaterdeals_discord.sql", "20260910000000_heaterdeals_push.sql", "20260910010000_heaterdeals_memberships.sql", "20260910020000_pulsedeals_rename.sql", "20260911000000_pulsedeals_referrals.sql"]) {
+  for (const file of ["20260807160000_heaterdeals_backend.sql", "20260904000000_heaterdeals_discord.sql", "20260910000000_heaterdeals_push.sql", "20260910010000_heaterdeals_memberships.sql", "20260910020000_pulsedeals_rename.sql", "20260911000000_pulsedeals_referrals.sql", "20260911030000_pulsedeals_yearly.sql"]) {
     await db.exec((await readFile(`supabase/migrations/${file}`, "utf8")).replace("create extension if not exists pgcrypto;", ""));
   }
   await db.query("insert into pulsedeals_accounts(id,apple_sub,app_account_token) values ($1,'owner',$1),($2,'friend',$2),($3,'another',$3)", [owner,friend,another]);
@@ -247,3 +247,21 @@ test("recovery checks every history page and keeps a future free renewal reserve
     await assert.rejects(reconcileReferralOffer(admin,owner,pending,dependencies),/Invalid signature/);
   } finally { for (const [key,value] of Object.entries(previous)) { if(value===undefined) delete process.env[key];else process.env[key]=value; } }
 });
+
+for (const productId of ["com.pulsedeals.subscription.yearly", "com.pulsedeals.subscription.pro.yearly"]) {
+  test(`${productId} trial qualifies once and referral redemption retains annual billing`, async () => {
+    const db = await database();
+    try {
+      await record(db, owner, transaction(owner, { productId, offerType: undefined, expiresDate: Date.now() + 365 * 86_400_000 }));
+      await claim(db);
+      const trial = transaction(friend, { productId });
+      await record(db, friend, trial);
+      await record(db, friend, trial);
+      assert.equal(await earned(db), 1);
+      assert.equal((await summary(db)).redemptionProductID, productId);
+      const redemption = await reserve(db);
+      const row = (await db.query<{product_id: string}>("select product_id from pulsedeals_referral_redemptions where id=$1", [redemption.id])).rows[0];
+      assert.equal(row.product_id, productId);
+    } finally { await db.close(); }
+  });
+}

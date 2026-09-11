@@ -1,3 +1,4 @@
+import { hasControlCharacters } from "./validation";
 import {
   Actor,
   Workspace,
@@ -42,7 +43,12 @@ export const viewFilters = [
   "failed",
 ];
 export function text(v: unknown, label: string, required = true, max = 2000) {
-  if (typeof v !== "string" || v.length > max || (required && !v.trim()))
+  if (
+    typeof v !== "string" ||
+    v.length > max ||
+    hasControlCharacters(v) ||
+    (required && !v.trim())
+  )
     throw new DomainError(`Enter a valid ${label}.`);
   return v.trim();
 }
