@@ -19,13 +19,6 @@
     "migrations_dir": "migrations/local-lore"
   }],
   "vars": { "LOCAL_LORE_IMAGE_DAILY_LIMIT": "250" },
-  "services": [
-    {
-      "binding": "WORKER_SELF_REFERENCE",
-      // The service MUST equal "name" above, or deploy fails with error 10143.
-      "service": "runsit-ca"
-    }
-  ],
   // Enable Next.js <Image> optimization on Cloudflare.
   "images": {
     "binding": "IMAGES"

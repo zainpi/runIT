@@ -1,6 +1,6 @@
 import { getPulseDealsEnv } from "./src/lib/pulsedeals/compatibility";
 // OpenNext serves the HTTP surface. This thin wrapper adds the Cloudflare
-// scheduled handler without changing the existing Worker service binding.
+// scheduled handler without depending on a deployment-specific service name.
 // @ts-ignore OpenNext generates this module during the Cloudflare build.
 import openNextWorker from "./.open-next/worker.js";
 import { handleLocalLore, cleanupLocalLore } from "./src/lib/local-lore/live/api.mjs";
@@ -8,7 +8,6 @@ import { handleLocalLore, cleanupLocalLore } from "./src/lib/local-lore/live/api
 type WorkerEnvironment = {
   PULSEDEALS_CRON_SECRET?: string;
   HEATERDEALS_CRON_SECRET?: string;
-  WORKER_SELF_REFERENCE?: { fetch(input: RequestInfo, init?: RequestInit): Promise<Response> };
 };
 
 type PulseDealsScheduledController = {
@@ -55,9 +54,11 @@ export default {
       `https://runsit.ca/pulsedeals/api/v1/internal/sync?marketplace=${marketplace}`,
       { method: "POST", headers: { "x-pulsedeals-cron-secret": secret } },
     );
-    const responsePromise = env.WORKER_SELF_REFERENCE
-      ? env.WORKER_SELF_REFERENCE.fetch(request)
-      : fetch(request);
+    const responsePromise = openNextWorker.fetch(request, env, ctx).then((response: Response) => {
+      if (!response.ok) {
+        throw new Error(`PulseDeals scheduled sync failed with HTTP ${response.status}`);
+      }
+    });
     ctx.waitUntil(responsePromise);
   },
 };
