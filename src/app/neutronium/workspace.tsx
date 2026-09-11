@@ -1,4 +1,6 @@
 "use client";
+import { ToolFinder, sectionViewLabels, workspaceSections } from "./navigation";
+import { AttentionItems, PeopleOverview } from "./people-overview";
 import { MicrosoftReadiness } from "./microsoft-readiness";
 import { SecuritySettings } from "./security-settings";
 import { EmployeeApprovals, OnboardingInvite } from "./employee-approvals";
@@ -49,7 +51,7 @@ const titles: Record<string, string> = {
   environments: "Test environments",
   help: "Employee help",
   security: "Account risk",
-  overview: "Overview",
+  overview: "Home",
   people: "People",
   onboarding: "Workflows",
   access: "Access requests",
@@ -76,9 +78,9 @@ const descriptions: Record<string, string> = {
     "Review employee signups before granting company access and starting onboarding.",
   environments:
     "Staging, production, and the tester accounts that belong to each.",
-  overview: "A little less IT admin. A lot more peace of mind.",
+  overview: "Start a task or pick up what needs your attention.",
   people: "Everyone in your organization, in one place.",
-  onboarding: "From first day to last. Every step accounted for.",
+  onboarding: "Track onboarding, offboarding, and account changes.",
   access: "The right access, for the right people, at the right time.",
   applications: "Your company’s tools, connected and accounted for.",
   permissions: "A clear picture of who has access to what.",
@@ -89,6 +91,16 @@ const descriptions: Record<string, string> = {
   home: "Your tools, your access, your next great workday.",
   companies: "A workspace for every company you support.",
   import: "Bring existing employee accounts into your workspace.",
+  help: "Ask for help and follow up on employee requests.",
+  security: "Review risky accounts and access that needs attention.",
+  apps: "Open your work tools or request access to another app.",
+  myaccess: "See the access you have and when it expires.",
+  requests: "Track the progress of your access requests.",
+  profile: "Your details, sign-in security, and active sessions.",
+  jobs: "Track automation progress and resolve failed steps.",
+  alerts: "Review permissions and accounts that need attention.",
+  support: "Find company support information.",
+  notifications: "Updates on your requests and workspace activity.",
 };
 function initials(name: string) {
   return name
@@ -233,6 +245,38 @@ export function Neutronium() {
   const [dialog, setDialog] = useState<Dialog>();
   const [busy, setBusy] = useState(false);
   const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    if (!mobile) return;
+    const sidebar = document.getElementById("nt-workspace-navigation");
+    const trigger = document.activeElement as HTMLElement | null;
+    sidebar?.querySelector<HTMLButtonElement>(".nt-navigation-close")?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (document.querySelector("dialog[open]")) return;
+      if (event.key === "Escape") {
+        setMobile(false);
+      } else if (event.key === "Tab") {
+        const controls = Array.from(
+          sidebar?.querySelectorAll<HTMLElement>(
+            "button:not(:disabled), a[href], summary, input, select",
+          ) || [],
+        ).filter((element) => element.checkVisibility());
+        const first = controls[0],
+          last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      trigger?.focus();
+    };
+  }, [mobile]);
   const [companies, setCompanies] = useState<
     {
       id: string;
@@ -244,10 +288,41 @@ export function Neutronium() {
       pendingRequests: number;
     }[]
   >([]);
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>(
+    [],
+  );
+  useEffect(() => {
+    if (!actor || actor.demo) return;
+    void api("auth/workspaces")
+      .then((r) => setWorkspaces(r.workspaces || []))
+      .catch(() => {});
+  }, [actor?.id, actor?.demo]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openedRecord = useRef("");
+  useEffect(() => {
+    if (!w) return;
+    const params = new URLSearchParams(location.search);
+    const employee = params.get("employee"),
+      job = params.get("job");
+    const key = employee || job || "";
+    if (!key || openedRecord.current === key) return;
+    if (employee && w.employees.some((e) => e.id === employee)) {
+      setDialog({ kind: "employee", id: employee });
+      openedRecord.current = key;
+    }
+    if (job && w.jobs.some((j) => j.id === job)) {
+      setDialog({ kind: "job", id: job });
+      openedRecord.current = key;
+    }
+  }, [w]);
   const org = useRef<string>();
   const refresh = useCallback(async () => {
     const query = new URLSearchParams(readQuery.current).toString();
-    const state = await api(`state?${query}`, undefined, org.current);
+    const targetJob = new URLSearchParams(location.search).get("job");
+    const state = await api(
+      `state?${query}${targetJob ? `&job=${encodeURIComponent(targetJob)}` : ""}`,
+      undefined,
+      org.current,
+    );
     if (query !== new URLSearchParams(readQuery.current).toString())
       return state;
     setW(state.workspace);
@@ -260,7 +335,10 @@ export function Neutronium() {
     setSearch("");
     setFilter("all");
     setMobile(false);
+    const application = new URLSearchParams(location.search).get("application");
     const query = new URLSearchParams({ view: v });
+    if (v === "employee-approvals" && application)
+      query.set("application", application);
     if (org.current) query.set("org", org.current);
     window.history.replaceState(null, "", `/neutronium/?${query}`);
   }, []);
@@ -441,8 +519,15 @@ export function Neutronium() {
             setMfaGate(true);
             return;
           }
-          await refresh();
-          navigate("overview");
+          const state = await refresh();
+          const requested = new URLSearchParams(location.search).get("view");
+          navigate(
+            requested && titles[requested]
+              ? requested
+              : canManagePeople(state.actor)
+                ? "overview"
+                : "home",
+          );
         }}
       />
     );
@@ -450,41 +535,12 @@ export function Neutronium() {
   const manage = canManagePeople(actor);
   const employee = !manage && !platform;
   const own = w?.employees.find((e) => e.id === actor.employeeId);
-  const nav = platform
-    ? [
-        "companies",
-        "people",
-        "applications",
-        "access",
-        "jobs",
-        ...(["PLATFORM_OWNER", "PLATFORM_SECURITY"].includes(actor.role)
-          ? ["permissions", "alerts"]
-          : []),
-        "integrations",
-        "audit",
-        "support",
-        "settings",
-      ]
-    : employee
-      ? [
-          "home",
-          "apps",
-          "myaccess",
-          "requests",
-          "help",
-          ...(["MANAGER", "APPROVER"].includes(actor.role) ? ["access"] : []),
-          "profile",
-        ]
-      : [
-          "overview",
-          ...(canAdmin(actor) ? ["help", "security", "environments"] : []),
-          "people",
-          "onboarding",
-          "employee-approvals",
-          "access",
-          "applications",
-          "permissions",
-        ];
+  const greetingName =
+    own?.firstName.trim() ||
+    (actor.name.includes("@") ? "" : actor.name.trim().split(/\s+/)[0]);
+  const greetingSuffix = greetingName ? `, ${greetingName}` : "";
+  const sections = workspaceSections(actor);
+  const section = sections.find((item) => item.views.includes(view));
   const pending = w?.requests.filter((r) => r.status === "pending") || [];
   const activeJobs =
     w?.jobs.filter((j) => !["success"].includes(j.status)) || [];
@@ -495,7 +551,12 @@ export function Neutronium() {
     fullName(w?.employees.find((e) => e.id === id));
   const matches = (...values: (string | undefined)[]) =>
     values.join(" ").toLowerCase().includes(search.toLowerCase());
-  const searchable = !(view === "overview" || view === "home");
+  const searchable = !(
+    view === "overview" ||
+    view === "home" ||
+    view === "employee-approvals" ||
+    (view === "people" && !w?.demo)
+  );
   const reviewItems =
     w?.grants.filter(
       (g) =>
@@ -708,86 +769,122 @@ export function Neutronium() {
   );
   return (
     <div className="nt-root">
-      <aside className={`nt-sidebar ${mobile ? "nt-sidebar-open" : ""}`}>
-        <Link className="nt-brand" href={org.current ? `/neutronium/?org=${org.current}` : "/neutronium/"} onClick={(e) => { e.preventDefault(); navigate(employee ? "home" : platform ? "companies" : "overview"); }}>
+      <aside
+        id="nt-workspace-navigation"
+        className={`nt-sidebar ${mobile ? "nt-sidebar-open" : ""}`}
+      >
+        <button
+          className="nt-icon-button nt-navigation-close"
+          aria-label="Close navigation"
+          onClick={() => setMobile(false)}
+        >
+          <Icon name="close" />
+        </button>
+        <Link
+          className="nt-brand"
+          href={
+            org.current ? `/neutronium/?org=${org.current}` : "/neutronium/"
+          }
+          onClick={(e) => {
+            e.preventDefault();
+            navigate(employee ? "home" : platform ? "companies" : "overview");
+          }}
+        >
           <Mark />
           <span>
             neutronium<span className="nt-brand-dot">.</span>
           </span>
         </Link>
-        <div className="nt-workspace-switch">
-          <span className="nt-company-icon">
-            {platform ? (
-              <Icon name="building" />
-            ) : (
-              initials(w?.name || "Workspace")
-            )}
-          </span>
-          <div>
-            <strong>{platform ? "Operator console" : w?.name}</strong>
-            <small>
-              {platform ? "Platform management" : "Company workspace"}
-            </small>
-          </div>
-          <Icon name="down" size={14} />
-        </div>
-        <span className="nt-nav-label">
-          {platform ? "PLATFORM" : employee ? "YOUR WORKSPACE" : "WORKSPACE"}
-        </span>
-        <nav aria-label="Workspace navigation">
-          {nav.map((n) => (
-            <button
-              key={n}
-              className={view === n ? "nt-nav-active" : ""}
-              disabled={busy}
-              onClick={() => navigate(n)}
-            >
-              <Icon
-                name={
-                  n === "home"
-                    ? "overview"
-                    : n === "apps"
-                      ? "applications"
-                      : n === "myaccess"
-                        ? "permissions"
-                        : n === "requests"
-                          ? "access"
-                          : n === "companies"
-                            ? "building"
-                            : n === "jobs"
-                              ? "onboarding"
-                              : n === "alerts"
-                                ? "alert"
-                                : n
-                }
-              />
-              {titles[n]}
-              {n === "access" && pending.length > 0 && (
-                <span className="nt-nav-count">{pending.length}</span>
+        <details className="nt-workspace-menu">
+          <summary
+            className="nt-workspace-switch"
+            aria-label="Open workspace menu"
+          >
+            <span className="nt-company-icon">
+              {platform ? (
+                <Icon name="building" />
+              ) : (
+                initials(w?.name || "Workspace")
               )}
+            </span>
+            <div>
+              <strong>{platform ? "Operator console" : w?.name}</strong>
+              <small>
+                {platform ? "Platform management" : "Company workspace"}
+              </small>
+            </div>
+            <Icon name="down" size={14} />
+          </summary>
+          <div className="nt-workspace-menu-items">
+            <button
+              onClick={(e) => {
+                e.currentTarget.closest("details")?.removeAttribute("open");
+                navigate("profile");
+              }}
+            >
+              My profile
+            </button>
+            <button
+              onClick={(e) => {
+                e.currentTarget.closest("details")?.removeAttribute("open");
+                navigate(
+                  platform ? "companies" : employee ? "home" : "overview",
+                );
+              }}
+            >
+              Workspace overview
+            </button>
+            {canAdmin(actor) && (
+              <button
+                onClick={(e) => {
+                  e.currentTarget.closest("details")?.removeAttribute("open");
+                  navigate("settings");
+                }}
+              >
+                Company settings
+              </button>
+            )}
+            {workspaces
+              .filter((company) => company.id !== w?.id)
+              .map((company) => (
+                <a key={company.id} href={`/neutronium/?org=${company.id}`}>
+                  {company.name}
+                </a>
+              ))}
+            {workspaces.length <= 1 && (
+              <small>
+                {w?.name || "Current workspace"} is your current workspace.
+              </small>
+            )}
+          </div>
+        </details>
+        <ToolFinder
+          sections={sections}
+          titles={titles}
+          descriptions={descriptions}
+          navigate={navigate}
+          disabled={busy}
+        />
+        <nav aria-label="Workspace navigation">
+          {sections.map((item) => (
+            <button
+              key={item.label}
+              aria-label={item.label}
+              className={section === item ? "nt-nav-active" : ""}
+              aria-current={section === item ? "true" : undefined}
+              disabled={busy}
+              onClick={() =>
+                navigate(item.views.includes(view) ? view : item.views[0])
+              }
+            >
+              <Icon name={item.icon} />
+              <span className="nt-nav-copy">
+                <strong>{item.label}</strong>
+                <small>{item.hint}</small>
+              </span>
             </button>
           ))}
         </nav>
-        {manage && (
-          <>
-            <span className="nt-nav-label">MANAGE</span>
-            <nav aria-label="Organization management">
-              {["templates", "integrations", "audit", "import", "settings"].map(
-                (n) => (
-                  <button
-                    className={view === n ? "nt-nav-active" : ""}
-                    key={n}
-                    disabled={busy}
-                    onClick={() => navigate(n)}
-                  >
-                    <Icon name={n} />
-                    {titles[n]}
-                  </button>
-                ),
-              )}
-            </nav>
-          </>
-        )}
         <div className="nt-sidebar-bottom">
           <div className="nt-side-note">
             <span className="nt-live-dot" />
@@ -809,7 +906,13 @@ export function Neutronium() {
             Back to runIT
           </Link>
           <div className="nt-user">
-            <Avatar name={actor.name} />
+            <button
+              className="nt-icon-button"
+              aria-label="My profile"
+              onClick={() => navigate("profile")}
+            >
+              <Avatar name={actor.name} />
+            </button>
             <div>
               <strong>{actor.name}</strong>
               <small>{actor.role.replaceAll("_", " ").toLowerCase()}</small>
@@ -841,6 +944,8 @@ export function Neutronium() {
             <button
               className="nt-icon-button nt-mobile-toggle"
               aria-label="Open navigation"
+              aria-expanded={mobile}
+              aria-controls="nt-workspace-navigation"
               onClick={() => setMobile(!mobile)}
             >
               <Icon name="menu" />
@@ -849,7 +954,18 @@ export function Neutronium() {
               {platform ? "Platform" : w?.name}
             </span>
             <span className="nt-divider">/</span>
-            <span>{titles[view]}</span>
+            {section && section.views.length > 1 && (
+              <>
+                <button
+                  className="nt-breadcrumb-link"
+                  onClick={() => navigate(section.views[0])}
+                >
+                  {section.label}
+                </button>
+                <span className="nt-divider">/</span>
+              </>
+            )}
+            <span>{sectionViewLabels[view] || titles[view]}</span>
           </div>
           <div className="nt-row">
             {w?.demo && <span className="nt-demo-tag">DEVELOPMENT</span>}
@@ -861,7 +977,13 @@ export function Neutronium() {
               <Icon name="bell" />
               {w?.notifications.some((n) => !n.read) && <i />}
             </button>
-            <Avatar name={actor.name} />
+            <button
+              className="nt-icon-button"
+              aria-label="Open my profile"
+              onClick={() => navigate("profile")}
+            >
+              <Avatar name={actor.name} />
+            </button>
           </div>
         </header>
         {actor.demo && (
@@ -939,9 +1061,9 @@ export function Neutronium() {
               </div>
               <h1>
                 {view === "overview"
-                  ? `Welcome back, ${actor.name.split(" ")[0]}`
+                  ? `Welcome back${greetingSuffix}`
                   : view === "home"
-                    ? `Hi, ${actor.name.split(" ")[0]}`
+                    ? `Hi${greetingSuffix}`
                     : titles[view]}
               </h1>
               <p>
@@ -951,12 +1073,7 @@ export function Neutronium() {
             </div>
             <div className="nt-heading-actions">
               {manage &&
-                [
-                  "overview",
-                  "people",
-                  "onboarding",
-                  "employee-approvals",
-                ].includes(view) &&
+                ["people", "onboarding", "employee-approvals"].includes(view) &&
                 actionButton("Onboard employee", "onboard")}
               {view === "templates" &&
                 manage &&
@@ -972,6 +1089,28 @@ export function Neutronium() {
               )}
             </div>
           </div>
+          {section && section.views.length > 1 && (
+            <nav
+              className="nt-section-navigation"
+              aria-label={`${section.label} pages`}
+            >
+              {section.views.map((destination) => (
+                <button
+                  key={destination}
+                  aria-current={view === destination ? "page" : undefined}
+                  onClick={() => navigate(destination)}
+                  disabled={busy}
+                >
+                  {sectionViewLabels[destination] || titles[destination]}
+                  {destination === "access" && pending.length > 0 && (
+                    <span className="nt-nav-count">
+                      {w?.summary?.pending ?? pending.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          )}
           {searchable &&
             w &&
             ![
@@ -1040,7 +1179,7 @@ export function Neutronium() {
                 )}
               </div>
             )}
-          {w?.pageInfo?.view === view && (
+          {w?.pageInfo?.view === view && !(view === "people" && !w.demo) && (
             <div className="nt-toolbar" aria-label="Record pagination">
               <span>{w.pageInfo.shown} records on this page</span>
               <button
@@ -1061,7 +1200,56 @@ export function Neutronium() {
           )}
           {view === "overview" && w && (
             <>
-              <div className="nt-stats">
+              <section className="nt-start-task" aria-label="Quick actions">
+                <h2>What would you like to do?</h2>
+                <div className="nt-task-actions">
+                  <button
+                    aria-label="Onboard employee"
+                    onClick={() => setDialog({ kind: "onboard" })}
+                  >
+                    <Icon name="people" />
+                    <span>
+                      <strong>Onboard employee</strong>
+                      <small>Set up a new teammate</small>
+                    </span>
+                    <Icon name="arrow" size={16} />
+                  </button>
+                  <button
+                    aria-label="Review requests"
+                    onClick={() => navigate("employee-approvals")}
+                  >
+                    <Icon name="access" />
+                    <span>
+                      <strong>Review requests</strong>
+                      <small>Signups, access and help</small>
+                    </span>
+                    <Icon name="arrow" size={16} />
+                  </button>
+                  <button
+                    aria-label="Find an employee"
+                    onClick={() => navigate("people")}
+                  >
+                    <Icon name="search" />
+                    <span>
+                      <strong>Find an employee</strong>
+                      <small>View people and their details</small>
+                    </span>
+                    <Icon name="arrow" size={16} />
+                  </button>
+                  <button
+                    aria-label="Offboard employee"
+                    onClick={() => setDialog({ kind: "offboard" })}
+                  >
+                    <Icon name="exit" />
+                    <span>
+                      <strong>Offboard employee</strong>
+                      <small>Manage a departure</small>
+                    </span>
+                    <Icon name="arrow" size={16} />
+                  </button>
+                </div>
+              </section>
+              <div className="nt-stats nt-stats-compact">
                 {[
                   {
                     label: "Total employees",
@@ -1118,58 +1306,17 @@ export function Neutronium() {
               </div>
               <div className="nt-overview-grid">
                 <div className="nt-primary-column">
-                  <div className="nt-section-title">
-                    <h2>Make someone’s workday easier</h2>
-                    <span>Quick actions</span>
-                  </div>
-                  <div className="nt-quick-actions">
-                    <button onClick={() => setDialog({ kind: "onboard" })}>
-                      <span className="nt-quick-icon">
-                        <Icon name="people" size={23} />
-                        <i>+</i>
-                      </span>
-                      <strong>Welcome a new teammate</strong>
-                      <p>
-                        Accounts, tools, and access.
-                        <br />
-                        Ready for their first day.
-                      </p>
-                      <span className="nt-link">
-                        Onboard employee <Icon name="arrow" size={16} />
-                      </span>
-                    </button>
-                    <button onClick={() => setDialog({ kind: "offboard" })}>
-                      <span className="nt-quick-icon nt-quick-neutral">
-                        <Icon name="exit" size={23} />
-                      </span>
-                      <strong>Handle a departure</strong>
-                      <p>
-                        A considered, secure handoff.
-                        <br />
-                        Nothing left behind.
-                      </p>
-                      <span className="nt-link">
-                        Offboard employee <Icon name="arrow" size={16} />
-                      </span>
-                    </button>
-                  </div>
-                  <Panel
-                    title="Needs your attention"
-                    action={
-                      <button
-                        className="nt-link"
-                        onClick={() => navigate("access")}
-                      >
-                        View all <Icon name="arrow" size={14} />
-                      </button>
-                    }
-                  >
-                    {pending.length ? (
-                      pending.slice(0, 2).map(requestCard)
+                  <Panel title="Needs your attention">
+                    {w.demo ? (
+                      pending.length ? (
+                        pending.slice(0, 2).map(requestCard)
+                      ) : (
+                        <Empty icon="check" title="No pending requests">
+                          New access requests will appear here for review.
+                        </Empty>
+                      )
                     ) : (
-                      <Empty icon="check" title="No pending requests">
-                        New access requests will appear here for review.
-                      </Empty>
+                      <AttentionItems w={w} navigate={navigate} />
                     )}
                   </Panel>
                   <Panel
@@ -1187,59 +1334,67 @@ export function Neutronium() {
                   </Panel>
                 </div>
                 <div className="nt-secondary-column">
-                  <Panel className="nt-setup-panel">
-                    <div className="nt-setup-icon">
-                      <Icon name="permissions" size={24} />
+                  <details className="nt-panel nt-setup-disclosure">
+                    <summary>
+                      Workspace setup{" "}
+                      <span>Connections and onboarding checklist</span>
+                      <Icon name="down" size={16} />
+                    </summary>
+                    <div className="nt-setup-panel">
+                      <div className="nt-setup-icon">
+                        <Icon name="permissions" size={24} />
+                      </div>
+                      <span className="nt-eyebrow">A STRONG START</span>
+                      <h2>Good IT starts here.</h2>
+                      <p>A few small steps to a more organized workplace.</p>
+                      <div className="nt-setup-progress">
+                        <i
+                          style={{
+                            width: `${([w.integrations.some((i) => ["connected", "development"].includes(i.status)), w.templates.length > 0, w.employees.length > 0, w.jobs.some((j) => j.status === "success")].filter(Boolean).length / 4) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      {[
+                        {
+                          label: "Create your workspace",
+                          done: true,
+                          v: "settings",
+                        },
+                        {
+                          label: "Connect your identity provider",
+                          done: w.integrations.some((i) =>
+                            ["connected", "development"].includes(i.status),
+                          ),
+                          v: "integrations",
+                        },
+                        {
+                          label: "Set up a role template",
+                          done: w.templates.length > 0,
+                          v: "templates",
+                        },
+                        {
+                          label: "Run your first onboarding",
+                          done: w.jobs.some(
+                            (j) =>
+                              j.kind === "onboard" && j.status === "success",
+                          ),
+                          v: "onboarding",
+                        },
+                      ].map((s) => (
+                        <button
+                          className="nt-checklist"
+                          key={s.label}
+                          onClick={() => navigate(s.v)}
+                        >
+                          <span className={s.done ? "nt-done" : ""}>
+                            {s.done && <Icon name="check" size={12} />}
+                          </span>
+                          {s.label}
+                          <Icon name="chevron" size={13} />
+                        </button>
+                      ))}
                     </div>
-                    <span className="nt-eyebrow">A STRONG START</span>
-                    <h2>Good IT starts here.</h2>
-                    <p>A few small steps to a more organized workplace.</p>
-                    <div className="nt-setup-progress">
-                      <i
-                        style={{
-                          width: `${([w.integrations.some((i) => ["connected", "development"].includes(i.status)), w.templates.length > 0, w.employees.length > 0, w.jobs.some((j) => j.status === "success")].filter(Boolean).length / 4) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    {[
-                      {
-                        label: "Create your workspace",
-                        done: true,
-                        v: "settings",
-                      },
-                      {
-                        label: "Connect your identity provider",
-                        done: w.integrations.some((i) =>
-                          ["connected", "development"].includes(i.status),
-                        ),
-                        v: "integrations",
-                      },
-                      {
-                        label: "Set up a role template",
-                        done: w.templates.length > 0,
-                        v: "templates",
-                      },
-                      {
-                        label: "Run your first onboarding",
-                        done: w.jobs.some(
-                          (j) => j.kind === "onboard" && j.status === "success",
-                        ),
-                        v: "onboarding",
-                      },
-                    ].map((s) => (
-                      <button
-                        className="nt-checklist"
-                        key={s.label}
-                        onClick={() => navigate(s.v)}
-                      >
-                        <span className={s.done ? "nt-done" : ""}>
-                          {s.done && <Icon name="check" size={12} />}
-                        </span>
-                        {s.label}
-                        <Icon name="chevron" size={13} />
-                      </button>
-                    ))}
-                  </Panel>
+                  </details>
                   <Panel
                     title="Recent activity"
                     action={
@@ -1287,17 +1442,24 @@ export function Neutronium() {
               </div>
             </>
           )}
-          {view === "people" && w && (
-            <Panel
-              title={`Employee directory · ${w.summary?.employees ?? w.employees.length}`}
-              action={
-                manage &&
-                actionButton("Offboard employee", "offboard", "exit", true)
-              }
-            >
-              {peopleTable()}
-            </Panel>
-          )}
+          {view === "people" &&
+            w &&
+            (!w.demo && manage ? (
+              <PeopleOverview
+                w={w}
+                openEmployee={(id) => setDialog({ kind: "employee", id })}
+              />
+            ) : (
+              <Panel
+                title={`Employee directory · ${w.summary?.employees ?? w.employees.length}`}
+                action={
+                  manage &&
+                  actionButton("Offboard employee", "offboard", "exit", true)
+                }
+              >
+                {peopleTable()}
+              </Panel>
+            ))}
           {["onboarding", "jobs"].includes(view) && w && (
             <Panel
               title="Provisioning & offboarding"
@@ -1325,7 +1487,7 @@ export function Neutronium() {
             <TestEnvironments w={w} run={run} />
           )}
           {view === "employee-approvals" && w && manage && (
-            <EmployeeApprovals key={w.id} w={w} run={run} />
+            <EmployeeApprovals key={w.id} w={w} actor={actor} run={run} />
           )}
           {view === "help" && w && !platform && (
             <Operations key={actor.id} w={w} actor={actor} run={run} />
@@ -2016,6 +2178,11 @@ export function Neutronium() {
                     <Icon name="bell" />
                     <div className="nt-grow">
                       <strong>{n.title}</strong>
+                      {n.href && (
+                        <a className="nt-link" href={n.href}>
+                          Open details →
+                        </a>
+                      )}
                       <p>{n.body}</p>
                       <small>
                         {time(n.createdAt)} · Email:{" "}
@@ -2221,6 +2388,7 @@ function Auth({
 }) {
   const [mode, setMode] = useState("login");
   const [signupRole, setSignupRole] = useState("employee");
+  const [signedInEmail, setSignedInEmail] = useState("");
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("authError")) setError(params.get("authError")!);
@@ -2230,6 +2398,7 @@ function Auth({
       .then((r) => {
         if (r.user) {
           setSignupRole(r.user.signup_role || "employee");
+          setSignedInEmail(r.user.email || "");
           setMode("organization");
         }
       })
@@ -2249,14 +2418,22 @@ function Auth({
         await onReady();
       } else {
         const r = await api(mode, { ...data, signupRole });
-        if (r.confirmationRequired)
-          setMessage("Check your email to confirm your account, then sign in.");
+        if (r.existingAccount) {
+          setMode("login");
+          setMessage(
+            "Your account is already verified. Sign in with your existing password; no new confirmation email is needed.",
+          );
+        } else if (r.confirmationRequired)
+          setMessage(
+            "If this address needs verification, check your email to confirm your account. If you already confirmed it, sign in. Check junk mail if the message is missing.",
+          );
         else {
           try {
             await onReady();
           } catch {
             const status = await api("auth/status");
             setSignupRole(status.user?.signup_role || "employee");
+            setSignedInEmail(status.user?.email || "");
             setMode("organization");
           }
         }
@@ -2328,8 +2505,8 @@ function Auth({
           <p>
             {mode === "organization"
               ? signupRole === "employee"
-                ? "Your administrator will invite you using your account email."
-                : "Give your company a home in Neutronium."
+                ? "You’re signed in. Open your administrator’s invitation to join a company."
+                : "You’re signed in. Create a new workspace, or sign in with the account that already has company access."
               : "Sign in to your company workspace."}
           </p>
           {error && (
@@ -2341,6 +2518,11 @@ function Auth({
             <div className="nt-message nt-success" role="status">
               {message}
             </div>
+          )}
+          {mode === "organization" && signedInEmail && (
+            <p>
+              Signed in as <strong>{signedInEmail}</strong>.
+            </p>
           )}
           {(mode === "signup" || mode === "organization") && (
             <Field label="How will you use Neutronium?">
@@ -2400,21 +2582,18 @@ function Auth({
               </Field>
             </>
           )}
-          <button
-            className="nt-button nt-primary"
-            disabled={
-              busy || (mode === "organization" && signupRole === "employee")
-            }
-          >
-            {busy
-              ? "Please wait…"
-              : mode === "organization"
-                ? "Create workspace"
-                : mode === "signup"
-                  ? "Create account"
-                  : "Sign in"}
-            <Icon name="arrow" size={16} />
-          </button>
+          {(mode !== "organization" || signupRole !== "employee") && (
+            <button className="nt-button nt-primary" disabled={busy}>
+              {busy
+                ? "Please wait…"
+                : mode === "organization"
+                  ? "Create workspace"
+                  : mode === "signup"
+                    ? "Create account"
+                    : "Sign in"}
+              <Icon name="arrow" size={16} />
+            </button>
+          )}
           {mode !== "organization" && (
             <button
               type="button"
@@ -2435,6 +2614,28 @@ function Auth({
               <button
                 type="button"
                 className="nt-button"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  setMessage("");
+                  try {
+                    await api("logout", {});
+                    setSignedInEmail("");
+                    setMode("login");
+                  } catch (e) {
+                    setError((e as Error).message);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Sign in with a different account
+              </button>
+              <button
+                type="button"
+                className="nt-button"
+                disabled={busy}
                 onClick={() => void onReady().catch((e) => setError(e.message))}
               >
                 Check my invitation
@@ -2457,6 +2658,34 @@ function Auth({
                 </button>
               ))}
             </>
+          )}
+          {mode !== "organization" && (
+            <button
+              type="button"
+              className="nt-button"
+              disabled={busy}
+              onClick={async (e) => {
+                const email =
+                  e.currentTarget.form?.querySelector<HTMLInputElement>(
+                    'input[name="email"]',
+                  );
+                if (!email?.reportValidity()) return;
+                setBusy(true);
+                setError("");
+                try {
+                  await api("auth/resend-confirmation", { email: email.value });
+                  setMessage(
+                    "If this account still needs verification, a new confirmation email has been requested. Check your inbox and junk mail. Already verified? Sign in with your existing password.",
+                  );
+                } catch (error) {
+                  setError((error as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Resend confirmation email
+            </button>
           )}
           {mode !== "organization" &&
             ["google", "microsoft"].map((provider) => (
@@ -2707,9 +2936,6 @@ function WorkspaceDialog({
         if (busy) e.preventDefault();
         else close();
       }}
-      onClick={(event) => {
-        if (event.target === ref.current && !busy) close();
-      }}
     >
       <div className="nt-dialog-head">
         <div>
@@ -2744,17 +2970,16 @@ function WorkspaceDialog({
         {dialog.kind === "onboard" && manualOnboarding && (
           <>
             <div className="nt-wizard-steps">
-              {["Employee details", "Role & tools", "Review & launch"].map(
-                (s, i) => (
-                  <span
-                    className={step >= i ? "nt-wizard-current" : ""}
-                    key={s}
-                  >
-                    <i>{step > i ? <Icon name="check" size={13} /> : i + 1}</i>
-                    {s}
-                  </span>
-                ),
-              )}
+              {[
+                "Employee details",
+                "Role & tools",
+                w.demo ? "Review & launch" : "Submit for review",
+              ].map((s, i) => (
+                <span className={step >= i ? "nt-wizard-current" : ""} key={s}>
+                  <i>{step > i ? <Icon name="check" size={13} /> : i + 1}</i>
+                  {s}
+                </span>
+              ))}
             </div>
             <form
               onSubmit={(ev) => {
@@ -2764,11 +2989,15 @@ function WorkspaceDialog({
                   return;
                 }
                 void run(
-                  "onboard",
+                  w.demo ? "onboard" : "onboarding/create",
                   { ...form, templateId: selectedTemplate },
-                  "Onboarding started. Follow each step in Workflows.",
+                  w.demo
+                    ? "Onboarding started. Follow each step in Workflows."
+                    : "Employee application submitted for administrator review.",
                 )
-                  .then(() => navigate("onboarding"))
+                  .then(() =>
+                    navigate(w.demo ? "onboarding" : "employee-approvals"),
+                  )
                   .catch(() => {});
               }}
             >
@@ -2981,7 +3210,9 @@ function WorkspaceDialog({
                   {busy
                     ? "Starting…"
                     : step === 2
-                      ? "Start onboarding"
+                      ? w.demo
+                        ? "Start onboarding"
+                        : "Submit application for review"
                       : "Continue"}
                   <Icon name="arrow" size={15} />
                 </button>
@@ -3419,38 +3650,57 @@ function WorkspaceDialog({
                       <Badge value={s.status} />
                     </div>
                     {s.error && <p>{s.error}</p>}
+                    {s.status === "pending" &&
+                      job.steps
+                        .slice(0, i)
+                        .some(
+                          (previous) =>
+                            !["success", "skipped"].includes(previous.status),
+                        ) && (
+                        <p className="nt-subtle">
+                          Waiting for earlier steps. This step has not run.
+                        </p>
+                      )}
                     {s.attempts > 0 && (
                       <small>
                         {s.attempts} attempt{s.attempts > 1 ? "s" : ""}
                       </small>
                     )}
-                    {s.status === "manual_required" && canAdmin(actor) && (
-                      <form
-                        onSubmit={(ev) => {
-                          ev.preventDefault();
-                          safeRun(
-                            "manual-complete",
-                            {
-                              id: job.id,
-                              stepId: s.id,
-                              note: new FormData(ev.currentTarget).get("note"),
-                            },
-                            "Manual action verified. The workflow can continue.",
-                          );
-                        }}
-                      >
-                        <Field label="Completion evidence">
-                          <input
-                            name="note"
-                            required
-                            placeholder="Describe what you verified in the provider"
-                          />
-                        </Field>
-                        <button className="nt-button" disabled={busy}>
-                          Confirm completed manually
-                        </button>
-                      </form>
-                    )}
+                    {s.status === "manual_required" &&
+                      canAdmin(actor) &&
+                      job.steps
+                        .slice(0, i)
+                        .every((previous) =>
+                          ["success", "skipped"].includes(previous.status),
+                        ) && (
+                        <form
+                          onSubmit={(ev) => {
+                            ev.preventDefault();
+                            safeRun(
+                              "manual-complete",
+                              {
+                                id: job.id,
+                                stepId: s.id,
+                                note: new FormData(ev.currentTarget).get(
+                                  "note",
+                                ),
+                              },
+                              "Manual action verified. The workflow can continue.",
+                            );
+                          }}
+                        >
+                          <Field label="Completion evidence">
+                            <input
+                              name="note"
+                              required
+                              placeholder="Describe what you verified in the provider"
+                            />
+                          </Field>
+                          <button className="nt-button" disabled={busy}>
+                            Confirm completed manually
+                          </button>
+                        </form>
+                      )}
                   </div>
                 </div>
               ))}
@@ -3541,6 +3791,54 @@ function WorkspaceDialog({
                     );
                   }}
                 >
+                  <Field label="First name">
+                    <input
+                      name="firstName"
+                      required
+                      maxLength={100}
+                      defaultValue={e.firstName}
+                    />
+                  </Field>
+                  <Field label="Last name">
+                    <input
+                      name="lastName"
+                      required
+                      maxLength={100}
+                      defaultValue={e.lastName}
+                    />
+                  </Field>
+                  <Field label="Personal email">
+                    <input
+                      name="personalEmail"
+                      type="email"
+                      maxLength={254}
+                      defaultValue={e.personalEmail}
+                    />
+                  </Field>
+                  <Field label="Start date">
+                    <input
+                      name="startDate"
+                      type="date"
+                      required
+                      defaultValue={e.startDate}
+                    />
+                  </Field>
+                  <Field label="Employment type">
+                    <select
+                      name="employmentType"
+                      defaultValue={e.employmentType}
+                    >
+                      {[
+                        "Full-time",
+                        "Part-time",
+                        "Contractor",
+                        "Intern",
+                        "Temporary",
+                      ].map((v) => (
+                        <option key={v}>{v}</option>
+                      ))}
+                    </select>
+                  </Field>
                   <Field label="Job title">
                     <input name="title" defaultValue={e.title} />
                   </Field>
@@ -3587,6 +3885,11 @@ function WorkspaceDialog({
                 }}
               >
                 <h3>Employee portal access</h3>
+                <p>
+                  Choose Manager to allow this employee to review access
+                  requests from their direct reports. Reporting assignments are
+                  managed in Edit employee details.
+                </p>
                 <Field label="Portal role">
                   <select name="role">
                     {[

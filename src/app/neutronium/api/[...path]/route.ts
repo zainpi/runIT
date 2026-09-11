@@ -1,5 +1,13 @@
+import { resendConfirmation } from "@/lib/neutronium/accounts";
+import {
+  peopleOverview,
+  workspaceAttention,
+} from "@/lib/neutronium/people-overview";
 import { runCommand } from "@/lib/neutronium/command-store";
 import {
+  createStaffApplication,
+  updateEmployeeApplication,
+  updateOwnApplication,
   createOnboardingLink,
   readInvitation,
   submitApplication,
@@ -20,7 +28,7 @@ import {
 } from "@/lib/neutronium/mfa";
 import { syncReadiness, reconcile } from "@/lib/neutronium/microsoft-readiness";
 import { evidence } from "@/lib/neutronium/operations";
-import { postgres } from "@/lib/neutronium/postgres";
+import { postgres, tenantQuery } from "@/lib/neutronium/postgres";
 import {
   listServiceRequests,
   mutateServiceRequest,
@@ -134,6 +142,28 @@ export async function GET(req: NextRequest, ctx: Context) {
     if (path === "auth/sessions")
       return json({ sessions: await listSessions() });
     if (path === "auth/status") return json({ user: await currentUser() });
+    if (path === "auth/workspaces") {
+      const user = await currentUser();
+      if (!user) throw new DomainError("Sign in to view your workspaces.", 401);
+      if (user.mfa_required && !user.mfa_verified_at)
+        throw new DomainError("Verify your authenticator code.", 403);
+      const memberships = (
+        await postgres().query(
+          "select organization_id from neutronium_memberships where user_id=$1 and active order by created_at",
+          [user.id],
+        )
+      ).rows;
+      const workspaces = [];
+      for (const membership of memberships) {
+        const result = await tenantQuery(
+          membership.organization_id,
+          "select id,name from neutronium_organizations where id=$1",
+          [membership.organization_id],
+        );
+        if (result.rows[0]) workspaces.push(result.rows[0]);
+      }
+      return json({ workspaces });
+    }
     if (path === "onboarding/invitation") {
       await rateLimit(
         `join-preview:${req.headers.get("x-forwarded-for") || "unknown"}`,
@@ -271,6 +301,9 @@ export async function GET(req: NextRequest, ctx: Context) {
       );
     }
     const a = await actorFor(req.nextUrl.searchParams.get("org") || undefined);
+    if (path === "people/overview")
+      return json(await peopleOverview(a, req.nextUrl.searchParams));
+    if (path === "attention") return json(await workspaceAttention(a));
     if (path === "onboarding/applications")
       return json(await listEmployeeApplications(a, req.nextUrl.searchParams));
     if (path === "employees/export") {
@@ -468,7 +501,7 @@ export async function POST(req: NextRequest, ctx: Context) {
     }
     sameOrigin(req);
     const input = await body(req);
-    if (path === "onboarding/apply") {
+    if (path === "onboarding/apply" || path === "onboarding/edit-own") {
       const user = await currentUser();
       if (!user)
         throw new DomainError(
@@ -482,11 +515,11 @@ export async function POST(req: NextRequest, ctx: Context) {
         );
       await rateLimit(`join-apply:${user.id}`, 10, 60);
       return json({
-        application: await submitApplication(
-          String(input.token || ""),
-          user,
-          input,
-        ),
+        application: await (
+          path === "onboarding/edit-own"
+            ? updateOwnApplication
+            : submitApplication
+        )(String(input.token || ""), user, input),
       });
     }
     if (path === "auth/mfa/reset") {
@@ -531,6 +564,25 @@ export async function POST(req: NextRequest, ctx: Context) {
       };
       await setDemo(a);
       return json({ actor: a, workspace: project(w, a) });
+    }
+    if (path === "auth/resend-confirmation") {
+      const email = String(input.email || "")
+        .trim()
+        .toLowerCase();
+      await rateLimit(
+        `auth-resend-ip:${req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "unknown"}`,
+        10,
+        60,
+      );
+      await rateLimit(`auth-resend:${email}`, 3, 300);
+      const returnTo = input.joinToken ? joinPath(input.joinToken) : undefined;
+      if (input.joinToken && !(await readInvitation(input.joinToken)).available)
+        throw new DomainError(
+          "This invitation is no longer available. Sign in to view an existing application.",
+          410,
+        );
+      await resendConfirmation(email, returnTo);
+      return json({ ok: true });
     }
     if (path === "login" || path === "signup") {
       await rateLimit(
@@ -579,7 +631,12 @@ export async function POST(req: NextRequest, ctx: Context) {
             : "Account creation failed. Check your email or try signing in.",
           400,
         );
-      return json({ ok: true, confirmationRequired: !result.data.session });
+      return json({
+        ok: true,
+        confirmationRequired: !result.data.session,
+        existingAccount:
+          "existingAccount" in result.data && result.data.existingAccount,
+      });
     }
     if (path === "logout") {
       await signOut();
@@ -631,6 +688,10 @@ export async function POST(req: NextRequest, ctx: Context) {
       await revokeOnboardingLink(a, String(input.id || ""));
       return json({ ok: true });
     }
+    if (path === "onboarding/create")
+      return json({ application: await createStaffApplication(a, input) });
+    if (path === "onboarding/update")
+      return json({ application: await updateEmployeeApplication(a, input) });
     if (path === "onboarding/review")
       return json({ application: await reviewEmployeeApplication(a, input) });
     if (path === "microsoft/readiness") {
@@ -941,14 +1002,27 @@ export async function POST(req: NextRequest, ctx: Context) {
           "Only the organization owner can assign administrators.",
           403,
         );
+      const linkedMember = (
+        await tenantQuery(
+          a.orgId,
+          "select user_id from neutronium_memberships where organization_id=$1 and employee_id=$2 and active",
+          [a.orgId, e.id],
+        )
+      ).rows[0];
       let userId: string;
       if (input.userId) {
         const user = await accountById(String(input.userId));
-        if (!user || user.email.toLowerCase() !== e.email.toLowerCase())
+        if (
+          !user ||
+          (user.email.toLowerCase() !== e.email.toLowerCase() &&
+            linkedMember?.user_id !== user.id)
+        )
           throw new DomainError(
             "The supplied user does not match the employee email.",
           );
         userId = user.id;
+      } else if (linkedMember) {
+        userId = linkedMember.user_id;
       } else {
         userId = (await inviteAccount(e.email)).id;
       }

@@ -5,6 +5,7 @@ const countries = new Set(
     " ",
   ),
 );
+export const countryCodes = [...countries];
 export function countryCode(value: unknown) {
   const code = String(value).trim().toUpperCase();
   if (!countries.has(code))

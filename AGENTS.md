@@ -6,9 +6,12 @@ following runbook is the default for a user request such as “push Neutronium,�
 instruction for this repository; it is separate from product/specification
 documents.
 
-Only perform the remote procedure when the user asks to push, update, deploy,
-or otherwise publish the code. Local implementation or testing requests do not
-imply a VPS deployment.
+Work locally by default. Only perform the remote procedure when the user
+explicitly asks to push, update the VPS, deploy, or otherwise publish the
+current changes. A previous deployment request does not authorize later
+releases. Local implementation, fixes, testing, and “keep going” requests do
+not imply a VPS deployment. Do not upload source or start remote builds while
+working locally; wait for the user's explicit push request.
 
 ## Production target
 

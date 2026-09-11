@@ -77,6 +77,10 @@ export function claim(w: Workspace): { job: Job; step: Step } | null {
       Date.parse(job.scheduledAt) > Date.now()
     )
       continue;
+    if (job.steps.some((s) => s.status === "failed")) {
+      job.status = "failed";
+      continue;
+    }
     const step = job.steps.find(
       (s) => !["success", "skipped"].includes(s.status),
     );
@@ -263,6 +267,13 @@ export async function tick(orgId: string, local = false) {
   }
   return true;
 }
+export function notificationPath(
+  n: { href?: string; title: string },
+  orgId: string,
+) {
+  if (n.href && /^\/neutronium\/\?(?!.*[\r\n])/.test(n.href)) return n.href;
+  return `/neutronium/?${new URLSearchParams({ org: orgId, view: n.title.startsWith("Employee application") ? "employee-approvals" : n.title.includes("Workflow") || n.title.includes("Manual action") ? "onboarding" : "notifications" })}`;
+}
 export async function deliverNotifications(orgId: string) {
   for (let i = 0; i < 10; i++) {
     const configured = emailConfigured();
@@ -305,7 +316,7 @@ export async function deliverNotifications(orgId: string) {
         from: process.env.NEUTRONIUM_EMAIL_FROM!,
         to: [...new Set(addresses)],
         subject: `Neutronium · ${n.title}`,
-        text: `${n.body}\n\nOpen your workspace: ${process.env.NEUTRONIUM_APP_URL}/neutronium`,
+        text: `${n.body}\n\nOpen Neutronium: ${new URL(notificationPath(n, orgId), process.env.NEUTRONIUM_APP_URL).toString()}`,
         idempotencyKey: n.id,
       });
       await finishNotification(orgId, n.id, n.deliveryLease, "sent");

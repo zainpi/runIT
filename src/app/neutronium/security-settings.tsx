@@ -223,13 +223,19 @@ export function SecuritySettings({ gate = false }: { gate?: boolean }) {
                 className="nt-button"
                 onClick={() =>
                   void act(async () => {
-                    await call("sessions/revoke", { id: s.id });
+                    if (s.current)
+                      await requestJson("/neutronium/api/logout/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: "{}",
+                      });
+                    else await call("sessions/revoke", { id: s.id });
                     if (s.current) window.location.reload();
                     else setSessions(sessions.filter((x) => x.id !== s.id));
                   })
                 }
               >
-                Revoke session
+                {s.current ? "Sign out" : "Revoke session"}
               </button>
             </p>
           ))}

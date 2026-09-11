@@ -1,4 +1,9 @@
-import { test, expect as baseExpect, type Page, type Route } from "@playwright/test";
+import {
+  test,
+  expect as baseExpect,
+  type Page,
+  type Route,
+} from "@playwright/test";
 import { seed, uid } from "../../src/lib/neutronium/model";
 
 test.setTimeout(240000);
@@ -37,6 +42,7 @@ function scenario(baseURL: string, existing = false) {
       status: "pending",
       submitted_at: new Date().toISOString(),
       decision_note: "",
+      revision: 0,
     };
   }
   async function install(page: Page, admin: boolean) {
@@ -57,6 +63,31 @@ function scenario(baseURL: string, existing = false) {
           authConfigured: true,
           socialProviders: [],
           microsoftFeatures: {},
+        };
+      else if (endpoint === "auth/workspaces")
+        data = { workspaces: [{ id: w.id, name: w.name }] };
+      else if (endpoint === "attention")
+        data = {
+          pendingApplications: application?.status === "pending" ? 1 : 0,
+          applications: application ? [application] : [],
+          access: 0,
+          help: 0,
+          workflows: 0,
+        };
+      else if (endpoint === "people/overview")
+        data = {
+          total: w.employees.length,
+          rows: w.employees.map((e) => ({
+            id: e.id,
+            employee_id: e.id,
+            kind: "employee",
+            name: `${e.firstName} ${e.lastName}`,
+            email: e.email,
+            department: e.department,
+            status: e.status,
+            start_date: e.startDate,
+            title: e.title,
+          })),
         };
       else if (endpoint === "auth/status")
         data = {
@@ -118,13 +149,30 @@ function scenario(baseURL: string, existing = false) {
         data = {
           applications:
             application &&
-            application.status === (url.searchParams.get("status") || "pending")
+            (url.searchParams.get("status") === "all" ||
+              application.status ===
+                (url.searchParams.get("status") || "pending"))
               ? [application]
               : [],
           links: [],
           pendingCount: application?.status === "pending" ? 1 : 0,
           nextCursor: null,
         };
+      } else if (endpoint === "onboarding/update") {
+        expect(body.revision).toBe(application.revision);
+        application = {
+          ...application,
+          revision: application.revision + 1,
+          details: {
+            ...application.details,
+            ...Object.fromEntries(
+              Object.entries(body).filter(
+                ([k]) => !["id", "revision", "orgId", "status"].includes(k),
+              ),
+            ),
+          },
+        };
+        data = { application };
       } else if (endpoint === "onboarding/review") {
         expect(admin).toBe(true);
         expect(body.id).toBe(application.id);
@@ -159,10 +207,53 @@ function scenario(baseURL: string, existing = false) {
     verified: () => {
       signedIn = true;
     },
-    signedOut: () => { signedIn = false; },
+    signedOut: () => {
+      signedIn = false;
+    },
     linkCount: () => linksCreated,
   };
 }
+
+test("outside clicks preserve employee intake details until explicitly closed", async ({
+  page,
+  baseURL,
+}) => {
+  const s = scenario(baseURL!);
+  await s.install(page, true);
+  await page.goto("/neutronium/");
+  await page
+    .getByRole("button", { name: "Onboard employee", exact: true })
+    .first()
+    .click();
+  await page
+    .getByRole("button", { name: "Enter details manually", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("First name", { exact: true }).fill("Sam");
+  await dialog.getByLabel("Last name", { exact: true }).fill("Lee");
+  await dialog
+    .getByLabel("Company email", { exact: true })
+    .fill("sam@example.com");
+
+  const bounds = await dialog.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThan(4);
+  await page.mouse.click(4, 4);
+  await expect(dialog).toBeVisible();
+  await page.mouse.click(bounds!.x + 1, bounds!.y + 1);
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("First name", { exact: true })).toHaveValue(
+    "Sam",
+  );
+  await expect(dialog.getByLabel("Last name", { exact: true })).toHaveValue(
+    "Lee",
+  );
+  await expect(dialog.getByLabel("Company email", { exact: true })).toHaveValue(
+    "sam@example.com",
+  );
+  await dialog.getByRole("button", { name: "Close dialog" }).click();
+  await expect(dialog).toBeHidden();
+});
 
 test("admin shares a link; employee creates account and submits; admin reviews and accepts", async ({
   page,
@@ -213,7 +304,7 @@ test("admin shares a link; employee creates account and submits; admin reviews a
       .getByRole("button", { name: "Create account", exact: true })
       .click();
     await expect(employee.getByRole("status")).toContainText(
-      "confirmation link will bring you back here",
+      "confirmation link returns here",
     );
     // Simulate returning from email verification; server identity rules are covered by database tests.
     s.verified();
@@ -241,12 +332,15 @@ test("admin shares a link; employee creates account and submits; admin reviews a
     await page.getByRole("button", { name: "View employee approvals" }).click();
     await page.getByRole("button", { name: "Review Sam Lee" }).click();
     await expect(
-      page.getByText("Joining the web team", { exact: false }),
+      page.getByLabel("Message for your administrator (optional)"),
     ).toBeVisible();
+    await page.getByLabel("Start date", { exact: true }).fill("2026-10-01");
     await page
       .getByLabel("Company email", { exact: true })
       .fill("sam@pilot.example");
-    await page.getByLabel("Department", { exact: true }).fill("Engineering");
+    await page
+      .getByLabel("Department / team", { exact: true })
+      .fill("Engineering");
     await page
       .getByLabel("Note for the employee (optional)")
       .fill("Welcome to the team!");
@@ -257,7 +351,7 @@ test("admin shares a link; employee creates account and submits; admin reviews a
     await page
       .getByRole("button", { name: "Accept and start onboarding" })
       .click();
-    await expect(page.getByRole("status")).toContainText("Employee accepted");
+    await expect(page.getByRole("status")).toContainText("Employee approved");
     await employee
       .getByRole("button", { name: "Check status", exact: true })
       .click();

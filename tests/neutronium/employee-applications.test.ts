@@ -5,8 +5,16 @@ import { createHash, randomBytes } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import type { PoolClient } from "pg";
 import { seed, uid, type Actor } from "../../src/lib/neutronium/model";
+import { peopleOverviewOnClient } from "../../src/lib/neutronium/people-overview";
+import { notificationPath } from "../../src/lib/neutronium/worker";
+import {
+  applicationPath,
+  intakeDetails,
+} from "../../src/lib/neutronium/intake";
 import { executeStep } from "../../src/lib/neutronium/providers";
 import {
+  createStaffApplicationOnClient,
+  updateApplicationOnClient,
   createOnboardingLink,
   submitApplicationOnClient,
   reviewApplicationOnClient,
@@ -43,6 +51,7 @@ test("employee applications enforce verified identities, tenant boundaries and a
       "004_mfa.sql",
       "005_runtime_rls.sql",
       "007_employee_applications.sql",
+      "008_application_review.sql",
     ])
       await db.exec(
         await readFile(`deploy/neutronium/migrations/${migration}`, "utf8"),
@@ -71,8 +80,18 @@ test("employee applications enforce verified identities, tenant boundaries and a
         ownerId,
       ]);
     // Old app instances can still issue tokens during the additive migration.
-    await db.query("insert into neutronium_auth_tokens values($1,$2,'signup',now()+interval '1 day')", ["legacy-token", ownerId]);
-    assert.equal((await db.query<any>("select return_to from neutronium_auth_tokens where token_hash='legacy-token'")).rows[0].return_to, null);
+    await db.query(
+      "insert into neutronium_auth_tokens values($1,$2,'signup',now()+interval '1 day')",
+      ["legacy-token", ownerId],
+    );
+    assert.equal(
+      (
+        await db.query<any>(
+          "select return_to from neutronium_auth_tokens where token_hash='legacy-token'",
+        )
+      ).rows[0].return_to,
+      null,
+    );
     const actor: Actor = {
       id: ownerId,
       name: "Reviewer",
@@ -215,9 +234,104 @@ test("employee applications enforce verified identities, tenant boundaries and a
         );
       },
     );
+    await t.test(
+      "employees edit only their own open application; HR can review but cannot approve",
+      async () => {
+        const ownActor: Actor = {
+          ...actor,
+          id: applicant.id,
+          role: "EMPLOYEE",
+        };
+        await assert.rejects(
+          updateApplicationOnClient(
+            client,
+            { ...ownActor, id: declined.id },
+            { id: application.id, revision: 0, ...details },
+          ),
+          /not found/,
+        );
+        application = await updateApplicationOnClient(
+          client,
+          { ...actor, role: "HR_ADMIN" },
+          {
+            ...details,
+            id: application.id,
+            revision: 0,
+            status: "in_review",
+            department: "Engineering",
+            startDate: "2026-10-01",
+          },
+        );
+        assert.equal(application.status, "in_review");
+        await assert.rejects(
+          reviewApplicationOnClient(
+            client,
+            { ...actor, role: "HR_ADMIN" },
+            { id: application.id, revision: 1, decision: "accepted" },
+          ),
+          /permission/,
+        );
+        await assert.rejects(
+          updateApplicationOnClient(client, ownActor, {
+            ...details,
+            id: application.id,
+            revision: 0,
+          }),
+          /changed/,
+        );
+        application = await updateApplicationOnClient(client, ownActor, {
+          ...details,
+          id: application.id,
+          revision: 1,
+          firstName: "Samuel",
+          status: "accepted",
+          managerId: uid(),
+          department: "Engineering",
+          startDate: "2026-10-01",
+        });
+        assert.equal(application.status, "pending");
+        assert.equal(application.details.firstName, "Samuel");
+        assert.equal(application.details.managerId, "");
+        const notification = (
+          await db.query<any>(
+            "select payload from neutronium_notifications where payload->>'title'='Employee application submitted' limit 1",
+          )
+        ).rows[0].payload;
+        assert.equal(notification.href, applicationPath(w.id, application.id));
+        assert.equal(notificationPath(notification, w.id), notification.href);
+        const found = await peopleOverviewOnClient(
+          client,
+          actor,
+          new URLSearchParams({
+            q: "Samuel",
+            status: "pending",
+            department: "Engineering",
+            startFrom: "2026-09-01",
+            startTo: "2026-10-31",
+          }),
+        );
+        assert.equal(found.total, 1);
+        assert.equal(found.rows[0].application_id, application.id);
+        const missing = await peopleOverviewOnClient(
+          client,
+          actor,
+          new URLSearchParams({ q: "Samuel", startTo: "2026-09-01" }),
+        );
+        assert.equal(missing.total, 0);
+        await scope(other.id);
+        const foreign = await peopleOverviewOnClient(
+          client,
+          { ...actor, orgId: other.id },
+          new URLSearchParams({ q: "Samuel" }),
+        );
+        assert.equal(foreign.total, 0);
+        await scope();
+      },
+    );
     const accept = () => ({
       id: application.id,
       decision: "accepted",
+      revision: application.revision,
       email: "sam@company.example",
       department: "Engineering",
       startDate: "2026-10-01",
@@ -318,8 +432,10 @@ test("employee applications enforce verified identities, tenant boundaries and a
           )
         ).rows[0].payload;
         assert.equal(
-          job.steps.find((step: any) => step.operation === "invitation").status,
-          "success",
+          job.steps.find(
+            (step: any) => step.operation === "accepted_invitation",
+          ).status,
+          "pending",
         );
         const firstSignIn = job.steps.find(
           (step: any) => step.operation === "first_signin",
@@ -346,6 +462,65 @@ test("employee applications enforce verified identities, tenant boundaries and a
       },
     );
     await t.test(
+      "staff submissions enter review; approved people appear once and complete only after the workflow succeeds",
+      async () => {
+        const created = await createStaffApplicationOnClient(
+          client,
+          { ...actor, role: "HR_ADMIN" },
+          {
+            ...details,
+            email: "staff-applicant@company.example",
+            department: "Operations",
+            startDate: "2026-10-05",
+            templateId: w.templates[0].id,
+          },
+        );
+        assert.equal(created.status, "pending");
+        assert.equal(created.employee_id, null);
+        await assert.rejects(
+          createStaffApplicationOnClient(client, actor, {
+            ...details,
+            email: "staff-applicant@company.example",
+          }),
+          /already exists/,
+        );
+        const reviewed = await reviewApplicationOnClient(client, actor, {
+          id: created.id,
+          revision: 0,
+          decision: "accepted",
+        });
+        assert.ok(reviewed.employee_id);
+        const before = await peopleOverviewOnClient(
+          client,
+          actor,
+          new URLSearchParams({ q: "staff-applicant@company.example" }),
+        );
+        assert.equal(before.total, 1);
+        assert.equal(before.rows[0].status, "accepted");
+        await db.query(
+          "update neutronium_jobs set payload=jsonb_set(payload,'{status}','\"success\"') where id=$1",
+          [reviewed.job_id],
+        );
+        const complete = await peopleOverviewOnClient(
+          client,
+          actor,
+          new URLSearchParams({
+            q: "staff-applicant@company.example",
+            status: "complete",
+          }),
+        );
+        assert.equal(complete.total, 1);
+        await assert.rejects(
+          updateApplicationOnClient(client, actor, {
+            ...details,
+            id: created.id,
+            revision: 1,
+          }),
+          /already been decided/,
+        );
+      },
+    );
+    await t.test(
       "decline grants nothing; old links cannot resubmit, but a new invitation permits a new review",
       async () => {
         const before = await counts();
@@ -358,6 +533,7 @@ test("employee applications enforce verified identities, tenant boundaries and a
         );
         const result = await reviewApplicationOnClient(client, actor, {
           id: request.id,
+          revision: request.revision,
           decision: "declined",
           note: "Please contact HR.",
         });
@@ -425,4 +601,23 @@ test("employee applications enforce verified identities, tenant boundaries and a
   } finally {
     await db.close();
   }
+});
+
+test("intake validates dates and fixed selections", () => {
+  const details = { firstName: "Sam", lastName: "Lee" };
+  for (const invalid of [
+    { startDate: "2026-02-30" },
+    { employmentType: "Mistyped" },
+    { workArrangement: "Unknown" },
+    { usageLocation: "ZZ" },
+  ])
+    assert.throws(() => intakeDetails({ ...details, ...invalid }));
+  assert.equal(
+    intakeDetails({
+      ...details,
+      employmentType: "Contractor",
+      usageLocation: "ca",
+    }).usageLocation,
+    "CA",
+  );
 });

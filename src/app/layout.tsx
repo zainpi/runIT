@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "runsIT",
     "Canadian software company",
     "Neutronium",
-    "HeaterDeals",
+    "PulseDeals",
     "The Last Echo",
   ],
   authors: [{ name: site.legalName }],

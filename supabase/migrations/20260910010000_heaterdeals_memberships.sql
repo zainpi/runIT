@@ -1,6 +1,14 @@
 -- One membership across Apple and paid Discord. App-granted Discord roles never grant app entitlement.
 alter table public.heater_accounts add column if not exists primary_marketplace text
-  check (primary_marketplace in ('us','ca','de','uk'));
+  check (primary_marketplace in ('de','uk','es','fr','it'));
+-- Historical US/CA rows stay stored, but only these five markets can be delivered or requested.
+alter table public.heater_deals drop constraint if exists heater_deals_marketplace_check;
+alter table public.heater_deals add constraint heater_deals_marketplace_check check (marketplace in ('us','ca','de','uk','es','fr','it'));
+alter table public.heater_alerts drop constraint if exists heater_alerts_marketplace_check;
+alter table public.heater_alerts add constraint heater_alerts_marketplace_check check (marketplace in ('us','ca','de','uk','es','fr','it'));
+update public.heater_alerts set is_enabled=false where marketplace in ('us','ca');
+update public.heater_push_deliveries set state='cancelled', last_error='marketplace_unavailable'
+  where state in ('pending','sending') and deal_id in (select id from heater_deals where marketplace in ('us','ca'));
 alter table public.heater_discord_links add column if not exists paid_tier text check (paid_tier in ('standard','pro'));
 alter table public.heater_discord_links add column if not exists paid_access_expires_at timestamptz;
 alter table public.heater_discord_links add column if not exists membership_checked_at timestamptz;
@@ -9,6 +17,7 @@ create table public.heater_product_tiers (
 );
 insert into public.heater_product_tiers values
   ('com.pulsedeals.subscription.weekly','standard'),
+  ('com.pulsedeals.subscription.pro.weekly','pro'),
   ('com.pulsedeals.subscription.monthly','pro'); -- Preserve legacy multi-country access.
 alter table public.heater_product_tiers enable row level security;
 revoke all on public.heater_product_tiers from anon, authenticated;
@@ -40,7 +49,7 @@ create or replace function public.claim_heater_marketplace(p_account_id uuid, p_
 returns void language plpgsql security definer set search_path=public as $$
 declare current_market text; current_tier text;
 begin
-  if p_marketplace not in ('us','ca','de','uk') or p_marketplace is null then raise exception 'Invalid marketplace'; end if;
+  if p_marketplace not in ('de','uk','es','fr','it') or p_marketplace is null then raise exception 'Invalid marketplace'; end if;
   select a.primary_marketplace into current_market from heater_accounts a where a.id=p_account_id for update;
   select m.tier into current_tier from heater_membership(p_account_id) m;
   if current_tier is null or current_tier='none' then raise exception 'Active subscription required'; end if;
@@ -86,7 +95,7 @@ begin
     from heater_alerts a
     join heater_push_devices v on v.account_id = a.account_id and v.enabled
     join heater_deals d on d.marketplace = a.marketplace
-    where a.is_enabled and d.marketplace = p_marketplace and d.status = 'live'
+    where a.is_enabled and d.marketplace = p_marketplace and d.marketplace in ('de','uk','es','fr','it') and d.status = 'live'
       and d.observed_at > now() - interval '25 minutes'
       and d.current_price > 0 and d.reference_price > d.current_price
       and (cardinality(a.categories) = 0 or d.category = any(a.categories))
@@ -113,7 +122,7 @@ begin
       'expiresAt', to_char((observed_at + interval '1 hour') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
       'aps', jsonb_build_object('category','PULSE_DEAL','sound','default','thread-id','deals-' || marketplace,
         'alert',jsonb_build_object(
-          'title', case marketplace when 'us' then '$' when 'ca' then 'CA$' when 'uk' then '£' else '€' end ||
+          'title', case marketplace when 'uk' then '£' else '€' end ||
             current_price::text || ' · ' || round((reference_price-current_price)/nullif(reference_price,0)*100)::text || '% off',
           'body', title))), observed_at + interval '1 hour'
   from candidates where rank <= case cadence when 'instant' then 10 else 1 end

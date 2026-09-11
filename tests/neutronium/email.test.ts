@@ -52,3 +52,65 @@ test("email configuration recognizes Cloudflare providers and rejects incomplete
     }
   }
 });
+
+test("Cloudflare HTTP success with bounced or suppressed recipients is a delivery failure", async () => {
+  const { sendEmail } = await import("../../src/lib/neutronium/email");
+  const originalFetch = globalThis.fetch;
+  const keys = [
+    "NEUTRONIUM_EMAIL_PROVIDER",
+    "NEUTRONIUM_EMAIL_CLOUDFLARE_TOKEN",
+    "NEUTRONIUM_CLOUDFLARE_ACCOUNT_ID",
+    "NEUTRONIUM_EMAIL_FROM",
+  ];
+  const previous = keys.map((k) => process.env[k]);
+  try {
+    process.env.NEUTRONIUM_EMAIL_PROVIDER = "cloudflare_rest";
+    process.env.NEUTRONIUM_EMAIL_CLOUDFLARE_TOKEN = "mock-token";
+    process.env.NEUTRONIUM_CLOUDFLARE_ACCOUNT_ID = "a".repeat(32);
+    process.env.NEUTRONIUM_EMAIL_FROM = "no-reply@example.com";
+    const message = {
+      from: "no-reply@example.com",
+      to: ["recipient@example.com"],
+      subject: "Test",
+      text: "Test only",
+    };
+    for (const response of [
+      { success: false },
+      {
+        success: true,
+        result: {
+          message_id: "test",
+          permanent_bounces: ["recipient@example.com"],
+        },
+      },
+      {
+        success: true,
+        result: {
+          message_id: "test",
+          suppressed_recipients: ["recipient@example.com"],
+        },
+      },
+    ]) {
+      globalThis.fetch = async () => Response.json(response);
+      await assert.rejects(sendEmail(message));
+    }
+    globalThis.fetch = async () =>
+      Response.json({
+        success: true,
+        result: {
+          message_id: "test",
+          queued: ["recipient@example.com"],
+          delivered: [],
+          permanent_bounces: [],
+          suppressed_recipients: [],
+        },
+      });
+    await sendEmail(message);
+  } finally {
+    globalThis.fetch = originalFetch;
+    keys.forEach((key, i) => {
+      if (previous[i] === undefined) delete process.env[key];
+      else process.env[key] = previous[i];
+    });
+  }
+});

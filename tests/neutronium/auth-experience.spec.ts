@@ -22,6 +22,63 @@ async function authPage(page: Page, user: unknown = null) {
   });
 }
 
+test("a signed-in employee without a workspace can return to sign-in", async ({
+  page,
+}) => {
+  await authPage(page, {
+    signup_role: "employee",
+    email: "employee@example.com",
+  });
+  let logoutAttempts = 0;
+  await page.route("**/neutronium/api/logout", async (route) => {
+    expect(route.request().method()).toBe("POST");
+    logoutAttempts++;
+    await route.fulfill(
+      logoutAttempts === 1
+        ? {
+            status: 503,
+            json: { error: "Could not sign out. Please try again." },
+          }
+        : { json: { ok: true } },
+    );
+  });
+  await page.goto("/neutronium/");
+  await expect(
+    page.getByRole("heading", { name: "Join your company" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("employee@example.com", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Create workspace", exact: true }),
+  ).toHaveCount(0);
+  const switchAccount = page.getByRole("button", {
+    name: "Sign in with a different account",
+  });
+  await switchAccount.click();
+  await expect(page.locator(".nt-root").getByRole("alert")).toContainText(
+    "Could not sign out",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Join your company" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Password", { exact: true })).toHaveCount(0);
+  await switchAccount.click();
+  await expect(
+    page.getByRole("heading", { name: "Welcome back." }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Work email")).toBeVisible();
+  await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByText("employee@example.com", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".nt-root").getByRole("alert")).toHaveCount(0);
+  expect(logoutAttempts).toBe(2);
+});
+
 test("organization validation explains the missing field and preserves a failed submission", async ({
   page,
 }) => {
@@ -65,6 +122,16 @@ test("organization validation explains the missing field and preserves a failed 
     path: ".neutronium-dev/auth-error.png",
     fullPage: true,
   });
+  await page.route("**/neutronium/api/logout", (route) =>
+    route.fulfill({ json: { ok: true } }),
+  );
+  await page
+    .getByRole("button", { name: "Sign in with a different account" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeVisible();
+  expect(submissions).toBe(1);
 });
 
 test("signup validates email and password, confirms email delivery and clears old errors", async ({
@@ -97,7 +164,7 @@ test("signup validates email and password, confirms email delivery and clears ol
     .getByRole("button", { name: "Create account", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText(
-    "Check your email to confirm your account",
+    "check your email to confirm your account",
   );
   await page
     .getByRole("button", { name: "Already have an account? Sign in" })
@@ -165,7 +232,11 @@ test("authenticator enrollment displays a local QR code, validates input and hid
   );
   expect(challenges).toBe(0);
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.locator(".nt-form-errors").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  expect(
+    await page
+      .locator(".nt-form-errors")
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -184,4 +255,43 @@ test("authenticator enrollment displays a local QR code, validates input and hid
     page.getByText("test-recovery-code", { exact: true }),
   ).toBeVisible();
   expect(challenges).toBe(1);
+});
+
+test("verified signup directs the user to sign in; resend gives a truthful confirmation message", async ({
+  page,
+}) => {
+  await authPage(page);
+  await page.route("**/neutronium/api/signup", (route) =>
+    route.fulfill({
+      json: { ok: true, confirmationRequired: true, existingAccount: true },
+    }),
+  );
+  let resends = 0;
+  await page.route("**/neutronium/api/auth/resend-confirmation", (route) => {
+    resends++;
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/neutronium/");
+  await page
+    .getByRole("button", { name: "New here? Create an account" })
+    .click();
+  await page.getByLabel("Work email").fill("verified@example.com");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("verified account password");
+  await page
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "Your account is already verified",
+  );
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Work email").fill("unverified@example.com");
+  await page.getByRole("button", { name: "Resend confirmation email" }).click();
+  await expect.poll(() => resends).toBe(1);
+  await expect(page.getByRole("status")).toContainText(
+    "If this account still needs verification",
+  );
 });

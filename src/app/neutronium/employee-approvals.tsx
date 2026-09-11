@@ -1,10 +1,17 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Workspace } from "@/lib/neutronium/model";
+import type { Actor, Workspace } from "@/lib/neutronium/model";
 import type { EmployeeApplication } from "@/lib/neutronium/employee-applications";
-import { fullName } from "@/lib/neutronium/model";
+import { canAdmin, fullName } from "@/lib/neutronium/model";
 import { ValidatedForm } from "./form";
 import { requestJson } from "./http";
+
+import { IntakeFields } from "./intake-fields";
+import {
+  intakeOptions,
+  openApplication,
+  reviewLabels,
+} from "@/lib/neutronium/intake";
 
 type LinkInfo = { id: string; url: string; expires_at: string };
 export function OnboardingInvite({
@@ -146,47 +153,123 @@ type Inbox = {
 };
 export function EmployeeApprovals({
   w,
+  actor,
   run,
 }: {
   w: Workspace;
-  run: (path: string, data: unknown, success?: string) => Promise<unknown>;
+  actor: Actor;
+  run: (path: string, data: unknown, success?: string) => Promise<any>;
 }) {
   const [data, setData] = useState<Inbox>();
-  const [status, setStatus] = useState("pending");
+  const [status, setStatus] = useState("all");
+  const [search, setSearch] = useState("");
+  const [department, setDepartment] = useState("");
+  const [startFrom, setStartFrom] = useState("");
+  const [startTo, setStartTo] = useState("");
   const [cursor, setCursor] = useState("");
   const [selected, setSelected] = useState<EmployeeApplication>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const sequence = useRef(0);
+  const options = intakeOptions(w);
   const load = useCallback(async () => {
     const current = ++sequence.current;
-    const query = new URLSearchParams({ org: w.id, status, cursor });
+    const query = new URLSearchParams({
+      org: w.id,
+      status,
+      q: search,
+      department,
+      startFrom,
+      startTo,
+      cursor,
+    });
     const result = await requestJson(
       `/neutronium/api/onboarding/applications/?${query}`,
     );
     if (current === sequence.current) setData(result);
-  }, [w.id, status, cursor]);
+  }, [w.id, status, search, department, startFrom, startTo, cursor]);
   useEffect(() => {
-    void load().catch((e) => setError(e.message));
+    const timer = setTimeout(
+      () => void load().catch((e) => setError(e.message)),
+      200,
+    );
+    return () => clearTimeout(timer);
+  }, [load]);
+  useEffect(() => {
     const timer = setInterval(
       () => void load().catch((e) => setError(e.message)),
       15000,
     );
     return () => clearInterval(timer);
   }, [load]);
-  async function review(input: Record<string, unknown>) {
+  useEffect(() => {
+    const applicationId = new URLSearchParams(location.search).get(
+      "application",
+    );
+    if (!applicationId) return;
+    let alive = true;
+    requestJson(
+      `/neutronium/api/onboarding/applications/?${new URLSearchParams({ org: w.id, status: "all", id: applicationId })}`,
+    )
+      .then((result) => {
+        if (!alive) return;
+        if (!result.applications[0])
+          throw new Error("This application is unavailable in this company.");
+        setSelected(result.applications[0]);
+      })
+      .catch((e) => {
+        if (alive) setError(e.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [w.id]);
+  function select(application?: EmployeeApplication) {
+    setSelected(application);
+    setError("");
+    const url = new URL(location.href);
+    if (application) url.searchParams.set("application", application.id);
+    else url.searchParams.delete("application");
+    history.replaceState(null, "", url.pathname + url.search);
+  }
+  async function save(input: Record<string, unknown>, decision: string) {
     if (!selected) return;
     setBusy(true);
     setError("");
     try {
-      await run(
-        "onboarding/review",
-        { ...input, id: selected.id, orgId: w.id },
-        input.decision === "accepted"
-          ? "Employee accepted. Company access is active and onboarding has started."
-          : "Employee application declined. No company access was granted.",
-      );
-      setSelected(undefined);
+      let current = selected;
+      if (decision !== "declined") {
+        const result = await run(
+          "onboarding/update",
+          {
+            ...input,
+            id: selected.id,
+            revision: selected.revision,
+            orgId: w.id,
+          },
+          "Application details saved.",
+        );
+        current = { ...selected, ...result.application };
+        setSelected(current);
+      }
+      if (decision === "accepted" || decision === "declined") {
+        await run(
+          "onboarding/review",
+          {
+            ...input,
+            email: input.companyEmail,
+            id: current.id,
+            revision: current.revision,
+            decision,
+            note: input.decisionNote || "",
+            orgId: w.id,
+          },
+          decision === "accepted"
+            ? "Employee approved. Follow progress in Workflows."
+            : "Employee application declined.",
+        );
+        select(undefined);
+      }
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -194,6 +277,12 @@ export function EmployeeApprovals({
       setBusy(false);
     }
   }
+  const label = (a: EmployeeApplication) =>
+    reviewLabels[
+      a.status === "accepted" && a.workflow_status === "success"
+        ? "complete"
+        : a.status
+    ];
   return (
     <section className="nt-team-tools">
       {error && (
@@ -205,24 +294,11 @@ export function EmployeeApprovals({
         <strong>
           {data?.pendingCount ?? "…"} pending employee applications
         </strong>
-        <select
-          aria-label="Application review status"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setCursor("");
-            setSelected(undefined);
-          }}
-        >
-          <option value="pending">Pending</option>
-          <option value="accepted">Accepted</option>
-          <option value="declined">Declined</option>
-        </select>
         <button
           className="nt-button"
           disabled={busy}
           onClick={() => {
-            setSelected(undefined);
+            select(undefined);
             void load().catch((e) => setError(e.message));
           }}
         >
@@ -231,163 +307,173 @@ export function EmployeeApprovals({
       </div>
       {selected ? (
         <ValidatedForm
-          key={selected.id}
+          key={`${selected.id}:${selected.revision}`}
           className="nt-tool-card"
-          onSubmit={(e) =>
-            void review({
-              ...Object.fromEntries(new FormData(e.currentTarget)),
-              decision: "accepted",
-            })
-          }
+          onSubmit={(e) => {
+            const decision =
+              (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") ||
+              "save";
+            void save(
+              Object.fromEntries(new FormData(e.currentTarget)),
+              decision,
+            );
+          }}
         >
           <h2>
             {selected.details.firstName} {selected.details.lastName}
           </h2>
           <p>
-            <strong>Verified account email:</strong> {selected.email}
+            <strong>
+              {selected.user_id
+                ? "Verified account email:"
+                : "Employee contact email:"}
+            </strong>{" "}
+            {selected.email || selected.contact_email}
           </p>
           <p>
             Submitted {new Date(selected.submitted_at).toLocaleString()} ·{" "}
-            {selected.status}
+            {label(selected)}
           </p>
-          <p>
-            <strong>Employee’s job title:</strong>{" "}
-            {selected.details.title || "Not provided"}
-          </p>
-          <p>
-            <strong>Employee’s location:</strong>{" "}
-            {selected.details.location || "Not provided"}
-          </p>
-          {selected.details.note && (
-            <p style={{ whiteSpace: "pre-wrap" }}>
-              <strong>Employee’s message:</strong> {selected.details.note}
-            </p>
-          )}
-          {selected.status === "pending" ? (
+          {openApplication(selected.status) ? (
             <>
+              <IntakeFields
+                details={selected.details}
+                options={options}
+                staff
+              />
               <h3>Confirm their onboarding details</h3>
               <p>
-                Accepting creates an employee membership and starts the selected
-                onboarding workflow. The employee signs in with their verified
-                account email above.
+                HR can prepare and correct the application. A company
+                administrator approves access and starts onboarding.
               </p>
-              <label>
-                Company email
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  maxLength={254}
-                  defaultValue={selected.email}
-                />
-              </label>
-              <label>
-                Department
-                <input
-                  name="department"
-                  required
-                  maxLength={200}
-                  defaultValue="General"
-                />
-              </label>
-              <label>
-                Job title
-                <input
-                  name="title"
-                  maxLength={200}
-                  defaultValue={selected.details.title}
-                />
-              </label>
-              <label>
-                Start date
-                <input
-                  name="startDate"
-                  type="date"
-                  required
-                  defaultValue={new Date().toISOString().slice(0, 10)}
-                />
-              </label>
-              <label>
-                Location
-                <input
-                  name="location"
-                  maxLength={200}
-                  defaultValue={selected.details.location}
-                />
-              </label>
-              <label>
-                Microsoft usage country (optional)
-                <input
-                  name="usageLocation"
-                  minLength={2}
-                  maxLength={2}
-                  placeholder="CA"
-                />
-              </label>
-              <label>
-                Manager
-                <select name="managerId" defaultValue="">
-                  <option value="">No manager assigned</option>
-                  {w.employees
-                    .filter((e) => e.status === "active")
-                    .map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {fullName(e)}
+              <div className="nt-form-grid">
+                <label>
+                  Company email
+                  <input
+                    name="companyEmail"
+                    type="email"
+                    maxLength={254}
+                    defaultValue={
+                      selected.details.companyEmail ||
+                      selected.email ||
+                      selected.contact_email
+                    }
+                  />
+                </label>
+                <label>
+                  Manager
+                  <select
+                    name="managerId"
+                    defaultValue={selected.details.managerId || ""}
+                  >
+                    <option value="">No manager assigned</option>
+                    {w.employees
+                      .filter((e) => e.status === "active")
+                      .map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {fullName(e)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label>
+                  Onboarding template
+                  <select
+                    name="templateId"
+                    defaultValue={
+                      selected.details.templateId ||
+                      w.templates.find((t) => t.active)?.id ||
+                      ""
+                    }
+                  >
+                    <option value="">Choose a template</option>
+                    {w.templates
+                      .filter((t) => t.active)
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label>
+                  Review status
+                  <select name="status" defaultValue={selected.status}>
+                    {["pending", "in_review", "more_info"].map((v) => (
+                      <option key={v} value={v}>
+                        {reviewLabels[v]}
                       </option>
                     ))}
-                </select>
-              </label>
-              <label>
-                Onboarding template
-                <select
-                  name="templateId"
-                  required
-                  defaultValue={w.templates.find((t) => t.active)?.id || ""}
-                >
-                  <option value="">Choose a template</option>
-                  {w.templates
-                    .filter((t) => t.active)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label>
-                Note for the employee (optional)
-                <textarea name="note" maxLength={2000} />
-              </label>
+                  </select>
+                </label>
+                <label>
+                  Note for the employee (optional)
+                  <textarea
+                    name="decisionNote"
+                    maxLength={2000}
+                    defaultValue={selected.decision_note}
+                  />
+                </label>
+              </div>
+              <p className="nt-subtle">
+                Assign reporting managers in People → open an employee → Edit
+                details. Managers need an active employee record; administrator
+                access does not automatically create one.
+              </p>
               <div className="nt-toolbar">
-                <button className="nt-button nt-primary" disabled={busy}>
-                  {busy ? "Saving…" : "Accept and start onboarding"}
+                <button className="nt-button" value="save" disabled={busy}>
+                  Save application
                 </button>
-                <button
-                  type="button"
-                  className="nt-button"
-                  disabled={busy}
-                  onClick={(e) => {
-                    const form = e.currentTarget.form!;
-                    void review({
-                      decision: "declined",
-                      note: new FormData(form).get("note") || "",
-                    });
-                  }}
-                >
-                  Decline employee
-                </button>
+                {canAdmin(actor) && (
+                  <>
+                    <button
+                      className="nt-button nt-primary"
+                      value="accepted"
+                      disabled={busy}
+                    >
+                      Accept and start onboarding
+                    </button>
+                    <button
+                      className="nt-button"
+                      value="declined"
+                      disabled={busy}
+                    >
+                      Decline employee
+                    </button>
+                  </>
+                )}
               </div>
             </>
           ) : (
             <>
-              <p>
-                Reviewed{" "}
-                {selected.reviewed_at
-                  ? new Date(selected.reviewed_at).toLocaleString()
-                  : ""}
-              </p>
+              <dl>
+                {Object.entries(selected.details)
+                  .filter(([key]) => !["managerId", "templateId"].includes(key))
+                  .map(([key, value]) => (
+                    <div key={key}>
+                      <dt>{key.replace(/([A-Z])/g, " $1")}</dt>
+                      <dd>{value || "Not provided"}</dd>
+                    </div>
+                  ))}
+              </dl>
               {selected.decision_note && (
                 <p>Decision note: {selected.decision_note}</p>
+              )}
+              {selected.employee_id && (
+                <a
+                  className="nt-button"
+                  href={`/neutronium/?org=${w.id}&view=people&employee=${selected.employee_id}`}
+                >
+                  View employee record
+                </a>
+              )}
+              {selected.job_id && (
+                <a
+                  className="nt-button"
+                  href={`/neutronium/?org=${w.id}&view=onboarding&job=${selected.job_id}`}
+                >
+                  View onboarding workflow
+                </a>
               )}
             </>
           )}
@@ -395,42 +481,127 @@ export function EmployeeApprovals({
             type="button"
             className="nt-button"
             disabled={busy}
-            onClick={() => setSelected(undefined)}
+            onClick={() => select(undefined)}
           >
             Back to applications
           </button>
         </ValidatedForm>
       ) : (
         <>
+          <div className="nt-toolbar nt-directory-filters">
+            <label>
+              Search applications
+              <input
+                type="search"
+                placeholder="Name, email or any intake detail"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCursor("");
+                }}
+              />
+            </label>
+            <label>
+              Application review status
+              <select
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setCursor("");
+                }}
+              >
+                <option value="all">All statuses</option>
+                {Object.entries(reviewLabels).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Department / team
+              <select
+                value={department}
+                onChange={(e) => {
+                  setDepartment(e.target.value);
+                  setCursor("");
+                }}
+              >
+                <option value="">All teams</option>
+                {options.departments.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Start date from
+              <input
+                type="date"
+                value={startFrom}
+                onChange={(e) => {
+                  setStartFrom(e.target.value);
+                  setCursor("");
+                }}
+              />
+            </label>
+            <label>
+              Start date to
+              <input
+                type="date"
+                value={startTo}
+                onChange={(e) => {
+                  setStartTo(e.target.value);
+                  setCursor("");
+                }}
+              />
+            </label>
+          </div>
           {!data && <p role="status">Loading employee applications…</p>}
           {data && !data.applications.length && (
             <div className="nt-tool-card">
-              <h2>No {status} applications</h2>
+              <h2>No matching applications</h2>
               <p>
-                {w.demo
-                  ? "Employee applications appear here in a company workspace."
-                  : "Use Onboard employee to share an invitation. Submitted applications will appear here for review."}
+                Use Onboard employee to share an invitation or enter an
+                application for review.
               </p>
             </div>
           )}
-          {data?.applications.map((application) => (
-            <article className="nt-tool-card" key={application.id}>
-              <h2>
-                {application.details.firstName} {application.details.lastName}
-              </h2>
-              <p>
-                {application.email} · {application.status} ·{" "}
-                {new Date(application.submitted_at).toLocaleString()}
-              </p>
-              <button
-                className="nt-button"
-                onClick={() => setSelected(application)}
-              >
-                Review {application.details.firstName}{" "}
-                {application.details.lastName}
-              </button>
-            </article>
-          ))}
+          {!!data?.applications.length && (
+            <div className="nt-table-scroll">
+              <table className="nt-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Team</th>
+                    <th>Job title</th>
+                    <th>Start date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.applications.map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        {a.details.firstName} {a.details.lastName}
+                      </td>
+                      <td>{a.email}</td>
+                      <td>{a.details.department || "Unassigned"}</td>
+                      <td>{a.details.title || "—"}</td>
+                      <td>{a.details.startDate || "—"}</td>
+                      <td>{label(a)}</td>
+                      <td>
+                        <button className="nt-link" onClick={() => select(a)}>
+                          Review {a.details.firstName} {a.details.lastName}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           <div className="nt-toolbar">
             {cursor && (
               <button className="nt-button" onClick={() => setCursor("")}>
@@ -452,8 +623,8 @@ export function EmployeeApprovals({
         <details className="nt-tool-card">
           <summary>Unused invitation links ({data.links.length})</summary>
           <p>
-            Revoking a link prevents a new submission. Applications already
-            submitted keep their review status.
+            Revoking a link prevents new submissions. Existing applications
+            remain available.
           </p>
           {data.links.map((link) => (
             <p key={link.id}>
@@ -464,7 +635,6 @@ export function EmployeeApprovals({
                 disabled={busy}
                 onClick={async () => {
                   setBusy(true);
-                  setError("");
                   try {
                     await run(
                       "onboarding/revoke-link",

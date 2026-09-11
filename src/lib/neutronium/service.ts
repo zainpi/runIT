@@ -294,7 +294,7 @@ export function command(
       return r.id;
     }
     case "onboard": {
-      requireRole(a, [...admins, "HR_ADMIN"]);
+      requireRole(a, admins);
       const template = find(w.templates, input.templateId);
       if (!template.active) throw new DomainError("This template is inactive.");
       const companyEmail = email(input.email);
@@ -457,6 +457,11 @@ export function command(
       requireRole(a, [...admins, "HR_ADMIN"]);
       const e = find(w.employees, input.id);
       const previous = {
+        firstName: e.firstName,
+        lastName: e.lastName,
+        personalEmail: e.personalEmail,
+        startDate: e.startDate,
+        employmentType: e.employmentType,
         title: e.title,
         department: e.department,
         managerId: e.managerId,
@@ -470,6 +475,30 @@ export function command(
             "Choose a different active employee as manager.",
           );
       }
+      if (input.firstName !== undefined)
+        e.firstName = str(input.firstName, "first name");
+      if (input.lastName !== undefined)
+        e.lastName = str(input.lastName, "last name");
+      if (input.personalEmail !== undefined)
+        e.personalEmail = input.personalEmail ? email(input.personalEmail) : "";
+      if (input.startDate !== undefined) {
+        const date = str(input.startDate, "start date");
+        schedule(date);
+        e.startDate = date;
+      }
+      if (input.employmentType !== undefined) {
+        if (
+          ![
+            "Full-time",
+            "Part-time",
+            "Contractor",
+            "Intern",
+            "Temporary",
+          ].includes(String(input.employmentType))
+        )
+          throw new DomainError("Choose an employment type.");
+        e.employmentType = String(input.employmentType);
+      }
       e.title = str(input.title ?? "", "job title", false);
       e.department = str(input.department, "department");
       e.managerId = managerId;
@@ -477,6 +506,11 @@ export function command(
       if (input.usageLocation)
         e.usageLocation = countryCode(input.usageLocation);
       audit(w, a, "Employee details updated", e.id, requestId, previous, {
+        firstName: e.firstName,
+        lastName: e.lastName,
+        personalEmail: e.personalEmail,
+        startDate: e.startDate,
+        employmentType: e.employmentType,
         title: e.title,
         department: e.department,
         managerId: e.managerId,
@@ -724,6 +758,15 @@ export function command(
       const step = find(job.steps, input.stepId);
       if (step.status !== "manual_required")
         throw new DomainError("This step is not awaiting a manual action.");
+      if (
+        job.steps
+          .slice(0, job.steps.indexOf(step))
+          .some((s) => !["success", "skipped"].includes(s.status))
+      )
+        throw new DomainError(
+          "Complete the earlier workflow steps before verifying this step.",
+          409,
+        );
       const tracked = w.grants.find((g) => g.id === step.grantId);
       if (
         tracked?.expiresAt &&

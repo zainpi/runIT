@@ -54,6 +54,10 @@ test("company → onboard → employee → request → manager → revoke → of
   await page
     .getByLabel("Development persona")
     .selectOption({ label: "Michael Ross · Manager" });
+  await page
+    .getByRole("navigation", { name: "Workspace navigation" })
+    .getByRole("button", { name: /^Requests/ })
+    .click();
   await page.getByRole("button", { name: /Access requests/ }).click();
   await page
     .locator(".nt-request")
@@ -64,6 +68,10 @@ test("company → onboard → employee → request → manager → revoke → of
   await page
     .getByLabel("Development persona")
     .selectOption({ label: "Sam Lee · Employee" });
+  await page
+    .getByRole("navigation", { name: "Workspace navigation" })
+    .getByRole("button", { name: /^My apps/ })
+    .click();
   await page.getByRole("button", { name: "My access", exact: true }).click();
   await expect(
     page
@@ -92,7 +100,7 @@ test("company → onboard → employee → request → manager → revoke → of
     .getByLabel("Development persona")
     .selectOption({ label: "Company admin" });
   await page
-    .getByRole("button", { name: "Handle a departure", exact: false })
+    .getByRole("button", { name: /Offboard employee/, exact: false })
     .click();
   const offboard = page.getByRole("dialog");
   await offboard.getByLabel("Employee", { exact: true }).selectOption({
@@ -105,6 +113,10 @@ test("company → onboard → employee → request → manager → revoke → of
   await expect(
     page.locator(".nt-job-row").first().getByText("success", { exact: true }),
   ).toBeVisible({ timeout: 30000 });
+  await page
+    .getByRole("navigation", { name: "Workspace navigation" })
+    .getByRole("button", { name: /^Settings/ })
+    .click();
   await page.getByRole("button", { name: "Audit log", exact: true }).click();
   await expect(
     page.getByRole("cell", {

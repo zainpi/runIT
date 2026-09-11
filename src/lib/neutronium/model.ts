@@ -135,6 +135,7 @@ export type Audit = {
   next?: unknown;
 };
 export type Notification = {
+  href?: string;
   id: string;
   recipientId: string;
   title: string;

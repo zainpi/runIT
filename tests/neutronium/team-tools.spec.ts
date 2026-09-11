@@ -18,7 +18,7 @@ test("employee help, admin file response, isolation, risk simulation and export"
   await persona.selectOption({ label: "Sarah Chen · Employee" });
   await expect(persona).toBeEnabled();
   await page
-    .getByRole("button", { name: "Employee help", exact: true })
+    .getByRole("button", { name: "Get help", exact: true })
     .first()
     .click();
   await page.getByLabel("Subject", { exact: true }).fill("New monitor");
@@ -31,6 +31,10 @@ test("employee help, admin file response, isolation, risk simulation and export"
   ).toBeVisible();
   await persona.selectOption("admin");
   await expect(persona).toBeEnabled();
+  await page
+    .getByRole("navigation", { name: "Workspace navigation" })
+    .getByRole("button", { name: "Requests", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Employee help", exact: true })
     .first()
@@ -58,7 +62,7 @@ test("employee help, admin file response, isolation, risk simulation and export"
   await persona.selectOption({ label: "Alex Patel · Employee" });
   await expect(persona).toBeEnabled();
   await page
-    .getByRole("button", { name: "Employee help", exact: true })
+    .getByRole("button", { name: "Get help", exact: true })
     .first()
     .click();
   await expect(
@@ -67,7 +71,7 @@ test("employee help, admin file response, isolation, risk simulation and export"
   await persona.selectOption({ label: "Sarah Chen · Employee" });
   await expect(persona).toBeEnabled();
   await page
-    .getByRole("button", { name: "Employee help", exact: true })
+    .getByRole("button", { name: "Get help", exact: true })
     .first()
     .click();
   await page.getByRole("button", { name: "New monitor", exact: true }).click();
@@ -76,6 +80,10 @@ test("employee help, admin file response, isolation, risk simulation and export"
   expect((await download).suggestedFilename()).toBe("order.txt");
   await persona.selectOption("admin");
   await expect(persona).toBeEnabled();
+  await page
+    .getByRole("navigation", { name: "Workspace navigation" })
+    .getByRole("button", { name: "Apps", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Account risk", exact: true })
     .first()

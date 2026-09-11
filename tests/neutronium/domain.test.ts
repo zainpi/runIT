@@ -470,3 +470,39 @@ test("test accounts are isolated to development and security data to admins", ()
   );
   assert.deepEqual(project(w, { ...a, role: "HR_ADMIN" }).externalItems, {});
 });
+
+test("failed predecessors block claims, manual completion and employee activation", () => {
+  const { w, admin } = setup();
+  const id = command(w, admin, "onboard", employeeInput(w));
+  const job = w.jobs.find((j) => j.id === id)!;
+  job.steps[0].status = "failed";
+  job.steps[1].status = "manual_required";
+  job.status = "pending";
+  assert.equal(claim(w), null);
+  assert.equal(job.status, "failed");
+  assert.equal(
+    w.employees.find((e) => e.id === job.employeeId)?.status,
+    "onboarding",
+  );
+  assert.throws(
+    () =>
+      command(w, admin, "manual-complete", {
+        id,
+        stepId: job.steps[1].id,
+        note: "Verified",
+      }),
+    /earlier workflow steps/,
+  );
+  assert.equal(job.steps[1].status, "manual_required");
+  assert.throws(
+    () =>
+      command(w, { ...admin, role: "HR_ADMIN" }, "onboard", {
+        ...employeeInput(w),
+        email: "another@example.com",
+      }),
+    /permission/,
+  );
+  command(w, admin, "retry", { id });
+  assert.equal(claim(w)?.step.id, job.steps[0].id);
+  assert.equal(job.steps[2].attempts, 0);
+});

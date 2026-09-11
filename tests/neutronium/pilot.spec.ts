@@ -9,7 +9,7 @@ test("equipment checklist, completion evidence and private note in the service i
   const persona = page.getByLabel("Development persona");
   await persona.selectOption({ label: "Sarah Chen · Employee" });
   await page
-    .getByRole("button", { name: "Employee help", exact: true })
+    .getByRole("button", { name: "Get help", exact: true })
     .first()
     .click();
   await page
@@ -24,6 +24,10 @@ test("equipment checklist, completion evidence and private note in the service i
     page.getByRole("button", { name: "Pilot monitor", exact: true }),
   ).toBeVisible();
   await persona.selectOption("admin");
+  await page
+    .getByRole("navigation", { name: "Workspace navigation" })
+    .getByRole("button", { name: "Requests", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Employee help", exact: true })
     .first()
@@ -74,7 +78,7 @@ test("equipment checklist, completion evidence and private note in the service i
   ).toBeVisible();
   await persona.selectOption({ label: "Sarah Chen · Employee" });
   await page
-    .getByRole("button", { name: "Employee help", exact: true })
+    .getByRole("button", { name: "Get help", exact: true })
     .first()
     .click();
   await page

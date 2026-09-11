@@ -9,7 +9,7 @@ export const site = {
   // Used for absolute URLs, sitemap, and structured data.
   url: "https://runsit.ca",
   description:
-    "runsIT is an independent Canadian software company building business tools, consumer apps, and games. Explore Neutronium, HeaterDeals, and The Last Echo, and meet our three founders.",
+    "runsIT is an independent Canadian software company building business tools, consumer apps, and games. Explore Neutronium, PulseDeals, and The Last Echo, and meet our three founders.",
   email: "info@runs-it.com",
   phone: "+1 (555) 018-2240",
   phoneHref: "+15550182240",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRightIcon } from "@/components/icons";
 import { founders, products } from "@/lib/company";
 import { site } from "@/lib/site";
@@ -66,7 +67,14 @@ export default function HomePage() {
                   {product.id === "the-last-echo" ? (
                     <span className={styles.gameTitle}>THE LAST<br /><strong>ECHO</strong></span>
                   ) : (
-                    <span className={styles.productMonogram}>{product.monogram}</span>
+                    <Image
+                      src={product.artwork}
+                      alt=""
+                      width={1536}
+                      height={1024}
+                      className={styles.productImage}
+                      unoptimized
+                    />
                   )}
                   <span className={styles.artworkLabel}>{product.name}</span>
                   <span className={styles.productArrow}><ArrowRightIcon /></span>

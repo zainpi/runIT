@@ -7,17 +7,17 @@ export const products = [
       "A simpler workspace for company IT. Manage onboarding, employee access, and offboarding in one place.",
     href: "https://neutronium.runsit.ca/neutronium/",
     action: "Explore Neutronium",
-    monogram: "N",
+    artwork: "/products/neutronium-artwork.webp",
   },
   {
-    id: "heaterdeals",
-    name: "HeaterDeals",
+    id: "pulsedeals",
+    name: "PulseDeals",
     category: "Shopping & discovery",
     description:
       "A live feed of price drops worth moving on. Discover deals across the marketplaces you shop.",
-    href: "/heaterdeals/",
-    action: "Explore HeaterDeals",
-    monogram: "HD",
+    href: "/pulsedeals/",
+    action: "Explore PulseDeals",
+    artwork: "/products/pulsedeals-artwork.webp",
   },
   {
     id: "the-last-echo",
@@ -27,7 +27,6 @@ export const products = [
       "An idle RPG with a world to explore. Build your hero, discover new gear, and keep progressing while you’re away.",
     href: "/the-last-echo/",
     action: "Explore The Last Echo",
-    monogram: "",
   },
   {
     id: "local-lore",
@@ -37,7 +36,7 @@ export const products = [
       "How well do you know your streets? Try three-round geography challenges with named answers, map pins, and instant scores.",
     href: "/local-lore/",
     action: "Play Local Lore",
-    monogram: "LL",
+    artwork: "/products/local-lore-artwork.webp",
   },
 ] as const;
 

@@ -5,6 +5,8 @@ import { ValidatedForm } from "../form";
 import { requestJson } from "../http";
 import { SecuritySettings } from "../security-settings";
 import Link from "next/link";
+import { IntakeFields, type IntakeOptions } from "../intake-fields";
+import { openApplication, reviewLabels } from "@/lib/neutronium/intake";
 
 type User = {
   id: string;
@@ -13,6 +15,7 @@ type User = {
   mfa_verified_at?: string;
 };
 type Invitation = {
+  options?: IntakeOptions;
   companyName: string;
   expiresAt: string;
   available: boolean;
@@ -30,6 +33,7 @@ export function JoinCompany() {
   const [user, setUser] = useState<User | null>(null);
   const [mode, setMode] = useState("signup");
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -72,13 +76,13 @@ export function JoinCompany() {
     };
   }, [token, load]);
   useEffect(() => {
-    if (info?.application?.status !== "pending") return;
+    if (!info?.application || !openApplication(info.application.status)) return;
     const timer = setInterval(
       () => void load().catch((e) => setError(e.message)),
       15000,
     );
     return () => clearInterval(timer);
-  }, [info?.application?.status, load]);
+  }, [info?.application, load]);
   async function act(fn: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -156,9 +160,14 @@ export function JoinCompany() {
                     signupRole: "employee",
                     ...(mode === "signup" ? { joinToken: token } : {}),
                   });
-                  if (result.confirmationRequired)
+                  if (result.existingAccount) {
+                    setMode("login");
                     setMessage(
-                      "Check your email to confirm your account. The confirmation link will bring you back here to finish your employee application. Already have an account? Sign in below.",
+                      "Your account is already verified. Sign in with your existing password to continue this invitation.",
+                    );
+                  } else if (result.confirmationRequired)
+                    setMessage(
+                      "If this address needs verification, check your email to confirm your account. The confirmation link returns here. Already verified? Sign in below. Check junk mail if needed.",
                     );
                   else await load();
                 });
@@ -207,6 +216,29 @@ export function JoinCompany() {
                 type="button"
                 className="nt-button"
                 disabled={busy}
+                onClick={(e) => {
+                  const email =
+                    e.currentTarget.form?.querySelector<HTMLInputElement>(
+                      'input[name="email"]',
+                    );
+                  if (!email?.reportValidity()) return;
+                  void act(async () => {
+                    await post("auth/resend-confirmation", {
+                      email: email.value,
+                      joinToken: token,
+                    });
+                    setMessage(
+                      "If your email still needs confirmation, a new link has been requested. Check your inbox and junk mail. Already verified? Sign in.",
+                    );
+                  });
+                }}
+              >
+                Resend confirmation email
+              </button>
+              <button
+                type="button"
+                className="nt-button"
+                disabled={busy}
                 onClick={() => {
                   setMode(mode === "signup" ? "login" : "signup");
                   setError("");
@@ -237,40 +269,7 @@ export function JoinCompany() {
                 Email confirmed: <strong>{user.email}</strong>
               </p>
               <h2>Tell your administrator about yourself</h2>
-              <label>
-                First name
-                <input
-                  name="firstName"
-                  required
-                  maxLength={100}
-                  autoComplete="given-name"
-                />
-              </label>
-              <label>
-                Last name
-                <input
-                  name="lastName"
-                  required
-                  maxLength={100}
-                  autoComplete="family-name"
-                />
-              </label>
-              <label>
-                Job title (optional)
-                <input
-                  name="title"
-                  maxLength={100}
-                  autoComplete="organization-title"
-                />
-              </label>
-              <label>
-                Location (optional)
-                <input name="location" maxLength={100} />
-              </label>
-              <label>
-                Message for your administrator (optional)
-                <textarea name="note" maxLength={2000} />
-              </label>
+              <IntakeFields options={info.options} />
               <p>
                 Your administrator will review these details before you can
                 access the company workspace.
@@ -288,19 +287,69 @@ export function JoinCompany() {
         {application && (
           <div role="status">
             <h2>
-              {application.status === "pending"
+              {openApplication(application.status)
                 ? "Waiting for administrator approval"
                 : application.status === "accepted"
                   ? "You’re accepted"
                   : "Your application was declined"}
             </h2>
             <p>
-              {application.status === "pending"
+              {openApplication(application.status)
                 ? "Your details have been sent for review. You’ll get company access after an administrator accepts your application. This page updates automatically."
                 : application.status === "accepted"
                   ? "You can now open your company workspace. Your administrator has started your onboarding."
                   : "You haven’t been given access to this company. Contact your administrator if you think this was a mistake."}
             </p>
+            <p>
+              <strong>Status:</strong> {reviewLabels[application.status]}
+            </p>
+            <p>
+              {application.details.firstName} {application.details.lastName} ·{" "}
+              {application.details.department || "Team to be confirmed"} ·{" "}
+              {application.details.title || "Job title to be confirmed"} ·{" "}
+              {application.details.startDate || "Start date to be confirmed"}
+            </p>
+            {openApplication(application.status) && !editing && (
+              <button className="nt-button" onClick={() => setEditing(true)}>
+                View / edit my application
+              </button>
+            )}
+            {editing && (
+              <ValidatedForm
+                key={application.id}
+                onSubmit={(e) => {
+                  const details = Object.fromEntries(
+                    new FormData(e.currentTarget),
+                  );
+                  void act(async () => {
+                    await post("onboarding/edit-own", {
+                      ...details,
+                      token,
+                      id: application.id,
+                      revision: application.revision,
+                    });
+                    setEditing(false);
+                    await load();
+                    setMessage("Application updated and returned for review.");
+                  });
+                }}
+              >
+                <IntakeFields
+                  details={application.details}
+                  options={info?.options}
+                />
+                <button className="nt-button nt-primary" disabled={busy}>
+                  Save application
+                </button>
+                <button
+                  type="button"
+                  className="nt-button"
+                  onClick={() => setEditing(false)}
+                >
+                  Cancel
+                </button>
+              </ValidatedForm>
+            )}
             {application.decision_note && (
               <p>
                 <strong>Note from your administrator:</strong>{" "}
@@ -315,7 +364,7 @@ export function JoinCompany() {
                 Open my workspace
               </a>
             )}
-            {application.status === "pending" && (
+            {openApplication(application.status) && (
               <button
                 className="nt-button"
                 disabled={busy}

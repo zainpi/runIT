@@ -178,6 +178,18 @@ export async function readViewOnClient(
         )
       ).rows.map((r) => r.payload);
 
+    const targetJob = params.get("job");
+    if (targetJob) {
+      if (!/^[0-9a-f-]{36}$/i.test(targetJob))
+        throw new DomainError("Invalid workflow link.");
+      const job = (
+        await client.query(
+          "select payload from neutronium_jobs where organization_id=$1 and id=$2 and ($3::boolean or payload->>'employeeId'=$4)",
+          [a.orgId, targetJob, privileged, a.employeeId || ""],
+        )
+      ).rows[0]?.payload;
+      if (job && !w.jobs.some((j) => j.id === job.id)) w.jobs.push(job);
+    }
     const employeeIds = [
       a.employeeId,
       ...w.requests.map((r) => r.employeeId),

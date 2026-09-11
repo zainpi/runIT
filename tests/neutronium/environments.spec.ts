@@ -7,6 +7,10 @@ test("manage environment URLs and associated tester accounts", async ({
     page.getByRole("heading", { name: "Welcome back, Jamie" }),
   ).toBeVisible();
   await page
+    .getByRole("navigation", { name: "Workspace navigation" })
+    .getByRole("button", { name: "Settings", exact: true })
+    .click();
+  await page
     .getByRole("button", { name: "Test environments", exact: true })
     .click();
   await page

@@ -78,11 +78,12 @@ export async function sendLink(
           : "Confirm your Neutronium account",
       text: `${kind === "invite" ? "Open this link to accept your invitation and sign in. You can set your password in My profile." : "Open this link to confirm your email and continue to Neutronium. Your password is the one you chose when creating your account."} This link expires in 24 hours and can be used once.\n\n${link}`,
     });
-  } catch {
+  } catch (error) {
     await postgres().query(
       "delete from neutronium_auth_tokens where token_hash=$1",
       [digest(token)],
     );
+    if (error instanceof DomainError) throw error;
     throw new DomainError(
       "Authentication email could not be sent. Please retry.",
       503,
@@ -152,6 +153,22 @@ export async function accountAuth() {
               [email],
             )
           ).rows[0];
+        if (!user) {
+          const existing = (
+            await postgres().query(
+              "select password_hash from neutronium_users where email=$1 and verified",
+              [email],
+            )
+          ).rows[0];
+          if (
+            existing &&
+            (await verifyPassword(password, existing.password_hash))
+          )
+            return {
+              data: { session: null, existingAccount: true },
+              error: null,
+            };
+        }
         if (user) await sendLink(user.id, email, "signup", returnTo);
         return { data: { session: null }, error: null };
       },
@@ -247,4 +264,17 @@ export async function accountAuth() {
       },
     },
   };
+}
+
+export async function resendConfirmation(email: string, returnTo?: string) {
+  email = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)
+    throw new DomainError("Enter a valid email address.");
+  const user = (
+    await postgres().query(
+      "select id from neutronium_users where email=$1 and not verified",
+      [email],
+    )
+  ).rows[0];
+  if (user) await sendLink(user.id, email, "signup", returnTo);
 }

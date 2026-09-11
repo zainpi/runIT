@@ -538,6 +538,11 @@ export async function executeStep(
       status: "manual_required",
       note: "Portal access is approved. Arrange secure Microsoft first sign-in and record how the employee's access was verified.",
     };
+  if (step.operation === "accepted_invitation")
+    return {
+      status: "success",
+      note: "Verified employee account was approved and assigned company membership.",
+    };
   if (step.operation === "invitation")
     return w.demo
       ? {

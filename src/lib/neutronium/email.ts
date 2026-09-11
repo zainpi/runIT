@@ -76,15 +76,42 @@ export async function sendEmail(message: OutboundEmail) {
             subject: message.subject,
             text: message.text,
             ...(message.idempotencyKey
-              ? { headers: { "X-Neutronium-Notification": message.idempotencyKey } }
+              ? {
+                  headers: {
+                    "X-Neutronium-Notification": message.idempotencyKey,
+                  },
+                }
               : {}),
           }),
           signal: controller.signal,
         },
       );
-      if (!response.ok)
-        throw new Error(`Cloudflare email API returned ${response.status}.`);
-    } catch {
+      if (!response.ok) {
+        console.error("Neutronium email rejected", {
+          provider: "cloudflare_rest",
+          status: response.status,
+        });
+        throw new Error("Email provider rejected the request.");
+      }
+      const body = await response.json();
+      if (body.success !== true || !body.result?.message_id)
+        throw new Error("Email provider did not acknowledge the message.");
+      if (
+        body.result.permanent_bounces?.length ||
+        body.result.suppressed_recipients?.length
+      ) {
+        console.error("Neutronium email recipient rejected", {
+          provider: "cloudflare_rest",
+          bounced: body.result.permanent_bounces?.length || 0,
+          suppressed: body.result.suppressed_recipients?.length || 0,
+        });
+        throw new DomainError(
+          "Email delivery was rejected for this address. Check the address and your mail service’s blocked senders, then retry.",
+          503,
+        );
+      }
+    } catch (error) {
+      if (error instanceof DomainError) throw error;
       throw new DomainError(
         "Authentication email could not be sent. Please retry.",
         503,
@@ -109,14 +136,18 @@ export async function sendEmail(message: OutboundEmail) {
     });
     let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      await Promise.race([
+      const result = await Promise.race([
         transporter.sendMail({
           from: message.from,
           to: message.to,
           subject: message.subject,
           text: message.text,
           ...(message.idempotencyKey
-            ? { headers: { "X-Neutronium-Notification": message.idempotencyKey } }
+            ? {
+                headers: {
+                  "X-Neutronium-Notification": message.idempotencyKey,
+                },
+              }
             : {}),
         }),
         new Promise<never>((_, reject) => {
@@ -126,6 +157,8 @@ export async function sendEmail(message: OutboundEmail) {
           );
         }),
       ]);
+      if (result.rejected?.length || !result.accepted?.length)
+        throw new Error("SMTP rejected the recipient.");
     } catch {
       throw new DomainError(
         "Authentication email could not be sent. Please retry.",
