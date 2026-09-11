@@ -34,7 +34,7 @@ export const products = [
     name: "Local Lore",
     category: "Browser game · Toronto",
     description:
-      "Know your Toronto. Explore real Street View photos, drop a map pin, and build your local knowledge across three-round games.",
+      "Explore Toronto, New York City, Vancouver and London through real Street View photos. Drop a map pin and build your local knowledge across three-round games.",
     href: "/local-lore/",
     action: "Play Local Lore",
     monogram: "LL",

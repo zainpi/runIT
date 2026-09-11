@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#173229" />
-    <title>Local Lore — Know your Toronto</title>
+    <title>Local Lore — Know your city</title>
     <meta
       name="description"
-      content="A Toronto street-knowledge game. Recognize real Street View photos, and place your guess on the map."
+      content="Explore Toronto, New York City, Vancouver and London. Recognize real Street View photos and place your guess on the map."
     />
-    <link rel="stylesheet" href="./style.css?v=location1" />
-    <script type="module" src="./app.js?v=location1"></script>
+    <link rel="stylesheet" href="./style.css?v=cities1" />
+    <script type="module" src="./app.js?v=cities1"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to game</a>
@@ -33,7 +33,8 @@
           <div class="setup-grid">
             <div class="setup-intro">
               <p class="eyebrow">
-                <span class="eyebrow-dot"></span>TORONTO · REAL PLACES
+                <span class="eyebrow-dot"></span
+                ><span id="city-eyebrow">FOUR CITIES · REAL PLACES</span>
               </p>
               <h1>Your city.<br />A little more<br /><em>familiar.</em></h1>
               <p class="intro-copy">
@@ -77,8 +78,8 @@
                   ><input type="radio" name="mode" value="daily" checked /><span
                     ><b>The daily three</b
                     ><small
-                      >The same intersections for everyone today. One saved
-                      attempt. No clues.</small
+                      >The same intersections for everyone in each city today.
+                      One attempt per city. No clues.</small
                     ></span
                   ><span class="tag">DAILY</span></label
                 ><label class="mode-card"
@@ -93,7 +94,7 @@
                   ><input type="radio" name="mode" value="landmark" /><span
                     ><b>Landmark links</b
                     ><small
-                      >Recognize a Toronto building and find its place on the
+                      >Recognize a landmark and find its place on the
                       map.</small
                     ></span
                   ></label
@@ -112,9 +113,9 @@
               <button id="start" class="primary-button wide" disabled>
                 Start the daily three <span>↗</span>
               </button>
-              <p class="fine">
-                Centred near Spadina & Dundas. Wider areas use our current
-                downtown collection; new places will be added over time.
+              <p id="area-note" class="fine">
+                Play a curated collection in Toronto, New York City, Vancouver
+                or London.
               </p>
             </form>
           </div>
@@ -273,7 +274,7 @@
         </section>
       </main>
       <footer>
-        <span>Local Lore · Toronto</span
+        <span>Local Lore · Know your city</span
         ><span
           ><a href="./privacy.html">Privacy</a> ·
           <a href="./terms.html">Terms</a> ·

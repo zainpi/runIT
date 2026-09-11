@@ -211,6 +211,12 @@ function selectedMode() {
 }
 function coverage() {
   const mode = selectedMode();
+  const city = selectedCity();
+  if (city) {
+    $("city-eyebrow").textContent = `${city.name.toUpperCase()} · REAL PLACES`;
+    $("area-note").textContent =
+      `${city.area || city.name}. Wider areas use this city's current collection; more places will be added over time.`;
+  }
   $("radius").disabled = mode === "daily";
   if (mode === "daily") $("radius").value = "3";
   const radius = Number($("radius").value),
@@ -219,7 +225,7 @@ function coverage() {
         (c) => c.mode === mode && c.radius === radius,
       )?.count || 0;
   $("coverage").textContent = config
-    ? `${count} verified ${mode === "landmark" ? "landmarks" : "intersections"} in this area${count < 3 ? " · choose a wider area to play" : mode === "daily" ? " · resets at midnight Toronto time" : ""}.`
+    ? `${count} verified ${mode === "landmark" ? "landmarks" : "intersections"} in this area${count < 3 ? " · choose a wider area to play" : mode === "daily" ? ` · resets at midnight ${city?.name || "Toronto"} time` : ""}.`
     : "Connecting to the game…";
   $("start").disabled = !config?.ready || count < 3 || busy;
   $("start").textContent =
@@ -381,7 +387,7 @@ async function playRound() {
   pin = null;
   go("play");
   $("round-meta").textContent =
-    `${names[game.mode]} · ${game.day} · ROUND ${round.ordinal} / ${game.total_rounds}`;
+    `${game.city || "Toronto"} · ${game.day} · ROUND ${round.ordinal} / ${game.total_rounds}`;
   $("prompt").textContent = round.prompt;
   $("prompt").focus();
   $("answer-form").hidden = false;
@@ -411,8 +417,14 @@ function showSummary() {
 async function enterGame(nextGame) {
   const different = game?.id !== nextGame.id;
   game = nextGame;
+  $("scene").alt =
+    `Street View of the ${game.city || "Toronto"} location for this round`;
+  $("map-image").alt = `Google map of ${game.city || "Toronto"}`;
   location.hash = "game=" + game.id;
   if (different) {
+    // A slow map from the previous city must not overwrite this game's map.
+    mapGeneration++;
+    mapBusy = false;
     mapCenter = { ...game.center };
     mapZoom = game.map_zoom;
     mapKey = "";
@@ -437,9 +449,10 @@ async function submit(method) {
     $("clue-box").hidden = true;
     $("reveal").hidden = false;
     $("result-score").textContent = `${result.score.toLocaleString()} / 1,000`;
-    $("result-label").textContent = result.name
-      ? `${result.name} · ${result.label}`
-      : result.label;
+    $("result-label").textContent =
+      result.name && result.name !== result.label
+        ? `${result.name} · ${result.label}`
+        : result.label;
     $("result-detail").textContent =
       method === "skip"
         ? "Skipped — take a moment to remember this place."
@@ -499,7 +512,7 @@ async function refreshHistory() {
     ...data.games.map((g) =>
       record(
         names[g.mode],
-        `${g.day} · ${g.completed}/3 rounds · ${g.score.toLocaleString()} points`,
+        `${g.city || "Toronto"} · ${g.day} · ${g.completed}/3 rounds · ${g.score.toLocaleString()} points`,
         g.completed === 3 ? "View set" : "Resume",
         () => resume(g.id),
       ),
@@ -515,7 +528,7 @@ async function refreshHistory() {
       .map((g) =>
         record(
           "Pick up " + names[g.mode].toLowerCase(),
-          `${g.completed}/3 rounds complete · ${g.day}`,
+          `${g.city || "Toronto"} · ${g.completed}/3 rounds complete · ${g.day}`,
           "Resume",
           () => resume(g.id),
         ),
@@ -528,7 +541,7 @@ async function refreshHistory() {
       const h = document.createElement("h2"),
         p = document.createElement("p");
       h.textContent = n.label;
-      p.textContent = n.note;
+      p.textContent = `${n.city || "Toronto"} · ${n.note}`;
       e.append(h, p);
       return e;
     }),
@@ -638,8 +651,18 @@ for (const b of document.querySelectorAll("[data-map]"))
       };
       mapCenter = unproject(...offsets[action], mapCenter, mapZoom);
     }
-    mapCenter.latitude = Math.max(43.4, Math.min(43.9, mapCenter.latitude));
-    mapCenter.longitude = Math.max(-79.8, Math.min(-79.1, mapCenter.longitude));
+    const bounds =
+      game.bounds ||
+      SUPPORTED_CITIES.find((city) => city.id === (game.city_id || "toronto"))
+        .bounds;
+    mapCenter.latitude = Math.max(
+      bounds.south,
+      Math.min(bounds.north, mapCenter.latitude),
+    );
+    mapCenter.longitude = Math.max(
+      bounds.west,
+      Math.min(bounds.east, mapCenter.longitude),
+    );
     await loadMap();
   };
 $("map").onclick = (e) => {

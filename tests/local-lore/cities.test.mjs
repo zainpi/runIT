@@ -9,7 +9,6 @@ import {
 const cities = [
   ...SUPPORTED_CITIES,
   { id: "test-montreal", center: { latitude: 45.5019, longitude: -73.5674 } },
-  { id: "test-vancouver", center: { latitude: 49.2827, longitude: -123.1207 } },
 ];
 test("nearest city is chosen from supported centres, including far-away players", () => {
   assert.equal(
@@ -18,11 +17,18 @@ test("nearest city is chosen from supported centres, including far-away players"
   );
   assert.equal(
     nearestCity({ latitude: 49.2, longitude: -123 }, cities).city_id,
-    "test-vancouver",
+    "vancouver",
   );
   const current = nearestCity({ latitude: 49.2, longitude: -123 });
-  assert.equal(current.city_id, "toronto");
-  assert.ok(current.distance_km > 3300 && current.distance_km < 3400);
+  assert.equal(current.city_id, "vancouver");
+  assert.ok(current.distance_km < 20);
+  for (const city of SUPPORTED_CITIES)
+    assert.equal(nearestCity(city.center).city_id, city.id);
+  assert.equal(
+    nearestCity({ latitude: 51.5, longitude: -0.1 }).city_id,
+    "london",
+  );
+  assert.equal(nearestCity({ latitude: 40.7, longitude: -74 }).city_id, "nyc");
   assert.equal(nearestCity(SUPPORTED_CITIES[0].center).distance_km, 0);
   assert.equal(nearestCity({ latitude: 0, longitude: 0 }, []), null);
 });

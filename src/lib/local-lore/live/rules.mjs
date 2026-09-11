@@ -1,5 +1,5 @@
 import { scoreNamed, scorePin, SCORING_PROFILES } from "../core/scoring.mjs";
-import { SUPPORTED_CITIES } from "./cities.mjs";
+import { SUPPORTED_CITIES, cityById } from "./cities.mjs";
 export const CENTER = SUPPORTED_CITIES[0].center;
 export const RADII = [1, 3, 5, 10];
 export const MODES = ["daily", "around", "landmark"];
@@ -52,21 +52,28 @@ export function normalize(value) {
     .sort()
     .join("|");
 }
-export function eligible(catalog, mode, radius) {
+export function eligible(catalog, mode, radius, cityId = "toronto") {
+  const city = cityById(cityId);
+  if (!city) return [];
   return catalog.filter(
     (c) =>
+      (c.city_id || "toronto") === cityId &&
       (mode === "landmark"
         ? c.type === "landmark"
-        : c.type === "intersection") && distance(CENTER, c) <= radius * 1000,
+        : c.type === "intersection") &&
+      distance(city.center, c) <= radius * 1000,
   );
 }
-export function torontoDay(now = new Date()) {
+export function cityDay(cityId = "toronto", now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Toronto",
+    timeZone: cityById(cityId).time_zone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(now);
+}
+export function torontoDay(now = new Date()) {
+  return cityDay("toronto", now);
 }
 export function mapZoom(radius) {
   return { 1: 14, 3: 13, 5: 12, 10: 11 }[radius];

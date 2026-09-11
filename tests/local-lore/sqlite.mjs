@@ -15,6 +15,18 @@ export function createDatabase(path = ":memory:") {
         "utf8",
       ),
     );
+  if (
+    !sqlite
+      .prepare("PRAGMA table_info(ll_games)")
+      .all()
+      .some((column) => column.name === "city_id")
+  )
+    sqlite.exec(
+      readFileSync(
+        new URL("../../migrations/local-lore/0002_cities.sql", import.meta.url),
+        "utf8",
+      ),
+    );
   const db = {
     prepare(sql) {
       let args = [];

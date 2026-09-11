@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import { createDatabase } from "./sqlite.mjs";
 import { handleLocalLore, cleanupLocalLore } from "../../src/lib/local-lore/live/api.mjs";
 import { CATALOG } from "../../src/lib/local-lore/live/catalog.mjs";
+import { SUPPORTED_CITIES, cityById } from "../../src/lib/local-lore/live/cities.mjs";
 import {
   score,
   acceptedName,
   distance,
   torontoDay,
+  cityDay,
   eligible,
 } from "../../src/lib/local-lore/live/rules.mjs";
 import { project, unproject } from "../../public/local-lore/map-math.mjs";
@@ -93,26 +95,26 @@ test("city recommendation uses trusted network metadata without Google calls or 
     "/config",
     undefined,
     {},
-    { latitude: "49.2827", longitude: "-123.1207" },
+    { latitude: "49.28123456", longitude: "-123.12123456" },
   );
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "private, no-store");
   assert.deepEqual(
     data.cities.map((city) => city.id),
-    ["toronto"],
+    ["toronto", "nyc", "vancouver", "london"],
   );
-  assert.equal(data.recommendation.city_id, "toronto");
+  assert.equal(data.recommendation.city_id, "vancouver");
   assert.equal(data.recommendation.source, "approximate");
-  assert.ok(data.recommendation.distance_km > 3300);
-  assert.ok(!JSON.stringify(data).includes("49.2827"));
-  assert.ok(!JSON.stringify(data).includes("-123.1207"));
+  assert.ok(data.recommendation.distance_km < 2);
+  assert.ok(!JSON.stringify(data).includes("49.28123456"));
+  assert.ok(!JSON.stringify(data).includes("-123.12123456"));
   assert.equal(h.calls.length, 0);
   assert.equal(
     (await h.request("/config")).data.recommendation.source,
     "default",
   );
   const rejected = await h.request("/games", {
-    city_id: "vancouver",
+    city_id: "unavailable-city",
     mode: "around",
     radius: 3,
     request_id: crypto.randomUUID(),
@@ -422,4 +424,130 @@ test("live guesses persist the new curve and cannot rescore a submitted round", 
   const retry = await h.request(path, { method: "pin", pin: target });
   assert.deepEqual(retry.data.result, answer.data.result);
   assert.equal((await h.request("/history")).data.games[0].score, 638);
+});
+
+test("each city has separate daily attempts, local dates, maps and saved results", async (t) => {
+  const h = harness();
+  t.after(() => h.db.close());
+  await h.request("/config"); // Establish one player before concurrent starts.
+  const games = new Map();
+  for (const city of SUPPORTED_CITIES) {
+    const input = {
+      city_id: city.id,
+      mode: "daily",
+      radius: 3,
+      request_id: crypto.randomUUID(),
+    };
+    const [first, duplicate] = await Promise.all([
+      h.request("/games", input),
+      h.request("/games", { ...input, request_id: crypto.randomUUID() }),
+    ]);
+    assert.equal(first.response.status, 201);
+    assert.equal(duplicate.data.id, first.data.id);
+    const game = first.data;
+    games.set(city.id, game);
+    assert.equal(game.city_id, city.id);
+    assert.equal(game.day, cityDay(city.id));
+    assert.deepEqual(game.center, city.center);
+    assert.deepEqual(game.bounds, city.bounds);
+    const target = await h.target(game.current);
+    assert.equal(target.city_id, city.id);
+    const invalidCity = SUPPORTED_CITIES.find((c) => c.id !== city.id);
+    const bad = await h.request(
+      `/games/${game.id}/rounds/${game.current.id}/guess`,
+      { method: "pin", pin: invalidCity.center },
+    );
+    assert.equal(bad.response.status, 400);
+    const wrongMap = await h.request(
+      `/games/${game.id}/map?lat=${invalidCity.center.latitude}&lng=${invalidCity.center.longitude}&zoom=13`,
+    );
+    assert.equal(wrongMap.response.status, 400);
+    const map = await h.request(`/games/${game.id}/map`);
+    assert.equal(map.response.status, 200);
+    assert.equal(
+      new URL(h.calls.at(-1)).searchParams.get("center"),
+      `${city.center.latitude},${city.center.longitude}`,
+    );
+    const answer = await h.request(
+      `/games/${game.id}/rounds/${game.current.id}/guess`,
+      { method: "pin", pin: target },
+    );
+    assert.equal(answer.data.result.score, 1000);
+    assert.equal((await h.request(`/games/${game.id}`)).data.city_id, city.id);
+  }
+  assert.equal(new Set([...games.values()].map((g) => g.id)).size, 4);
+  const history = (await h.request("/history")).data;
+  assert.equal(history.games.length, 4);
+  assert.equal(history.notes.length, 4);
+  assert.deepEqual(
+    new Set(history.games.map((g) => g.city_id)),
+    new Set(SUPPORTED_CITIES.map((c) => c.id)),
+  );
+  assert.ok(history.games.every((g) => g.score === 1000));
+  const conflictKey = crypto.randomUUID();
+  await h.request("/games", {
+    city_id: "toronto",
+    mode: "around",
+    radius: 3,
+    request_id: conflictKey,
+  });
+  assert.equal(
+    (
+      await h.request("/games", {
+        city_id: "london",
+        mode: "around",
+        radius: 3,
+        request_id: conflictKey,
+      })
+    ).response.status,
+    409,
+  );
+});
+
+test("all city modes sample only their own source locations and coverage matches", async (t) => {
+  const h = harness();
+  t.after(() => h.db.close());
+  const config = (await h.request("/config")).data;
+  for (const city of config.cities) {
+    for (const mode of ["daily", "around", "landmark"]) {
+      const count = city.coverage.find(
+        (c) => c.mode === mode && c.radius === 3,
+      ).count;
+      assert.ok(count >= 3);
+      assert.equal(count, eligible(CATALOG, mode, 3, city.id).length);
+      const start = await h.request("/games", {
+        city_id: city.id,
+        mode,
+        radius: 3,
+        request_id: crypto.randomUUID(),
+      });
+      assert.equal(start.response.status, 201);
+      const ids = [];
+      for (const round of start.data.rounds) {
+        const target = await h.target(round);
+        ids.push(target.id);
+        assert.equal(target.city_id, city.id);
+        assert.equal(
+          target.type,
+          mode === "landmark" ? "landmark" : "intersection",
+        );
+        assert.ok(distance(target, city.center) <= 3000);
+      }
+      assert.equal(new Set(ids).size, 3);
+    }
+  }
+});
+
+test("city daily dates respect their local midnight across seasons", () => {
+  const september = new Date("2026-09-11T04:30:00Z");
+  assert.equal(cityDay("nyc", september), "2026-09-11");
+  assert.equal(cityDay("vancouver", september), "2026-09-10");
+  assert.equal(
+    cityDay("london", new Date("2026-09-10T23:30:00Z")),
+    "2026-09-11",
+  );
+  assert.equal(
+    cityDay("london", new Date("2026-01-10T23:30:00Z")),
+    "2026-01-10",
+  );
 });

@@ -5,8 +5,42 @@ export const SUPPORTED_CITIES = [
     name: "Toronto",
     country: "Canada",
     center: { latitude: 43.655, longitude: -79.397 },
+    time_zone: "America/Toronto",
+    area: "Downtown Toronto, centred near Spadina & Dundas",
+    bounds: { south: 43.4, north: 43.9, west: -79.8, east: -79.1 },
+  },
+  {
+    id: "nyc",
+    name: "New York City",
+    country: "United States",
+    center: { latitude: 40.754, longitude: -73.984 },
+    time_zone: "America/New_York",
+    area: "Midtown Manhattan, centred near Bryant Park",
+    bounds: { south: 40.5, north: 40.95, west: -74.3, east: -73.65 },
+  },
+  {
+    id: "vancouver",
+    name: "Vancouver",
+    country: "Canada",
+    center: { latitude: 49.2827, longitude: -123.1207 },
+    time_zone: "America/Vancouver",
+    area: "Downtown Vancouver, centred near the Vancouver Art Gallery",
+    bounds: { south: 49.15, north: 49.4, west: -123.3, east: -122.95 },
+  },
+  {
+    id: "london",
+    name: "London",
+    country: "United Kingdom",
+    center: { latitude: 51.511, longitude: -0.128 },
+    time_zone: "Europe/London",
+    area: "Central London, centred near Leicester Square",
+    bounds: { south: 51.35, north: 51.7, west: -0.4, east: 0.15 },
   },
 ];
+
+export function cityById(id = "toronto") {
+  return SUPPORTED_CITIES.find((city) => city.id === id);
+}
 
 export function validLocation(point) {
   return Boolean(

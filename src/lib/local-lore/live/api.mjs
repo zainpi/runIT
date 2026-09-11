@@ -1,5 +1,5 @@
 import { CATALOG } from "./catalog.mjs";
-import { SUPPORTED_CITIES, approximateCity } from "./cities.mjs";
+import { SUPPORTED_CITIES, approximateCity, cityById } from "./cities.mjs";
 import {
   CENTER,
   RADII,
@@ -7,6 +7,7 @@ import {
   RULES_VERSION,
   eligible,
   torontoDay,
+  cityDay,
   mapZoom,
   score,
   distance,
@@ -45,19 +46,19 @@ const digest = async (text) =>
     .join("");
 const rows = async (stmt) => (await stmt.all()).results;
 const now = () => Date.now();
-function inputPoint(p) {
+function inputPoint(p, city) {
   if (
     !p ||
     typeof p.latitude !== "number" ||
     typeof p.longitude !== "number" ||
     !Number.isFinite(p.latitude) ||
     !Number.isFinite(p.longitude) ||
-    p.latitude < 43.4 ||
-    p.latitude > 43.9 ||
-    p.longitude < -79.8 ||
-    p.longitude > -79.1
+    p.latitude < city.bounds.south ||
+    p.latitude > city.bounds.north ||
+    p.longitude < city.bounds.west ||
+    p.longitude > city.bounds.east
   )
-    fail("Choose a point on the Toronto map.");
+    fail(`Choose a point on the ${city.name} map.`);
   return { latitude: p.latitude, longitude: p.longitude };
 }
 async function bodyOf(request) {
@@ -147,17 +148,21 @@ async function ownedGame(ctx, gameId) {
 }
 async function viewGame(ctx, gameId) {
   const { game, rounds } = await ownedGame(ctx, gameId),
+    city = cityById(game.city_id),
     current = rounds.find((r) => !r.result_json);
   return {
     id: game.id,
-    city_id: "toronto",
+    city_id: city.id,
+    city: city.name,
     mode: game.mode,
     radius: game.radius,
     day: game.day_key,
     created_at: game.created_at,
     total_rounds: rounds.length,
     complete: !current,
-    center: CENTER,
+    center: city.center,
+    bounds: city.bounds,
+    time_zone: city.time_zone,
     map_zoom: mapZoom(game.radius),
     rules_version: RULES_VERSION,
     rounds: rounds.map((r) => ({
@@ -180,13 +185,16 @@ async function viewGame(ctx, gameId) {
         }
       : null,
     answer_options: [
-      ...new Set(eligible(CATALOG, game.mode, game.radius).map((c) => c.label)),
+      ...new Set(
+        eligible(CATALOG, game.mode, game.radius, city.id).map((c) => c.label),
+      ),
     ].sort(),
   };
 }
 async function createGame(ctx, input) {
-  if (input.city_id !== undefined && input.city_id !== "toronto")
-    fail("That city is not available yet. Choose Toronto to play.", 422);
+  const city = cityById(input.city_id ?? "toronto");
+  if (!city)
+    fail("That city is not available. Choose a supported city to play.", 422);
   if (!ctx.env.LOCAL_LORE_GOOGLE_MAPS_API_KEY)
     fail("Live maps are not configured yet.", 503);
   if (
@@ -198,25 +206,36 @@ async function createGame(ctx, input) {
     fail("Choose a valid mode and radius.");
   const mode = input.mode,
     radius = mode === "daily" ? 3 : input.radius,
-    day = torontoDay();
+    day = cityDay(city.id),
+    limitDay = torontoDay();
   const previous = await ctx.db
     .prepare(
-      "SELECT id FROM ll_games WHERE guest_id=? AND (start_key=? OR (mode='daily' AND ?='daily' AND day_key=?)) ORDER BY created_at DESC LIMIT 1",
+      "SELECT id,city_id FROM ll_games WHERE guest_id=? AND (start_key=? OR (city_id=? AND mode='daily' AND ?='daily' AND day_key=?)) ORDER BY created_at DESC LIMIT 1",
     )
-    .bind(ctx.guest, input.request_id, mode, day)
+    .bind(ctx.guest, input.request_id, city.id, mode, day)
     .first();
-  if (previous) return viewGame(ctx, previous.id);
+  if (previous) {
+    if (previous.city_id !== city.id)
+      fail("This request belongs to another city. Start a new set.", 409);
+    return viewGame(ctx, previous.id);
+  }
   await useLimit(
     ctx.db,
-    `games:player:${ctx.guest}:${day}`,
+    `games:player:${ctx.guest}:${limitDay}`,
     limits(ctx.env).playerGames,
     now() + 2 * DAY,
   );
-  await useLimit(ctx.db, `games:ip:${ctx.ip}:${day}`, 30, now() + 2 * DAY);
-  const available = eligible(CATALOG, mode, radius);
+  await useLimit(ctx.db, `games:ip:${ctx.ip}:${limitDay}`, 30, now() + 2 * DAY);
+  const available = eligible(CATALOG, mode, radius, city.id);
   if (available.length < 3)
     fail("Not enough places in this radius. Choose a wider area.", 422);
-  const seed = mode === "daily" ? day : crypto.randomUUID();
+  // Preserve Toronto's existing daily set while isolating new cities.
+  const seed =
+    mode === "daily"
+      ? city.id === "toronto"
+        ? day
+        : `${city.id}:${day}`
+      : crypto.randomUUID();
   const shuffled = await Promise.all(
     available.map(async (c) => ({ c, order: await digest(seed + c.id) })),
   );
@@ -229,9 +248,18 @@ async function createGame(ctx, input) {
     await ctx.db.batch([
       ctx.db
         .prepare(
-          "INSERT INTO ll_games(id,guest_id,start_key,mode,radius,day_key,created_at) VALUES(?,?,?,?,?,?,?)",
+          "INSERT INTO ll_games(id,guest_id,start_key,mode,radius,day_key,created_at,city_id) VALUES(?,?,?,?,?,?,?,?)",
         )
-        .bind(gameId, ctx.guest, input.request_id, mode, radius, day, now()),
+        .bind(
+          gameId,
+          ctx.guest,
+          input.request_id,
+          mode,
+          radius,
+          day,
+          now(),
+          city.id,
+        ),
       ...selected.map((c, i) =>
         ctx.db
           .prepare(
@@ -243,11 +271,15 @@ async function createGame(ctx, input) {
   } catch (error) {
     const retry = await ctx.db
       .prepare(
-        "SELECT id FROM ll_games WHERE guest_id=? AND (start_key=? OR (mode='daily' AND ?='daily' AND day_key=?)) LIMIT 1",
+        "SELECT id,city_id FROM ll_games WHERE guest_id=? AND (start_key=? OR (city_id=? AND mode='daily' AND ?='daily' AND day_key=?)) LIMIT 1",
       )
-      .bind(ctx.guest, input.request_id, mode, day)
+      .bind(ctx.guest, input.request_id, city.id, mode, day)
       .first();
-    if (retry) return viewGame(ctx, retry.id);
+    if (retry) {
+      if (retry.city_id !== city.id)
+        fail("This request belongs to another city. Start a new set.", 409);
+      return viewGame(ctx, retry.id);
+    }
     throw error;
   }
   return viewGame(ctx, gameId);
@@ -261,7 +293,7 @@ async function currentRound(ctx, gameId, roundId, allowFinished = false) {
   return { game, round };
 }
 async function guess(ctx, gameId, roundId, input) {
-  const { round } = await currentRound(ctx, gameId, roundId, true);
+  const { game, round } = await currentRound(ctx, gameId, roundId, true);
   if (round.result_json)
     return {
       result: JSON.parse(round.result_json),
@@ -277,7 +309,10 @@ async function guess(ctx, gameId, roundId, input) {
       input.text.length > 200)
   )
     fail("Enter a street or intersection name.");
-  const point = input.method === "pin" ? inputPoint(input.pin) : null;
+  const point =
+    input.method === "pin"
+      ? inputPoint(input.pin, cityById(game.city_id))
+      : null;
   const target = targets.get(round.target_id);
   for (let attempt = 0; attempt < 3; attempt++) {
     const latest = await ctx.db
@@ -334,7 +369,7 @@ async function metadata(ctx, target) {
   if (!data || data.status !== "OK") {
     data = await fetchMeta({
       location: `${target.latitude},${target.longitude}`,
-      radius: "50",
+      radius: target.type === "landmark" ? "150" : "50",
       source: "outdoor",
     });
     if (data.status !== "OK")
@@ -425,7 +460,7 @@ async function history(ctx) {
   const records = await rows(
     ctx.db
       .prepare(
-        "SELECT g.id,g.mode,g.radius,g.day_key,g.created_at,r.ordinal,r.result_json FROM ll_games g JOIN ll_rounds r ON r.game_id=g.id WHERE g.guest_id=? AND g.created_at>? ORDER BY g.created_at DESC,r.ordinal LIMIT 300",
+        "SELECT g.id,g.city_id,g.mode,g.radius,g.day_key,g.created_at,r.ordinal,r.result_json FROM ll_games g JOIN ll_rounds r ON r.game_id=g.id WHERE g.guest_id=? AND g.created_at>? ORDER BY g.created_at DESC,r.ordinal LIMIT 300",
       )
       .bind(ctx.guest, now() - 90 * DAY),
   );
@@ -434,6 +469,8 @@ async function history(ctx) {
   for (const r of records) {
     const g = games.get(r.id) || {
       id: r.id,
+      city_id: r.city_id,
+      city: cityById(r.city_id).name,
       mode: r.mode,
       radius: r.radius,
       day: r.day_key,
@@ -446,8 +483,11 @@ async function history(ctx) {
       const result = JSON.parse(r.result_json);
       g.score += result.score;
       g.completed++;
-      if (result.method !== "skip" && !notes.has(result.label))
-        notes.set(result.label, {
+      const noteKey = r.city_id + ":" + result.label;
+      if (result.method !== "skip" && !notes.has(noteKey))
+        notes.set(noteKey, {
+          city_id: r.city_id,
+          city: cityById(r.city_id).name,
           label: result.label,
           note: result.note,
           correct: result.correct,
@@ -510,7 +550,17 @@ export async function handleLocalLore(request, env, options = {}) {
       response = json({
         ready: Boolean(env.LOCAL_LORE_GOOGLE_MAPS_API_KEY),
         city: "Toronto",
-        cities: SUPPORTED_CITIES,
+        cities: SUPPORTED_CITIES.map((city) => ({
+          ...city,
+          day: cityDay(city.id),
+          coverage: MODES.flatMap((mode) =>
+            RADII.map((radius) => ({
+              mode,
+              radius,
+              count: eligible(CATALOG, mode, radius, city.id).length,
+            })),
+          ),
+        })),
         recommendation: approximateCity(request.cf),
         center: CENTER,
         day: torontoDay(),
@@ -537,12 +587,23 @@ export async function handleLocalLore(request, env, options = {}) {
         response = json(await viewGame(ctx, gameMatch[1]));
       else if (mapMatch && request.method === "GET") {
         const { game } = await ownedGame(ctx, mapMatch[1]);
-        const center = url.searchParams.has("lat")
-          ? inputPoint({
-              latitude: Number(url.searchParams.get("lat")),
-              longitude: Number(url.searchParams.get("lng")),
-            })
-          : CENTER;
+        const city = cityById(game.city_id);
+        const hasCenter =
+          url.searchParams.has("lat") || url.searchParams.has("lng");
+        if (
+          hasCenter &&
+          (!url.searchParams.get("lat") || !url.searchParams.get("lng"))
+        )
+          fail("Choose a complete map position.");
+        const center = hasCenter
+          ? inputPoint(
+              {
+                latitude: Number(url.searchParams.get("lat")),
+                longitude: Number(url.searchParams.get("lng")),
+              },
+              city,
+            )
+          : city.center;
         const zoom = Number(
           url.searchParams.get("zoom") || mapZoom(game.radius),
         );

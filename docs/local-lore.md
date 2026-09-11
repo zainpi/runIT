@@ -9,16 +9,31 @@ Worker. The repository currently triggers builds for both `runit` and
 `Workers Builds: runit` check for production. Do not infer domain routing from
 the Wrangler default alone.
 
-Local Lore uses real Google Street View photos and Static Maps, with 17
-independently sourced OpenStreetMap intersections and five Toronto landmarks.
+Local Lore uses real Google Street View photos and Static Maps with 80
+independently sourced OpenStreetMap locations:
+
+| City | Intersections | Landmarks | Starting collection |
+| --- | ---: | ---: | --- |
+| Toronto | 17 | 5 | Downtown, near Spadina & Dundas |
+| New York City | 14 | 7 | Midtown Manhattan, near Bryant Park |
+| Vancouver | 14 | 6 | Downtown, near the Vancouver Art Gallery |
+| London, UK | 10 | 7 | Central London, near Leicester Square |
+
+All 58 new NYC, Vancouver and London targets passed Street View metadata and
+camera-distance checks on September 11, 2026. The collection keeps OSM positions;
+Google panorama positions are used only transiently to validate camera distance
+and calculate the view heading.
 Three-round daily, intersection practice, and landmark games use map pins,
 clue penalties, reveals, and saved scores/notebooks. Desktop play keeps the
 photo and map side by side with actions underneath in a viewport-sized layout.
 Phones switch between Photo and Map in the same space; the site footer remains
 on the other screens so the active round has room for the map and results.
-The daily set follows Toronto time and gives the same places to all players.
+The daily set follows each city's local date and gives the same places to all
+players in that city. Players get one daily attempt per city per local day.
 The 1 km landmark area has insufficient coverage and requires a wider radius.
-Wider radii currently reuse the downtown collection; this is not citywide coverage.
+That limitation applies to Toronto; coverage counts are calculated separately
+for each city, mode and radius. Wider radii reuse each city's current collection;
+this is not citywide coverage.
 
 ## Location and city selection
 
@@ -37,13 +52,15 @@ selected city is remembered locally and takes priority until the player uses
 automatic location again. Late location results cannot replace a manual choice
 or change a round that has already started.
 
-Toronto is currently the only supported city. The UI says so explicitly;
-players elsewhere get Toronto as the nearest available fallback, not a game
-around their exact location. `src/lib/local-lore/live/cities.mjs` is exported
-for both server and browser use. Adding a city requires a verified catalogue,
-city-aware game persistence, eligibility, map bounds and daily scheduling;
-do not add a city to this list before the runtime can serve it. The API rejects
-unsupported `city_id` values and accepts omitted IDs from older clients.
+The supported city IDs are `toronto`, `nyc`, `vancouver` and `london` (UK).
+Players elsewhere get whichever of these is nearest, not a game around their
+exact coordinates. `src/lib/local-lore/live/cities.mjs` is exported for both
+server and browser use and contains centres, allowed map bounds and IANA time
+zones. The API persists the selected city, samples only that city's targets,
+validates guesses and map requests against its bounds, and labels scores and
+notebook entries by city. Resuming a game uses its saved city independently of
+the currently selected city. Omitted city IDs from older clients mean Toronto;
+unsupported IDs and request IDs reused for another city are rejected.
 
 ## Runtime and data
 
@@ -86,7 +103,9 @@ submitted scores remain committed as originally earned.
 Google image bytes are streamed with `private, no-store` and CDN no-store.
 There is no disk, D1, R2, service-worker, or CDN cache of Google imagery.
 Only panorama IDs are saved; free metadata verifies availability and refreshes
-missing IDs using independently sourced coordinates. Google images retain
+missing IDs using independently sourced coordinates. Lookups use a 50 m search
+radius for intersections and 150 m for landmark footprints; cameras beyond
+100 m and 150 m respectively are rejected. Google images retain
 complete attribution and get an additional legible Google Maps text label.
 
 The client requests one photo when a round opens and loads the initial map
@@ -100,6 +119,8 @@ Additional limits: 48 images/player/day, 96 images/IP/day, 12 games/player/day,
 30 games/IP/day, and 120 API calls/IP/minute. Failed image requests can consume
 a reservation; counters fail closed. These are app limits, not Google-project
 billing caps. Other apps using the key still count toward Google billing.
+Image limits use UTC days; game-start limits remain shared across cities using
+Toronto dates, so changing cities cannot multiply the existing game allowance.
 Set Google Cloud API quotas as an additional project-level control if needed.
 
 Google references:
@@ -125,6 +146,8 @@ In runIT, run `npm run test:local-lore` with Node 22.14+, then
 With the source preview running, `npm run test:local-lore:layout` checks the
 pin-only interaction and viewport fit at desktop, short laptop, and phone sizes,
 plus geolocation, permission failures, manual overrides and location privacy.
+City browser checks also cover panning within the selected city's bounds,
+pin submission, labels, and resuming a game after choosing another city.
 Set `LOCAL_LORE_BASE_URL` to target another preview. Browser tests mock the game
 API and imagery, so they do not consume Google image requests or saved attempts.
 The live tests cover scoring, aliases, map projection, daily attempts,
@@ -138,5 +161,13 @@ releasing dependent code. Commit only the intended changes, then push through
 the existing GitHub-connected Cloudflare Workers Builds pipeline. Do not use
 local `wrangler deploy`. Wait for the `runit` build and verify the public
 configuration, real images, three-round submission flow, and saved history.
-Revert the code commit through the same pipeline for a UI/API rollback;
-preserve D1 data and do not drop tables as a rollback shortcut.
+Migration `0002_cities.sql` adds `city_id` with a constant Toronto default and
+replaces the daily uniqueness index with `(guest_id, city_id, day_key)`. Existing
+games, rounds and scores stay intact. The local adapter applies the same delta
+to older local databases; regression tests verify preserved scores and indexes.
+
+Once non-Toronto games exist, retain the multi-city reader and catalogue during
+any rollback. Do not revert to a Toronto-only handler that cannot read those
+saved games. Roll forward with a targeted fix or disable new starts while
+keeping city-aware resume support. Preserve D1 data; do not drop tables or
+restore an old backup over newly earned scores as a routine rollback.
