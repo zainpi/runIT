@@ -41,6 +41,17 @@ scores and claimed clue status are ignored; guesses are scored and committed
 once on the server. Future round identities and coordinates are not disclosed.
 The independently sourced location collection itself is public under ODbL.
 
+## Pin scoring
+
+New guesses use `local_lore_live_v2` and the `neighborhood_pin_v2` profile.
+Each round is capped at 1,000 points. A pin within 50 m earns full points;
+otherwise the unassisted score is `round(1000 * exp(-(distance_m - 50) / 1000))`,
+with zero at 6,050 m or farther. This gives about 951 points at 100 m, 638 at
+500 m, and 387 at 1 km. The existing 20% clue penalty applies before rounding.
+The same proximity curve applies to all live modes. Named answers keep their
+existing all-or-nothing scoring. Results save their rules version; already
+submitted scores remain committed as originally earned.
+
 ## Image use and cost controls
 
 Google image bytes are streamed with `private, no-store` and CDN no-store.

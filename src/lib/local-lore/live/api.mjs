@@ -296,6 +296,7 @@ async function guess(ctx, gameId, roundId, input) {
             assisted: Boolean(latest.clue_used),
           }
         : score(target, { ...input, pin: point }, latest.clue_used)),
+      rules_version: RULES_VERSION,
       label: target.label,
       note: target.note,
       point: { latitude: target.latitude, longitude: target.longitude },

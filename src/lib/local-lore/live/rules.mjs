@@ -1,8 +1,9 @@
-import { scoreNamed, scorePin } from "../core/scoring.mjs";
+import { scoreNamed, scorePin, SCORING_PROFILES } from "../core/scoring.mjs";
 export const CENTER = { latitude: 43.655, longitude: -79.397 };
 export const RADII = [1, 3, 5, 10];
 export const MODES = ["daily", "around", "landmark"];
-export const RULES_VERSION = "local_lore_live_v1";
+export const RULES_VERSION = "local_lore_live_v2";
+const PIN_PROFILE = SCORING_PROFILES.neighborhood_pin_v2;
 export function distance(a, b) {
   const rad = Math.PI / 180;
   const dlat = (b.latitude - a.latitude) * rad,
@@ -90,13 +91,15 @@ export function acceptedName(target, text) {
 export function score(target, input, assisted) {
   const meters = input.method === "pin" ? distance(input.pin, target) : null;
   const correct =
-    input.method === "named" ? acceptedName(target, input.text) : meters <= 25;
+    input.method === "named"
+      ? acceptedName(target, input.text)
+      : meters <= PIN_PROFILE.toleranceMeters;
   const scored =
     input.method === "named"
       ? scoreNamed({ accepted: correct, assistanceLevel: assisted ? 1 : 0 })
       : scorePin({
           distanceMeters: meters,
-          profileId: "intersection_pin_v1",
+          profileId: PIN_PROFILE.id,
           assistanceLevel: assisted ? 1 : 0,
         });
   return {

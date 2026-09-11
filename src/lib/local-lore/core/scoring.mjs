@@ -20,6 +20,13 @@ export const ASSISTANCE_FACTORS = Object.freeze({
  * defaults, not a promise that every source geometry has this accuracy.
  */
 export const SCORING_PROFILES = Object.freeze({
+  neighborhood_pin_v2: Object.freeze({
+    id: 'neighborhood_pin_v2',
+    method: 'pin',
+    toleranceMeters: 50,
+    falloffMeters: 1000,
+    label: 'Neighborhood proximity',
+  }),
   intersection_pin_v1: Object.freeze({
     id: 'intersection_pin_v1',
     method: 'pin',

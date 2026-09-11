@@ -112,7 +112,7 @@ test("named aliases, explicit direction errors, pin distances and clue penalty",
       t,
       {
         method: "pin",
-        pin: { latitude: t.latitude + 0.02, longitude: t.longitude },
+        pin: { latitude: t.latitude + 0.1, longitude: t.longitude },
       },
       false,
     ).score,
@@ -294,4 +294,33 @@ test('large landmarks allow nearby exterior cameras but reject distant imagery',
     : new Response(new Uint8Array([1,2,3]),{headers:{'Content-Type':'image/jpeg'}});
   assert.equal((await handleLocalLore(request(),h.env,{fetch:provider(110)})).status,200);
   assert.equal((await handleLocalLore(request(),h.env,{fetch:provider(170)})).status,503);
+});
+
+test('exponential pin scoring rewards city-block proximity and stays capped', () => {
+  const target = CATALOG[0];
+  const pinAt = metres => ({latitude: target.latitude + metres / 6371008.8 * 180 / Math.PI, longitude: target.longitude});
+  for (const [metres, expected] of [[0,1000],[49,1000],[100,951],[250,819],[500,638],[1000,387],[2000,142],[6060,0]]) {
+    const result = score(target, {method:'pin',pin:pinAt(metres)}, false);
+    assert.equal(result.score,expected,`${metres} metres`);
+    assert.equal(result.maximum,1000);
+    assert.equal(result.correct,metres<=50);
+  }
+  assert.equal(score(target,{method:'pin',pin:pinAt(500)},true).score,510);
+  const at = metres => score(target,{method:'pin',pin:pinAt(metres)},false).score;
+  assert.ok(at(100)-at(200)>at(900)-at(1000), 'Equal steps closer earn more points near the answer');
+});
+
+test('live guesses persist the new curve and cannot rescore a submitted round', async (t) => {
+  const h=harness(); t.after(()=>h.db.close());
+  const {data:game}=await h.start();
+  const target=await h.target(game.current);
+  const pin={latitude:target.latitude+500/6371008.8*180/Math.PI,longitude:target.longitude};
+  const path=`/games/${game.id}/rounds/${game.current.id}/guess`;
+  const answer=await h.request(path,{method:'pin',pin,score:1000});
+  assert.equal(answer.data.result.score,638);
+  assert.equal(answer.data.result.distance_m,500);
+  assert.equal(answer.data.result.rules_version,'local_lore_live_v2');
+  const retry=await h.request(path,{method:'pin',pin:target});
+  assert.deepEqual(retry.data.result,answer.data.result);
+  assert.equal((await h.request('/history')).data.games[0].score,638);
 });
