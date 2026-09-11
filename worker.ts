@@ -51,7 +51,7 @@ export default {
     if (!secret) return;
     const marketplace = marketplaces[Math.floor(Date.now() / (5 * 60_000)) % marketplaces.length];
     const request = new Request(
-      `https://runsit.ca/pulsedeals/api/v1/internal/sync?marketplace=${marketplace}`,
+      `https://runsit.ca/pulsedeals/api/v1/internal/sync/?marketplace=${marketplace}`,
       { method: "POST", headers: { "x-pulsedeals-cron-secret": secret } },
     );
     const responsePromise = openNextWorker.fetch(request, env, ctx).then((response: Response) => {
