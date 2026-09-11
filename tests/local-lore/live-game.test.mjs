@@ -52,21 +52,21 @@ function harness(limit = 250) {
     db,
     env,
     calls,
-    async request(path, body, headers = {}) {
-      const response = await handleLocalLore(
-        new Request(origin + "/local-lore/api" + path, {
-          method: body ? "POST" : "GET",
-          headers: {
-            cookie,
-            origin,
-            "Content-Type": "application/json",
-            ...headers,
-          },
-          ...(body ? { body: JSON.stringify(body) } : {}),
-        }),
-        env,
-        { fetch: fakeFetch },
-      );
+    async request(path, body, headers = {}, cf) {
+      const request = new Request(origin + "/local-lore/api" + path, {
+        method: body ? "POST" : "GET",
+        headers: {
+          cookie,
+          origin,
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      if (cf !== undefined) Object.defineProperty(request, "cf", { value: cf });
+      const response = await handleLocalLore(request, env, {
+        fetch: fakeFetch,
+      });
       if (response.headers.has("set-cookie"))
         cookie = response.headers.get("set-cookie").split(";")[0];
       const data = response.headers.get("content-type").includes("json")
@@ -86,6 +86,48 @@ function harness(limit = 250) {
     },
   };
 }
+test("city recommendation uses trusted network metadata without Google calls or location persistence", async (t) => {
+  const h = harness();
+  t.after(() => h.db.close());
+  const { data, response } = await h.request(
+    "/config",
+    undefined,
+    {},
+    { latitude: "49.2827", longitude: "-123.1207" },
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
+  assert.deepEqual(
+    data.cities.map((city) => city.id),
+    ["toronto"],
+  );
+  assert.equal(data.recommendation.city_id, "toronto");
+  assert.equal(data.recommendation.source, "approximate");
+  assert.ok(data.recommendation.distance_km > 3300);
+  assert.ok(!JSON.stringify(data).includes("49.2827"));
+  assert.ok(!JSON.stringify(data).includes("-123.1207"));
+  assert.equal(h.calls.length, 0);
+  assert.equal(
+    (await h.request("/config")).data.recommendation.source,
+    "default",
+  );
+  const rejected = await h.request("/games", {
+    city_id: "vancouver",
+    mode: "around",
+    radius: 3,
+    request_id: crypto.randomUUID(),
+  });
+  assert.equal(rejected.response.status, 422);
+  const started = await h.request("/games", {
+    city_id: "toronto",
+    mode: "around",
+    radius: 3,
+    request_id: crypto.randomUUID(),
+  });
+  assert.equal(started.response.status, 201);
+  assert.equal(started.data.city_id, "toronto");
+  assert.deepEqual(started.data.center, data.cities[0].center);
+});
 test("map projection is reversible at all supported zooms and Toronto date respects midnight", () => {
   for (let zoom = 11; zoom <= 17; zoom++) {
     const center = { latitude: 43.655, longitude: -79.397 },
@@ -268,59 +310,116 @@ test("expiry removes old games and their rounds", async (t) => {
   );
 });
 
-test('default provider fetch keeps the native global receiver', async (t) => {
+test("default provider fetch keeps the native global receiver", async (t) => {
   const h = harness();
   const nativeFetch = globalThis.fetch;
-  t.after(() => { globalThis.fetch = nativeFetch; h.db.close(); });
+  t.after(() => {
+    globalThis.fetch = nativeFetch;
+    h.db.close();
+  });
   const started = await h.start();
   globalThis.fetch = async function () {
-    assert.equal(this, undefined, 'Native Workers fetch cannot be called as a context method');
-    return new Response(new Uint8Array([1,2,3]), {headers:{'Content-Type':'image/png'}});
+    assert.equal(
+      this,
+      undefined,
+      "Native Workers fetch cannot be called as a context method",
+    );
+    return new Response(new Uint8Array([1, 2, 3]), {
+      headers: { "Content-Type": "image/png" },
+    });
   };
-  const cookie = started.response.headers.get('set-cookie').split(';')[0];
-  const response = await handleLocalLore(new Request(`${origin}/local-lore/api/games/${started.data.id}/map`, {headers:{cookie}}), h.env);
+  const cookie = started.response.headers.get("set-cookie").split(";")[0];
+  const response = await handleLocalLore(
+    new Request(`${origin}/local-lore/api/games/${started.data.id}/map`, {
+      headers: { cookie },
+    }),
+    h.env,
+  );
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get('content-type'), 'image/png');
+  assert.equal(response.headers.get("content-type"), "image/png");
 });
 
-test('large landmarks allow nearby exterior cameras but reject distant imagery', async (t) => {
-  const h = harness(); t.after(() => h.db.close());
-  const started = await h.start('landmark');
+test("large landmarks allow nearby exterior cameras but reject distant imagery", async (t) => {
+  const h = harness();
+  t.after(() => h.db.close());
+  const started = await h.start("landmark");
   const target = await h.target(started.data.current);
-  const cookie = started.response.headers.get('set-cookie').split(';')[0];
-  const request = () => new Request(origin + started.data.current.scene_url, {headers:{cookie}});
-  const provider = metres => async url => String(url).includes('metadata')
-    ? Response.json({status:'OK',pano_id:'landmark-camera',location:{lat:target.latitude+metres/111195,lng:target.longitude}})
-    : new Response(new Uint8Array([1,2,3]),{headers:{'Content-Type':'image/jpeg'}});
-  assert.equal((await handleLocalLore(request(),h.env,{fetch:provider(110)})).status,200);
-  assert.equal((await handleLocalLore(request(),h.env,{fetch:provider(170)})).status,503);
+  const cookie = started.response.headers.get("set-cookie").split(";")[0];
+  const request = () =>
+    new Request(origin + started.data.current.scene_url, {
+      headers: { cookie },
+    });
+  const provider = (metres) => async (url) =>
+    String(url).includes("metadata")
+      ? Response.json({
+          status: "OK",
+          pano_id: "landmark-camera",
+          location: {
+            lat: target.latitude + metres / 111195,
+            lng: target.longitude,
+          },
+        })
+      : new Response(new Uint8Array([1, 2, 3]), {
+          headers: { "Content-Type": "image/jpeg" },
+        });
+  assert.equal(
+    (await handleLocalLore(request(), h.env, { fetch: provider(110) })).status,
+    200,
+  );
+  assert.equal(
+    (await handleLocalLore(request(), h.env, { fetch: provider(170) })).status,
+    503,
+  );
 });
 
-test('exponential pin scoring rewards city-block proximity and stays capped', () => {
+test("exponential pin scoring rewards city-block proximity and stays capped", () => {
   const target = CATALOG[0];
-  const pinAt = metres => ({latitude: target.latitude + metres / 6371008.8 * 180 / Math.PI, longitude: target.longitude});
-  for (const [metres, expected] of [[0,1000],[49,1000],[100,951],[250,819],[500,638],[1000,387],[2000,142],[6060,0]]) {
-    const result = score(target, {method:'pin',pin:pinAt(metres)}, false);
-    assert.equal(result.score,expected,`${metres} metres`);
-    assert.equal(result.maximum,1000);
-    assert.equal(result.correct,metres<=50);
+  const pinAt = (metres) => ({
+    latitude: target.latitude + ((metres / 6371008.8) * 180) / Math.PI,
+    longitude: target.longitude,
+  });
+  for (const [metres, expected] of [
+    [0, 1000],
+    [49, 1000],
+    [100, 951],
+    [250, 819],
+    [500, 638],
+    [1000, 387],
+    [2000, 142],
+    [6060, 0],
+  ]) {
+    const result = score(target, { method: "pin", pin: pinAt(metres) }, false);
+    assert.equal(result.score, expected, `${metres} metres`);
+    assert.equal(result.maximum, 1000);
+    assert.equal(result.correct, metres <= 50);
   }
-  assert.equal(score(target,{method:'pin',pin:pinAt(500)},true).score,510);
-  const at = metres => score(target,{method:'pin',pin:pinAt(metres)},false).score;
-  assert.ok(at(100)-at(200)>at(900)-at(1000), 'Equal steps closer earn more points near the answer');
+  assert.equal(
+    score(target, { method: "pin", pin: pinAt(500) }, true).score,
+    510,
+  );
+  const at = (metres) =>
+    score(target, { method: "pin", pin: pinAt(metres) }, false).score;
+  assert.ok(
+    at(100) - at(200) > at(900) - at(1000),
+    "Equal steps closer earn more points near the answer",
+  );
 });
 
-test('live guesses persist the new curve and cannot rescore a submitted round', async (t) => {
-  const h=harness(); t.after(()=>h.db.close());
-  const {data:game}=await h.start();
-  const target=await h.target(game.current);
-  const pin={latitude:target.latitude+500/6371008.8*180/Math.PI,longitude:target.longitude};
-  const path=`/games/${game.id}/rounds/${game.current.id}/guess`;
-  const answer=await h.request(path,{method:'pin',pin,score:1000});
-  assert.equal(answer.data.result.score,638);
-  assert.equal(answer.data.result.distance_m,500);
-  assert.equal(answer.data.result.rules_version,'local_lore_live_v2');
-  const retry=await h.request(path,{method:'pin',pin:target});
-  assert.deepEqual(retry.data.result,answer.data.result);
-  assert.equal((await h.request('/history')).data.games[0].score,638);
+test("live guesses persist the new curve and cannot rescore a submitted round", async (t) => {
+  const h = harness();
+  t.after(() => h.db.close());
+  const { data: game } = await h.start();
+  const target = await h.target(game.current);
+  const pin = {
+    latitude: target.latitude + ((500 / 6371008.8) * 180) / Math.PI,
+    longitude: target.longitude,
+  };
+  const path = `/games/${game.id}/rounds/${game.current.id}/guess`;
+  const answer = await h.request(path, { method: "pin", pin, score: 1000 });
+  assert.equal(answer.data.result.score, 638);
+  assert.equal(answer.data.result.distance_m, 500);
+  assert.equal(answer.data.result.rules_version, "local_lore_live_v2");
+  const retry = await h.request(path, { method: "pin", pin: target });
+  assert.deepEqual(retry.data.result, answer.data.result);
+  assert.equal((await h.request("/history")).data.games[0].score, 638);
 });

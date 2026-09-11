@@ -1,5 +1,6 @@
 import { scoreNamed, scorePin, SCORING_PROFILES } from "../core/scoring.mjs";
-export const CENTER = { latitude: 43.655, longitude: -79.397 };
+import { SUPPORTED_CITIES } from "./cities.mjs";
+export const CENTER = SUPPORTED_CITIES[0].center;
 export const RADII = [1, 3, 5, 10];
 export const MODES = ["daily", "around", "landmark"];
 export const RULES_VERSION = "local_lore_live_v2";

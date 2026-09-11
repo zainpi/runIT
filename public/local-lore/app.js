@@ -1,4 +1,5 @@
 import { project, unproject } from "./map-math.mjs";
+import { SUPPORTED_CITIES, nearestCity } from "./cities.mjs";
 const $ = (id) => document.getElementById(id),
   API = "/local-lore/api";
 const names = {
@@ -23,12 +24,161 @@ let config,
   sceneGeneration = 0,
   mapGeneration = 0;
 let sceneObject, mapObject;
+let locationGeneration = 0,
+  locating = false;
+const CITY_PREFERENCE = "local-lore-city";
+
+function cityPreference(value) {
+  try {
+    if (value === undefined) return localStorage.getItem(CITY_PREFERENCE);
+    if (value === null) localStorage.removeItem(CITY_PREFERENCE);
+    else localStorage.setItem(CITY_PREFERENCE, value);
+  } catch {
+    /* Location selection also works with browser storage blocked. */
+  }
+}
+function selectedCity() {
+  return config?.cities.find((city) => city.id === $("city").value);
+}
+function locationControls() {
+  $("city").disabled = busy || !config;
+  $("locate").disabled =
+    busy ||
+    locating ||
+    !config ||
+    !navigator.geolocation ||
+    !window.isSecureContext;
+  $("locate").textContent = locating ? "Locating…" : "Use my location";
+}
+function cancelLocation() {
+  locationGeneration++;
+  locating = false;
+  locationControls();
+}
+function chooseCity(cityId, status) {
+  if (!config.cities.some((city) => city.id === cityId)) return;
+  $("city").value = cityId;
+  $("city-status").textContent = status;
+  startKey = null;
+  coverage();
+}
+function recommendationText(match) {
+  const city =
+    config.cities.find((city) => city.id === match?.city_id) ||
+    config.cities[0];
+  const only =
+    config.cities.length === 1
+      ? ` ${city.name} is our only available city so far.`
+      : "";
+  if (!match || match.source === "default")
+    return `${city.name} is ready to play. Use your location to find the nearest available city.${only}`;
+  const distance =
+    match.distance_km >= 50
+      ? ` · about ${Math.round(match.distance_km).toLocaleString()} km away`
+      : "";
+  return `${city.name} is your nearest available city${distance}. ${match.source === "browser" ? "Selected using your browser location." : "Based on your approximate network location."}${only}`;
+}
+async function locateCity() {
+  if (busy || locating || !config) return;
+  const generation = ++locationGeneration;
+  locating = true;
+  locationControls();
+  $("city-status").textContent =
+    "Finding your nearest city. Allow location if your browser asks. Your exact location stays in this browser.";
+  try {
+    const position = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject({ code: 3 }), 12000);
+      const finish = (callback) => (value) => {
+        clearTimeout(timeout);
+        callback(value);
+      };
+      navigator.geolocation.getCurrentPosition(
+        finish(resolve),
+        finish(reject),
+        {
+          enableHighAccuracy: false,
+          maximumAge: 300000,
+          timeout: 8000,
+        },
+      );
+    });
+    if (generation !== locationGeneration) return;
+    const match = nearestCity(
+      {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      },
+      config.cities,
+    );
+    if (!match) throw Error("Location unavailable");
+    cityPreference(null);
+    chooseCity(
+      match.city_id,
+      recommendationText({ ...match, source: "browser" }),
+    );
+  } catch (error) {
+    if (generation !== locationGeneration) return;
+    const reason =
+      error.code === 1
+        ? "Location access is off."
+        : "We couldn’t get your location.";
+    $("city-status").textContent =
+      `${reason} You can still play in ${selectedCity().name} or choose an available city.`;
+  } finally {
+    if (generation === locationGeneration) {
+      locating = false;
+      locationControls();
+    }
+  }
+}
+async function initCities() {
+  config.cities = config.cities?.length ? config.cities : SUPPORTED_CITIES;
+  $("city").replaceChildren(
+    ...config.cities.map(
+      (city) => new Option(`${city.name}, ${city.country}`, city.id),
+    ),
+  );
+  const saved = config.cities.find((city) => city.id === cityPreference());
+  const recommended =
+    config.cities.find((city) => city.id === config.recommendation?.city_id) ||
+    config.cities[0];
+  chooseCity(
+    saved?.id || recommended.id,
+    saved
+      ? `${saved.name} · your selected city.`
+      : recommendationText(config.recommendation),
+  );
+  locationControls();
+  if (
+    saved ||
+    !navigator.geolocation ||
+    !navigator.permissions ||
+    !window.isSecureContext
+  )
+    return;
+  const generation = locationGeneration;
+  try {
+    const permission = await navigator.permissions.query({
+      name: "geolocation",
+    });
+    if (
+      permission.state === "granted" &&
+      generation === locationGeneration &&
+      currentView === "setup" &&
+      !busy
+    )
+      await locateCity();
+  } catch {
+    /* The approximate recommendation works without the Permissions API. */
+  }
+}
 function message(text = "") {
   $("notice").textContent = text;
   $("notice").hidden = !text;
 }
 function go(view) {
   currentView = view;
+  if (view !== "setup") cancelLocation();
   document.body.classList.toggle("is-playing", view === "play");
   $("map-help").open = false;
   for (const e of document.querySelectorAll("main>section"))
@@ -65,8 +215,9 @@ function coverage() {
   if (mode === "daily") $("radius").value = "3";
   const radius = Number($("radius").value),
     count =
-      config?.coverage.find((c) => c.mode === mode && c.radius === radius)
-        ?.count || 0;
+      (selectedCity()?.coverage || config?.coverage)?.find(
+        (c) => c.mode === mode && c.radius === radius,
+      )?.count || 0;
   $("coverage").textContent = config
     ? `${count} verified ${mode === "landmark" ? "landmarks" : "intersections"} in this area${count < 3 ? " · choose a wider area to play" : mode === "daily" ? " · resets at midnight Toronto time" : ""}.`
     : "Connecting to the game…";
@@ -80,6 +231,7 @@ function coverage() {
 }
 function setBusy(value) {
   busy = value;
+  locationControls();
   updateSubmit();
   $("skip").disabled = value;
   $("clue").disabled = value || Boolean(round?.clue_used);
@@ -284,8 +436,7 @@ async function submit(method) {
     showPanel("map");
     $("clue-box").hidden = true;
     $("reveal").hidden = false;
-    $("result-score").textContent =
-      `${result.score.toLocaleString()} / 1,000`;
+    $("result-score").textContent = `${result.score.toLocaleString()} / 1,000`;
     $("result-label").textContent = result.name
       ? `${result.name} · ${result.label}`
       : result.label;
@@ -400,14 +551,22 @@ $("setup-form").onchange = () => {
   startKey = null;
   coverage();
 };
+$("city").onchange = () => {
+  cancelLocation();
+  cityPreference($("city").value);
+  chooseCity($("city").value, `${selectedCity().name} · your selected city.`);
+};
+$("locate").onclick = () => void locateCity();
 $("setup-form").onsubmit = async (e) => {
   e.preventDefault();
   if (busy) return;
+  cancelLocation();
   setBusy(true);
   startKey ||= crypto.randomUUID();
   try {
     const nextGame = await api("/games", {
       mode: selectedMode(),
+      city_id: $("city").value,
       radius: Number($("radius").value),
       request_id: startKey,
     });
@@ -521,6 +680,7 @@ $("map").onkeydown = (e) => {
 async function init() {
   try {
     config = await api("/config");
+    void initCities();
     coverage();
     await refreshHistory();
     const id = location.hash.match(/^#game=([\da-f-]{36})$/)?.[1];

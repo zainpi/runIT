@@ -9,8 +9,8 @@
       name="description"
       content="A Toronto street-knowledge game. Recognize real Street View photos, and place your guess on the map."
     />
-    <link rel="stylesheet" href="./style.css?v=pin-layout1" />
-    <script type="module" src="./app.js?v=pin-layout1"></script>
+    <link rel="stylesheet" href="./style.css?v=location1" />
+    <script type="module" src="./app.js?v=location1"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to game</a>
@@ -52,7 +52,25 @@
             <form id="setup-form" class="setup-card">
               <p class="eyebrow">01 / FIND YOUR FOOTING</p>
               <h2>Take a look around.</h2>
-              <p>Start with downtown Toronto.</p>
+              <div class="location-picker">
+                <label class="field-label" for="city">Playing in</label>
+                <div class="location-controls">
+                  <select id="city" name="city" aria-describedby="city-status">
+                    <option value="toronto">Toronto, Canada</option>
+                  </select>
+                  <button
+                    id="locate"
+                    class="secondary-button"
+                    type="button"
+                    disabled
+                  >
+                    Use my location
+                  </button>
+                </div>
+                <p id="city-status" class="fine" role="status">
+                  Finding your nearest available city…
+                </p>
+              </div>
               <fieldset>
                 <legend>Choose a game</legend>
                 <label class="mode-card"

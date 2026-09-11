@@ -1,4 +1,5 @@
 import { CATALOG } from "./catalog.mjs";
+import { SUPPORTED_CITIES, approximateCity } from "./cities.mjs";
 import {
   CENTER,
   RADII,
@@ -149,6 +150,7 @@ async function viewGame(ctx, gameId) {
     current = rounds.find((r) => !r.result_json);
   return {
     id: game.id,
+    city_id: "toronto",
     mode: game.mode,
     radius: game.radius,
     day: game.day_key,
@@ -183,6 +185,8 @@ async function viewGame(ctx, gameId) {
   };
 }
 async function createGame(ctx, input) {
+  if (input.city_id !== undefined && input.city_id !== "toronto")
+    fail("That city is not available yet. Choose Toronto to play.", 422);
   if (!ctx.env.LOCAL_LORE_GOOGLE_MAPS_API_KEY)
     fail("Live maps are not configured yet.", 503);
   if (
@@ -506,6 +510,8 @@ export async function handleLocalLore(request, env, options = {}) {
       response = json({
         ready: Boolean(env.LOCAL_LORE_GOOGLE_MAPS_API_KEY),
         city: "Toronto",
+        cities: SUPPORTED_CITIES,
+        recommendation: approximateCity(request.cf),
         center: CENTER,
         day: torontoDay(),
         coverage: MODES.flatMap((mode) =>

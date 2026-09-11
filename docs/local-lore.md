@@ -20,6 +20,31 @@ The daily set follows Toronto time and gives the same places to all players.
 The 1 km landmark area has insufficient coverage and requires a wider radius.
 Wider radii currently reuse the downtown collection; this is not citywide coverage.
 
+## Location and city selection
+
+The setup screen recommends the closest supported city using Cloudflare's
+trusted `request.cf` latitude/longitude when available. The response contains
+only the recommended city and rounded distance, remains `private, no-store`,
+and does not write the visitor's location to D1 or call Google Maps. Missing
+or invalid network coordinates fall back to the first supported city.
+
+If browser geolocation permission is already granted, the client automatically
+refines the recommendation. Otherwise, **Use my location** requests permission
+on a click. Browser coordinates are compared with supported city centres in
+memory; they are never posted to the game API or stored. Denial, timeout, missing
+browser support, and unavailable browser storage do not block play. A manually
+selected city is remembered locally and takes priority until the player uses
+automatic location again. Late location results cannot replace a manual choice
+or change a round that has already started.
+
+Toronto is currently the only supported city. The UI says so explicitly;
+players elsewhere get Toronto as the nearest available fallback, not a game
+around their exact location. `src/lib/local-lore/live/cities.mjs` is exported
+for both server and browser use. Adding a city requires a verified catalogue,
+city-aware game persistence, eligibility, map bounds and daily scheduling;
+do not add a city to this list before the runtime can serve it. The API rejects
+unsupported `city_id` values and accepts omitted IDs from older clients.
+
 ## Runtime and data
 
 `worker.ts` dispatches `/local-lore/api/*` to
@@ -98,7 +123,8 @@ checkout synchronized with the source workspace when changing API behavior.
 In runIT, run `npm run test:local-lore` with Node 22.14+, then
 `npm run build:cloudflare` (includes the required Next production build).
 With the source preview running, `npm run test:local-lore:layout` checks the
-pin-only interaction and viewport fit at desktop, short laptop, and phone sizes.
+pin-only interaction and viewport fit at desktop, short laptop, and phone sizes,
+plus geolocation, permission failures, manual overrides and location privacy.
 Set `LOCAL_LORE_BASE_URL` to target another preview. Browser tests mock the game
 API and imagery, so they do not consume Google image requests or saved attempts.
 The live tests cover scoring, aliases, map projection, daily attempts,
