@@ -1,119 +1,296 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f6f2e9" />
-    <title>Local Lore — Play the demo | runsIT</title>
-    <meta name="description" content="Play Local Lore, a free three-round geography game demo by runsIT. Try named answers, map pins, clues, and instant scores. No download or sign-up." />
-    <link rel="canonical" href="https://runsit.ca/local-lore/" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./style.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#173229" />
+    <title>Local Lore — Know your city</title>
+    <meta
+      name="description"
+      content="Explore Toronto, New York City, Vancouver and London. Recognize real Street View photos and place your guess on the map."
+    />
+    <link rel="stylesheet" href="./style.css?v=cities1" />
+    <script type="module" src="./app.js?v=cities2"></script>
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Skip to main content</a>
-    <main class="app-shell" id="main-content">
+    <a class="skip-link" href="#main">Skip to game</a>
+    <div class="app-shell">
       <header class="topbar">
-        <button class="brand" id="brandHome" type="button" aria-label="Local Lore home"><span class="brand-mark" aria-hidden="true">L</span><span class="brand-wordmark">LOCAL<br />LORE</span></button>
-        <nav class="top-nav" aria-label="Primary navigation">
-          <button class="nav-button is-active" type="button" data-view-target="setup">Play</button>
-          <button class="nav-button" type="button" data-view-target="rankings">Rankings</button>
-          <button class="nav-button" type="button" data-view-target="notes">Field Notes</button>
+        <a class="brand" href="./" aria-label="Local Lore home"
+          ><span class="brand-mark">L</span
+          ><span class="brand-wordmark">LOCAL<br />LORE</span></a
+        >
+        <nav class="top-nav" aria-label="Main">
+          <button class="nav-button is-active" data-view="setup">Play</button
+          ><button class="nav-button" data-view="scores">Your scores</button
+          ><button class="nav-button" data-view="notebook">Notebook</button>
         </nav>
-        <div class="profile-cluster"><span class="demo-pill">DEMO MODE</span><a class="runit-link" href="/">← runsIT</a></div>
+        <a class="back-link" href="/">by runsIT ↗</a>
       </header>
-
-      <p class="demo-notice">Playable demo · Stock photos illustrate the game and do not depict the Toronto answers. Maps and rankings are examples. Progress lasts for this session.</p>
-      <noscript><p class="demo-notice">Enable JavaScript to play Local Lore.</p></noscript>
-
-      <div class="sr-only" id="liveRegion" role="status" aria-live="polite" aria-atomic="true"></div>
-
-      <section class="view setup-view" id="setupView" aria-labelledby="setupHeading">
-        <div class="setup-grid">
-          <div class="setup-intro">
-            <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> LOCAL RECOGNITION GAME</p>
-            <h1 id="setupHeading">Know your way<br /><em>around.</em></h1>
-            <p class="intro-copy">Recognize the places you pass. Remember how your streets connect.</p>
-            <div class="intro-meta" aria-label="Game details"><span><b aria-hidden="true">03</b> rounds</span><span><b aria-hidden="true">~3</b> minutes</span><span><b aria-hidden="true">0</b> sign-up</span></div>
-            <div class="thesis-card"><span class="thesis-mark" aria-hidden="true">↗</span><div><p class="micro-label">THE POINT</p><p>GPS gets you there.<br /><em>Now learn where there is.</em></p></div></div>
-          </div>
-
-          <form class="setup-card" id="setupForm">
-            <div class="card-heading"><span class="step-number" aria-hidden="true">01</span><div><p class="micro-label">SET YOUR SCOPE</p><h2>Where should we look?</h2></div></div>
-            <fieldset class="field-group"><legend>Choose a city</legend><div class="city-options" role="radiogroup" aria-label="Supported cities">
-              <label class="choice-card choice-card-city is-selected"><input type="radio" name="city" value="toronto" checked /><span class="choice-radio" aria-hidden="true"></span><span class="choice-main">Toronto</span><span class="choice-meta">9 sample rounds</span><span class="choice-badge">DEMO</span></label>
-              <label class="choice-card choice-card-city is-disabled"><input type="radio" name="city" value="vancouver" disabled /><span class="choice-radio" aria-hidden="true"></span><span class="choice-main">Vancouver</span><span class="choice-meta">Content in review</span><span class="choice-badge choice-badge-muted">SOON</span></label>
-            </div></fieldset>
-            <fieldset class="field-group"><legend>Demo map scope</legend><div class="segmented-options" role="radiogroup" aria-label="Search radius">
-              <label class="segment-option"><input type="radio" name="radius" value="1" disabled /><span>1 km</span><small>Familiar</small></label>
-              <label class="segment-option is-selected"><input type="radio" name="radius" value="3" checked /><span>3 km</span><small>Balanced</small></label>
-              <label class="segment-option"><input type="radio" name="radius" value="5" disabled /><span>5 km</span><small>Observant</small></label>
-              <label class="segment-option"><input type="radio" name="radius" value="10" disabled /><span>10 km</span><small>Connected</small></label>
-            </div><p class="field-note" id="radiusHint">The demo uses a fixed 3 km example scope. Live location search is not available yet.</p></fieldset>
-            <fieldset class="field-group mode-group"><legend>Pick a round type</legend><div class="mode-options" role="radiogroup" aria-label="Challenge modes">
-              <label class="mode-card is-selected"><input type="radio" name="mode" value="daily" checked /><span class="mode-icon" aria-hidden="true">✦</span><span class="mode-copy"><b>Daily Three</b><small>Three sample rounds · replay anytime</small></span><span class="mode-check" aria-hidden="true">✓</span></label>
-              <label class="mode-card"><input type="radio" name="mode" value="around" /><span class="mode-icon mode-icon-pin" aria-hidden="true">⌖</span><span class="mode-copy"><b>Around Here</b><small>Untimed practice · use a clue</small></span><span class="mode-check" aria-hidden="true">✓</span></label>
-              <label class="mode-card"><input type="radio" name="mode" value="landmark" /><span class="mode-icon mode-icon-building" aria-hidden="true">▥</span><span class="mode-copy"><b>Landmark Lines</b><small>Name the street of a civic place</small></span><span class="mode-check" aria-hidden="true">✓</span></label>
-            </div></fieldset>
-            <div class="coverage-callout" id="coverageStatus" role="status"><span class="status-icon" aria-hidden="true">✓</span><div><b>Ready to play</b><p>3 sample rounds · replay anytime.</p></div><span class="coverage-arrow" aria-hidden="true">↗</span></div>
-            <button class="primary-button start-button" type="submit" id="startSetButton"><span id="startSetLabel">Start Daily Three</span><span aria-hidden="true">→</span></button>
-            <p class="privacy-note"><span aria-hidden="true">◌</span> No download or sign-up. No location access needed.</p>
-          </form>
-        </div>
-        <div class="setup-footnote"><span>TRY IT YOURSELF</span><span class="footnote-line" aria-hidden="true"></span><span>Fixed view · no panning · accuracy over speed</span></div>
-      </section>
-
-      <section class="view play-view is-hidden" id="playView" aria-labelledby="playHeading" hidden>
-        <div class="play-toolbar"><button class="back-button" type="button" id="backToSetup"><span aria-hidden="true">←</span> Change setup</button><div class="play-context"><p class="eyebrow" id="playModeLabel">DAILY THREE</p><p id="playScopeLabel">Toronto · 3 km radius</p></div><div class="round-progress" aria-label="Round progress"><span class="micro-label" id="roundProgressLabel">ROUND 01 OF 03</span><div class="progress-track"><span class="progress-fill" id="progressFill"></span></div></div></div>
-        <div class="play-grid">
-          <div class="challenge-column">
-            <div class="scene-frame" id="sceneFrame" role="img" aria-label="Fixed street scene. Panning and zooming are unavailable.">
-              <div class="scene-topline"><span class="fixed-chip"><span aria-hidden="true">⊙</span> FIXED VIEW</span><span class="scene-count" id="sceneCount">SCENE 01 / 03</span></div>
-              <div class="scene-bottomline"><span class="scene-privacy"><span aria-hidden="true">◌</span> Sample photo · illustrative only</span><button class="clue-button" type="button" id="clueButton"><span aria-hidden="true">✦</span> <span id="clueLabel">Use a clue</span> <b id="clueCost">−20%</b></button></div>
-              <div class="clue-popover" id="cluePopover" role="status" hidden><p class="micro-label">FIELD NOTE</p><p id="clueText">This place is close to a major waterfront route.</p><button class="text-button" type="button" id="closeClue">Got it</button></div>
+      <main id="main">
+        <div id="notice" class="notice" role="status" hidden></div>
+        <section id="setup" class="view">
+          <div class="setup-grid">
+            <div class="setup-intro">
+              <p class="eyebrow">
+                <span class="eyebrow-dot"></span
+                ><span id="city-eyebrow">FOUR CITIES · REAL PLACES</span>
+              </p>
+              <h1>Your city.<br />A little more<br /><em>familiar.</em></h1>
+              <p class="intro-copy">
+                You’ve walked these streets.<br />Now see how well you know
+                them.
+              </p>
+              <div class="intro-meta">
+                <span><b>3</b> rounds per set</span
+                ><span><b>3,000</b> points to find</span>
+              </div>
+              <p class="quiet">
+                Real Street View photos. One guess per round.<br />Your scores
+                and discoveries stay saved in this browser for up to 90 days.
+              </p>
             </div>
-            <div class="scene-caption"><div><p class="eyebrow" id="sceneCategory">INTERSECTION</p><h1 id="playHeading">Name the cross streets.</h1><p class="scene-instruction" id="sceneInstruction">Use the scene to identify the target shown. Your answer is the intersection, not the camera position.</p></div><span class="answer-type-badge" id="answerTypeBadge">UNORDERED PAIR</span></div>
+            <form id="setup-form" class="setup-card">
+              <p class="eyebrow">01 / FIND YOUR FOOTING</p>
+              <h2>Take a look around.</h2>
+              <div class="location-picker">
+                <label class="field-label" for="city">Playing in</label>
+                <div class="location-controls">
+                  <select id="city" name="city" aria-describedby="city-status">
+                    <option value="toronto">Toronto, Canada</option>
+                  </select>
+                  <button
+                    id="locate"
+                    class="secondary-button"
+                    type="button"
+                    disabled
+                  >
+                    Use my location
+                  </button>
+                </div>
+                <p id="city-status" class="fine" role="status">
+                  Finding your nearest available city…
+                </p>
+              </div>
+              <fieldset>
+                <legend>Choose a game</legend>
+                <label class="mode-card"
+                  ><input type="radio" name="mode" value="daily" checked /><span
+                    ><b>The daily three</b
+                    ><small
+                      >The same intersections for everyone in each city today.
+                      One attempt per city. No clues.</small
+                    ></span
+                  ><span class="tag">DAILY</span></label
+                ><label class="mode-card"
+                  ><input type="radio" name="mode" value="around" /><span
+                    ><b>Around the corner</b
+                    ><small
+                      >A fresh set of intersections. Find each crossing on the
+                      map.</small
+                    ></span
+                  ></label
+                ><label class="mode-card"
+                  ><input type="radio" name="mode" value="landmark" /><span
+                    ><b>Landmark links</b
+                    ><small
+                      >Recognize a landmark and find its place on the
+                      map.</small
+                    ></span
+                  ></label
+                >
+              </fieldset>
+              <label class="field-label" for="radius">Play area</label
+              ><select id="radius" name="radius">
+                <option value="1">Within 1 km</option>
+                <option value="3" selected>Within 3 km</option>
+                <option value="5">Within 5 km</option>
+                <option value="10">Within 10 km</option>
+              </select>
+              <p id="coverage" class="quiet" aria-live="polite">
+                Connecting to the game…
+              </p>
+              <button id="start" class="primary-button wide" disabled>
+                Start the daily three <span>↗</span>
+              </button>
+              <p id="area-note" class="fine">
+                Play a curated collection in Toronto, New York City, Vancouver
+                or London.
+              </p>
+            </form>
           </div>
-
-          <aside class="answer-panel" aria-labelledby="answerHeading">
-            <div class="answer-panel-heading"><p class="micro-label">YOUR ANSWER</p><h2 id="answerHeading">Name the cross streets</h2><p id="answerHelp">Choose a suggestion to stage your answer, then lock it in when you’re ready.</p></div>
-            <div class="method-tabs" role="tablist" aria-label="Answer method"><button class="method-tab is-active" id="namedMethodTab" type="button" role="tab" aria-selected="true" aria-controls="namedPane">Type answer</button><button class="method-tab" id="pinMethodTab" type="button" role="tab" aria-selected="false" aria-controls="pinPane">Drop a pin</button></div>
-            <div class="answer-pane" id="namedPane" role="tabpanel" aria-labelledby="namedMethodTab"><label class="input-label" for="guessInput">Search the answer catalog <span>⌘K</span></label><div class="combobox-wrap"><span class="search-glyph" aria-hidden="true">⌕</span><input id="guessInput" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="suggestionList" aria-expanded="false" placeholder="e.g. Queen St W & Spadina Ave" /><button class="clear-input" id="clearInput" type="button" aria-label="Clear answer" hidden>×</button><div class="suggestion-list" id="suggestionList" role="listbox" hidden></div></div><p class="input-status" id="inputStatus">Start with two letters. Suggestions are scoped to Toronto.</p></div>
-            <div class="answer-pane is-hidden" id="pinPane" role="tabpanel" aria-labelledby="pinMethodTab" hidden><p class="map-instruction">Place a pin where the target is. This is a sample diagram; distances are simulated.</p><div class="map-stage" id="mapStage" role="group" tabindex="0" aria-label="Guess map. Click to place a pin, or use the arrow buttons to nudge it."><div class="map-road map-road-a" aria-hidden="true"></div><div class="map-road map-road-b" aria-hidden="true"></div><div class="map-road map-road-c" aria-hidden="true"></div><div class="map-park" aria-hidden="true"></div><span class="map-label map-label-a" aria-hidden="true">Queen St W</span><span class="map-label map-label-b" aria-hidden="true">Bathurst St</span><span class="map-label map-label-c" aria-hidden="true">College St</span><span class="map-label map-label-d" aria-hidden="true">Dundas St W</span><span class="map-center-label" aria-hidden="true">TORONTO</span><span class="map-you-are-here" aria-hidden="true">scope boundary</span><button class="map-guess-pin" id="mapGuessPin" type="button" aria-label="Your guess pin" hidden>+</button></div><div class="map-tools"><div class="nudge-controls" aria-label="Nudge pin"><button type="button" class="nudge-button" data-nudge="up" aria-label="Move pin north">↑</button><button type="button" class="nudge-button" data-nudge="left" aria-label="Move pin west">←</button><button type="button" class="nudge-button" data-nudge="down" aria-label="Move pin south">↓</button><button type="button" class="nudge-button" data-nudge="right" aria-label="Move pin east">→</button></div><button class="text-button" id="clearPin" type="button">Remove pin</button></div><p class="input-status" id="pinStatus">No pin placed yet.</p></div>
-            <div class="staged-answer" id="stagedAnswer" role="status" hidden><span class="staged-icon" aria-hidden="true">✓</span><div><p class="micro-label">STAGED ANSWER</p><b id="stagedAnswerText">—</b></div><button class="text-button" type="button" id="editAnswer">Edit</button></div>
-            <div class="answer-panel-footer"><button class="primary-button commit-button" id="commitAnswer" type="button" disabled>Lock in guess <span aria-hidden="true">→</span></button><p class="keyboard-hint"><kbd>Enter</kbd> locks a staged answer · <kbd>Esc</kbd> closes suggestions</p></div>
-          </aside>
-        </div>
-        <div class="switch-notice" id="switchNotice" role="alert" tabindex="-1" hidden><span aria-hidden="true">!</span><p id="switchNoticeText">Switching answer methods will clear your staged answer.</p><button class="secondary-button" id="confirmMethodSwitch" type="button">Switch and clear</button><button class="text-button" id="cancelMethodSwitch" type="button">Keep answer</button></div>
-      </section>
-
-      <section class="view reveal-view is-hidden" id="revealView" aria-labelledby="revealHeading" hidden>
-        <div class="reveal-header"><div><p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> ROUND COMPLETE</p><h1 id="revealHeading">You found the connection.</h1><p id="revealSubheading">Here’s what this place can teach you.</p></div><div class="round-score" aria-label="Round score"><span id="roundScoreValue">0</span><small>/ 1,000</small></div></div>
-        <div class="reveal-grid"><div class="reveal-map-card"><div class="reveal-map" id="revealMap" role="img" aria-label="Answer map showing your guess and the target"><span class="guess-connector" aria-hidden="true"></span></div><div class="map-legend"><span><i class="legend-dot guess-dot"></i> Your guess</span><span><i class="legend-dot target-dot"></i> Target</span></div></div><article class="explanation-card"><p class="micro-label" id="revealAnswerType">TARGET SHOWN</p><h2 id="revealAnswer">Queen St W × Spadina Ave</h2><div class="result-message" id="resultMessage"><span class="result-symbol" aria-hidden="true">✓</span><p>You were right on the corner.</p></div><div class="spatial-note"><span class="note-line" aria-hidden="true"></span><div><p class="micro-label">FIELD NOTE</p><p id="spatialNoteText">Spadina runs north–south through the city and meets Queen in the heart of the west downtown grid.</p></div></div><div class="reveal-meta" id="revealMeta">Named answer · unassisted</div></article></div>
-        <div class="round-strip" id="roundStrip" aria-label="Set progress"></div><div class="reveal-actions"><button class="primary-button" id="nextRoundButton" type="button">Next place <span aria-hidden="true">→</span></button><button class="secondary-button" id="revealFinishButton" type="button">End set now</button></div>
-      </section>
-
-      <section class="view summary-view is-hidden" id="summaryView" aria-labelledby="summaryHeading" hidden>
-        <div class="summary-header"><div><p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> SET COMPLETE</p><h1 id="summaryHeading">You know <em>more than you think.</em></h1><p id="summarySubheading">Three places, one slightly stronger mental map.</p></div><div class="summary-score"><span id="summaryScore">0</span><small>/ 3,000</small></div></div>
-        <div class="summary-stats" aria-label="Set statistics"><div class="summary-stat"><span class="stat-icon" aria-hidden="true">◎</span><b id="summaryAccuracy">0%</b><span>accuracy</span></div><div class="summary-stat"><span class="stat-icon" aria-hidden="true">⌖</span><b id="summaryDistance">—</b><span>median pin error</span></div><div class="summary-stat"><span class="stat-icon" aria-hidden="true">✦</span><b id="summaryMarks">25</b><span>Demo marks</span></div></div>
-        <div class="summary-grid"><article class="summary-card ranking-preview-card"><div class="summary-card-head"><div><p class="micro-label">CITY CIRCUIT · PRACTICE</p><h2>Example rankings</h2></div><span class="rank-badge">#14</span></div><div class="rank-row rank-row-you"><span>14</span><b>You</b><span id="summaryRankScore">2,420 pts</span></div><div class="rank-row"><span>13</span><span>MapleMara</span><span>2,470 pts</span></div><div class="rank-row"><span>15</span><span>Northbound</span><span>2,390 pts</span></div><p class="card-footnote">Example board with sample players. Your score is local to this session; no public rank is recorded.</p><button class="text-button inline-link" type="button" data-view-target="rankings">View rankings <span aria-hidden="true">→</span></button></article><article class="summary-card field-note-card"><div class="summary-card-head"><div><p class="micro-label">FIELD NOTES</p><h2>Keep the connection</h2></div><span class="note-count">+1</span></div><p id="summaryNote">You added a new street relationship to your journal. Revisit it in three days for a delayed recall check.</p><div class="review-bar"><span>progress</span><b>this session only</b></div><button class="text-button inline-link" type="button" data-view-target="notes">Open Field Notes <span aria-hidden="true">→</span></button></article></div>
-        <div class="summary-actions"><button class="primary-button" type="button" id="playAgainButton">Play another set <span aria-hidden="true">→</span></button><button class="secondary-button" type="button" data-view-target="setup">Change scope</button></div>
-      </section>
-
-      <section class="view rankings-view is-hidden" id="rankingsView" aria-labelledby="rankingsHeading" hidden>
-        <div class="page-heading"><div><p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> LOW-STAKES HONOR BOARD</p><h1 id="rankingsHeading">See how your city<br /><em>is learning.</em></h1><p>Preview an example leaderboard. These are sample players and scores.</p></div><div class="board-filter"><label for="boardSelect">Board</label><select id="boardSelect"><option>Toronto · Daily Three</option><option>Toronto · Pin practice</option></select></div></div>
-        <div class="ranking-layout"><article class="leaderboard-card"><div class="leaderboard-head"><div><span class="live-dot" aria-hidden="true"></span><b>TORONTO / DAILY THREE</b><p>Sample scores · not a live competition</p></div><span class="board-status">DEMO BOARD</span></div><div class="leaderboard-columns"><span>PLACE</span><span>PLAYER</span><span>SCORE</span></div><div class="leaderboard-rows" id="leaderboardRows"></div><p class="card-footnote leaderboard-footnote">Ranks are a demo fixture. A real board needs a verified account, one official attempt, and at least 25 opted-in participants.</p></article><aside class="ranking-aside"><div class="rule-card"><span class="rule-icon" aria-hidden="true">◎</span><h2>Same rules, fair comparison.</h2><p>Paid plans never change scoring. A future City Circuit will use separate ratings for each city and answer profile.</p></div><div class="league-card"><p class="micro-label">FUTURE LEAGUES</p><div class="league-row"><span class="league-dot league-footpath"></span><b>Footpath</b><span>practice</span></div><div class="league-row"><span class="league-dot league-crossroads"></span><b>Crossroads</b><span>ranked</span></div><div class="league-row"><span class="league-dot league-citylight"></span><b>Citylight</b><span>ranked</span></div><p class="card-footnote">Ranked play stays off until there is enough human match liquidity and independently licensed scene inventory.</p></div></aside></div>
-      </section>
-
-      <section class="view notes-view is-hidden" id="notesView" aria-labelledby="notesHeading" hidden>
-        <div class="page-heading notes-heading"><div><p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> YOUR JOURNAL</p><h1 id="notesHeading">Field <em>Notes.</em></h1><p>Small spatial relationships become useful when you meet them again later.</p></div><div class="journal-progress"><span class="micro-label">TORONTO</span><b id="journalProgress">1 / 12</b><span>places noticed</span></div></div><div class="notes-grid" id="notesGrid"></div>
-      </section>
-
-      <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    </main>
-    <script src="./fixtures.js"></script>
-    <script src="./app.js"></script>
+          <div id="resume-list" class="resume-list"></div>
+        </section>
+        <section id="play" class="view" hidden>
+          <div class="play-heading">
+            <div>
+              <p id="round-meta" class="eyebrow"></p>
+              <h2 id="prompt" tabindex="-1"></h2>
+            </div>
+            <button class="text-button" id="leave">Save & leave</button>
+          </div>
+          <div class="view-toggle" role="group" aria-label="Game view">
+            <button id="view-scene" class="selected" aria-pressed="true">
+              Photo
+            </button>
+            <button id="view-map" aria-pressed="false">Map</button>
+          </div>
+          <div class="play-grid">
+            <div class="scene-column">
+              <figure class="photo-frame">
+                <img
+                  id="scene"
+                  alt="Street View of the Toronto location for this round"
+                  hidden
+                />
+                <div id="scene-loading" class="image-placeholder" role="status">
+                  Loading the street…
+                </div>
+              </figure>
+              <div class="media-caption">
+                <span class="gmp-attribution" translate="no">Google Maps</span
+                ><button id="retry-scene" class="text-button" hidden>
+                  Retry photo
+                </button>
+              </div>
+              <div id="clue-box" class="clue-box" hidden></div>
+            </div>
+            <div class="answer-card" id="map-section">
+              <div class="map-heading">
+                <b>Place your pin</b
+                ><button id="show-answer" class="text-button" hidden>
+                  Centre on answer
+                </button>
+              </div>
+              <div class="map-controls" aria-label="Map controls">
+                <button data-map="north" aria-label="Pan north">↑</button
+                ><button data-map="west" aria-label="Pan west">←</button
+                ><button data-map="east" aria-label="Pan east">→</button
+                ><button data-map="south" aria-label="Pan south">↓</button
+                ><button data-map="in" aria-label="Zoom in">+</button
+                ><button data-map="out" aria-label="Zoom out">−</button
+                ><button data-map="home" aria-label="Reset map">⌂</button>
+              </div>
+              <div class="map-stage">
+                <div
+                  id="map"
+                  class="map-frame"
+                  tabindex="0"
+                  role="application"
+                  aria-label="Guess map. Tap to place a pin, or use arrow keys."
+                >
+                  <img
+                    id="map-image"
+                    alt="Google map of downtown Toronto"
+                    hidden
+                  /><span id="guess-pin" class="map-pin guess-pin" hidden
+                    >G</span
+                  ><span id="answer-pin" class="map-pin answer-pin" hidden
+                    >A</span
+                  >
+                  <div id="map-loading" class="image-placeholder" role="status">
+                    Loading map…
+                  </div>
+                </div>
+              </div>
+              <div class="map-meta">
+                <span class="gmp-attribution" translate="no">Google Maps</span>
+                <p id="pin-status" aria-live="polite">
+                  Tap the map to place a pin.
+                </p>
+                <button id="retry-map" class="text-button" hidden>
+                  Retry map
+                </button>
+              </div>
+            </div>
+          </div>
+          <form id="answer-form" class="play-actions">
+            <div id="answer-controls" class="round-tools">
+              <button id="clue" class="secondary-button" type="button">
+                Clue −20%</button
+              ><button id="skip" class="text-button" type="button">Skip</button>
+            </div>
+            <details id="map-help" class="map-help">
+              <summary
+                aria-label="Scoring and map help"
+                title="Scoring and map help"
+              >
+                ?
+              </summary>
+              <div class="help-content">
+                <strong>Closer earns more.</strong>
+                <p>
+                  1,000 points within 50 m; about 640 at 500 m and 390 at 1 km.
+                  A clue reduces your points by 20%.
+                </p>
+                <p>
+                  Tap to move your pin. On a keyboard, focus the map and use the
+                  arrow keys.
+                </p>
+                <p>
+                  Pan or zoom to explore. Moving your pin uses the map already
+                  loaded.
+                </p>
+                <p>G = your guess · A = the answer</p>
+              </div>
+            </details>
+            <button id="submit" class="primary-button" disabled>
+              Lock guess
+            </button>
+          </form>
+          <section id="reveal" class="reveal" aria-live="polite" hidden>
+            <p id="result-score"></p>
+            <div class="result-copy">
+              <h2 id="result-label"></h2>
+              <p id="result-detail"></p>
+            </div>
+            <button id="next" class="primary-button">Next place →</button>
+          </section>
+        </section>
+        <section id="summary" class="view narrow" hidden>
+          <p class="eyebrow">SET COMPLETE</p>
+          <h1>A little more<br /><em>familiar.</em></h1>
+          <p class="total" id="total"></p>
+          <div id="summary-rounds"></div>
+          <button class="primary-button" data-view="setup">
+            Choose another game ↗
+          </button>
+        </section>
+        <section id="scores" class="view narrow" hidden>
+          <p class="eyebrow">YOUR TORONTO, SO FAR</p>
+          <h1>Your scores.</h1>
+          <p class="quiet">
+            Saved for this browser. Finish a set or pick up where you left off.
+          </p>
+          <div id="scores-list"></div>
+        </section>
+        <section id="notebook" class="view narrow" hidden>
+          <p class="eyebrow">PLACES TO REMEMBER</p>
+          <h1>Your notebook.</h1>
+          <p class="quiet">
+            Every place you answer becomes a reference for your next walk.
+          </p>
+          <div id="notes-list"></div>
+        </section>
+      </main>
+      <footer>
+        <span>Local Lore · Know your city</span
+        ><span
+          ><a href="./privacy.html">Privacy</a> ·
+          <a href="./terms.html">Terms</a> ·
+          <a href="https://www.google.com/help/terms_maps/"
+            >Google Maps terms</a
+          >
+          ·
+          <a href="https://policies.google.com/privacy">Google privacy</a></span
+        ><span
+          >Location data ©
+          <a href="https://www.openstreetmap.org/copyright"
+            >OpenStreetMap contributors</a
+          >
+          · <a href="./locations.json">Data & sources</a></span
+        >
+      </footer>
+    </div>
   </body>
 </html>

@@ -1,454 +1,715 @@
-(() => {
-  'use strict';
+import { project, unproject } from "./map-math.mjs";
+import { SUPPORTED_CITIES, nearestCity } from "./cities.mjs";
+const $ = (id) => document.getElementById(id),
+  API = "/local-lore/api";
+const names = {
+  daily: "The daily three",
+  around: "Around the corner",
+  landmark: "Landmark links",
+};
+let config,
+  game,
+  round,
+  result,
+  pin = null,
+  busy = false,
+  sceneReady = false,
+  mapReady = false,
+  mapBusy = false,
+  mapCenter,
+  mapZoom,
+  mapKey = "",
+  startKey = null,
+  currentView = "setup",
+  sceneGeneration = 0,
+  mapGeneration = 0;
+let sceneObject, mapObject;
+let locationGeneration = 0,
+  locating = false;
+const CITY_PREFERENCE = "local-lore-city";
 
-  const fixtures = window.LOCAL_LORE_FIXTURES;
-  const views = ['setup', 'play', 'reveal', 'summary', 'rankings', 'notes'];
-  const els = {};
-  document.querySelectorAll('[id]').forEach((node) => { els[node.id] = node; });
-
-  const state = {
-    view: 'setup', cityId: 'toronto', radius: 3, modeId: 'daily', rounds: [], roundIndex: 0, scores: [], current: freshRoundState(), pendingMethod: null
-  };
-
-  function freshRoundState() {
-    return { method: 'named', text: '', selected: null, pin: null, clueUsed: false, result: null };
+function cityPreference(value) {
+  try {
+    if (value === undefined) return localStorage.getItem(CITY_PREFERENCE);
+    if (value === null) localStorage.removeItem(CITY_PREFERENCE);
+    else localStorage.setItem(CITY_PREFERENCE, value);
+  } catch {
+    /* Location selection also works with browser storage blocked. */
   }
-
-  function cacheElements() {
-    document.querySelectorAll('[data-view-target]').forEach((node) => node.addEventListener('click', () => handleNavigation(node.dataset.viewTarget)));
-    els.brandHome.addEventListener('click', () => handleNavigation('setup'));
-    els.setupForm.addEventListener('submit', startSet);
-    document.querySelectorAll('input[name="radius"], input[name="mode"], input[name="city"]').forEach((input) => input.addEventListener('change', updateSetupCopy));
-    els.backToSetup.addEventListener('click', () => handleNavigation('setup'));
-    els.clueButton.addEventListener('click', useClue);
-    els.closeClue.addEventListener('click', closeClue);
-    els.namedMethodTab.addEventListener('click', () => requestMethodSwitch('named'));
-    els.pinMethodTab.addEventListener('click', () => requestMethodSwitch('pin'));
-    els.confirmMethodSwitch.addEventListener('click', () => { if (state.pendingMethod) switchMethod(state.pendingMethod); state.pendingMethod = null; els.switchNotice.hidden = true; });
-    els.cancelMethodSwitch.addEventListener('click', () => { state.pendingMethod = null; els.switchNotice.hidden = true; announce('Your staged answer is still selected.'); });
-    els.guessInput.addEventListener('input', handleGuessInput);
-    els.guessInput.addEventListener('keydown', handleGuessKeydown);
-    els.clearInput.addEventListener('click', clearNamedAnswer);
-    els.suggestionList.addEventListener('click', (event) => { const option = event.target.closest('[role="option"]'); if (option) selectSuggestion(Number(option.dataset.index)); });
-    els.editAnswer.addEventListener('click', focusCurrentMethod);
-    els.commitAnswer.addEventListener('click', commitAnswer);
-    els.mapStage.addEventListener('click', handleMapClick);
-    els.mapStage.addEventListener('keydown', handleMapKeydown);
-    document.querySelectorAll('[data-nudge]').forEach((button) => button.addEventListener('click', () => nudgePin(button.dataset.nudge)));
-    els.clearPin.addEventListener('click', clearPin);
-    els.nextRoundButton.addEventListener('click', nextRound);
-    els.revealFinishButton.addEventListener('click', finishSet);
-    els.playAgainButton.addEventListener('click', () => startSet({ preventDefault() {} }));
-    els.boardSelect.addEventListener('change', () => showToast('The second board is a fixture preview for the next ruleset.'));
-  }
-
-  function getCheckedValue(name) {
-    const selected = document.querySelector(`input[name="${name}"]:checked`);
-    return selected ? selected.value : null;
-  }
-
-  function updateSetupCopy() {
-    const cityId = getCheckedValue('city') || 'toronto';
-    const radius = Number(getCheckedValue('radius') || 3);
-    const modeId = getCheckedValue('mode') || 'daily';
-    const city = fixtures.cities[cityId] || fixtures.cities.toronto;
-    const mode = fixtures.modes[modeId] || fixtures.modes.daily;
-    document.querySelectorAll('.choice-card-city').forEach((card) => card.classList.toggle('is-selected', Boolean(card.querySelector('input')?.checked)));
-    document.querySelectorAll('.segment-option').forEach((card) => card.classList.toggle('is-selected', card.querySelector('input').checked));
-    document.querySelectorAll('.mode-card').forEach((card) => card.classList.toggle('is-selected', card.querySelector('input').checked));
-    els.radiusHint.textContent = city.radiusHints[radius];
-    els.startSetLabel.textContent = `Start ${mode.label}`;
-    els.coverageStatus.querySelector('p').textContent = `${mode.rounds.length} sample rounds · replay anytime.`;
-    els.coverageStatus.querySelector('b').textContent = 'Ready to play';
-  }
-
-  function startSet(event) {
-    if (event?.preventDefault) event.preventDefault();
-    state.cityId = getCheckedValue('city') || 'toronto';
-    state.radius = Number(getCheckedValue('radius') || 3);
-    state.modeId = getCheckedValue('mode') || 'daily';
-    const mode = fixtures.modes[state.modeId];
-    state.rounds = mode.rounds.map((round) => ({ ...round, catalog: round.catalog.map(([label, secondary]) => ({ label, secondary })) }));
-    state.roundIndex = 0;
-    state.scores = [];
-    state.current = freshRoundState();
-    renderRound();
-    showView('play');
-    announce(`${mode.label} started. Round 1 of ${state.rounds.length}.`);
-  }
-
-  function renderRound() {
-    const round = state.rounds[state.roundIndex];
-    if (!round) return;
-    const mode = fixtures.modes[state.modeId];
-    const city = fixtures.cities[state.cityId];
-    state.current = freshRoundState();
-    els.playModeLabel.textContent = mode.eyebrow;
-    els.playScopeLabel.textContent = `${city.name} · ${state.radius} km radius`;
-    els.roundProgressLabel.textContent = `ROUND ${String(state.roundIndex + 1).padStart(2, '0')} OF ${state.rounds.length}`;
-    els.sceneCount.textContent = `SCENE ${String(state.roundIndex + 1).padStart(2, '0')} / ${String(state.rounds.length).padStart(2, '0')}`;
-    els.progressFill.style.width = `${(state.roundIndex / state.rounds.length) * 100}%`;
-    els.sceneFrame.style.backgroundImage = `linear-gradient(180deg, rgba(10, 22, 17, .04) 35%, rgba(10, 22, 17, .62) 100%), url("${round.image}")`;
-    els.sceneFrame.style.backgroundPosition = round.imagePosition || 'center';
-    els.sceneFrame.setAttribute('aria-label', `Fixed ${round.category.toLowerCase()} scene for round ${state.roundIndex + 1}. Panning and zooming are unavailable.`);
-    els.sceneCategory.textContent = round.category;
-    els.playHeading.textContent = /[?.!]$/.test(round.prompt) ? round.prompt : `${round.prompt}.`;
-    els.sceneInstruction.textContent = round.instruction;
-    els.answerTypeBadge.textContent = round.answerType.toUpperCase();
-    els.answerHeading.textContent = mode.answerLabel;
-    els.answerHelp.textContent = modeIdHelp(mode);
-    els.guessInput.placeholder = round.placeholder;
-    els.guessInput.value = '';
-    els.inputStatus.textContent = 'Start with two letters. Suggestions are scoped to Toronto.';
-    els.clearInput.hidden = true;
-    closeSuggestions();
-    closeClue();
-    els.clueButton.hidden = !mode.clues;
-    els.clueButton.disabled = false;
-    els.clueLabel.textContent = 'Use a clue';
-    els.clueCost.textContent = '−20%';
-    els.mapGuessPin.hidden = true;
-    els.mapGuessPin.style.left = '50%';
-    els.mapGuessPin.style.top = '50%';
-    els.pinStatus.textContent = 'No pin placed yet.';
-    els.namedPane.hidden = false;
-    els.namedPane.classList.remove('is-hidden');
-    els.pinPane.hidden = true;
-    els.pinPane.classList.add('is-hidden');
-    els.namedMethodTab.classList.add('is-active');
-    els.pinMethodTab.classList.remove('is-active');
-    els.namedMethodTab.setAttribute('aria-selected', 'true');
-    els.pinMethodTab.setAttribute('aria-selected', 'false');
-    els.stagedAnswer.hidden = true;
-    els.commitAnswer.disabled = true;
-    els.switchNotice.hidden = true;
-    els.clueText.textContent = round.clue;
-    renderRoundStrip();
-  }
-
-  function modeIdHelp(mode) {
-    if (state.modeId === 'landmark') return 'Type the public street name, or switch to a pin for practice.';
-    if (mode.untimed) return 'Practice is untimed. Choose a suggestion, or use a pin for a distance score.';
-    return 'Choose or type an answer, then lock it in. This sample set can be replayed anytime.';
-  }
-
-  function requestMethodSwitch(method) {
-    if (state.current.method === method) { focusCurrentMethod(); return; }
-    const hasStaged = Boolean(state.current.selected || state.current.pin || state.current.text.trim());
-    if (hasStaged) {
-      state.pendingMethod = method;
-      const label = method === 'named' ? 'Type answer' : 'Drop a pin';
-      els.switchNoticeText.textContent = `Switching to ${label} will clear your staged answer.`;
-      els.switchNotice.hidden = false;
-      els.confirmMethodSwitch.textContent = `Switch to ${label}`;
-      els.switchNotice.focus();
-      return;
-    }
-    switchMethod(method);
-  }
-
-  function switchMethod(method) {
-    state.current.method = method;
-    state.current.text = '';
-    state.current.selected = null;
-    state.current.pin = null;
-    els.stagedAnswer.hidden = true;
-    els.commitAnswer.disabled = true;
-    closeSuggestions();
-    els.guessInput.value = '';
-    els.clearInput.hidden = true;
-    els.mapGuessPin.hidden = true;
-    els.pinStatus.textContent = 'No pin placed yet.';
-    const named = method === 'named';
-    els.namedPane.hidden = !named;
-    els.namedPane.classList.toggle('is-hidden', !named);
-    els.pinPane.hidden = named;
-    els.pinPane.classList.toggle('is-hidden', named);
-    els.namedMethodTab.classList.toggle('is-active', named);
-    els.pinMethodTab.classList.toggle('is-active', !named);
-    els.namedMethodTab.setAttribute('aria-selected', String(named));
-    els.pinMethodTab.setAttribute('aria-selected', String(!named));
-    announce(named ? 'Answer method changed to type answer.' : 'Answer method changed to drop a pin.');
-    focusCurrentMethod();
-  }
-
-  function focusCurrentMethod() {
-    window.setTimeout(() => { if (state.current.method === 'named') els.guessInput.focus(); else els.mapStage.focus(); }, 0);
-  }
-
-  function handleGuessInput() {
-    state.current.text = els.guessInput.value;
-    state.current.selected = null;
-    els.clearInput.hidden = !state.current.text;
-    updateStagedAnswer();
-    renderSuggestions(state.current.text);
-  }
-
-  function handleGuessKeydown(event) {
-    const options = [...els.suggestionList.querySelectorAll('[role="option"]')];
-    const active = Number(els.guessInput.getAttribute('aria-activedescendant')?.replace('suggestion-', '') ?? -1);
-    if (event.key === 'ArrowDown' && options.length && !els.suggestionList.hidden) { event.preventDefault(); setActiveSuggestion(active < options.length - 1 ? active + 1 : 0); }
-    else if (event.key === 'ArrowUp' && options.length && !els.suggestionList.hidden) { event.preventDefault(); setActiveSuggestion(active > 0 ? active - 1 : options.length - 1); }
-    else if (event.key === 'Enter') {
-      if (options.length && !els.suggestionList.hidden && options[active]) { event.preventDefault(); selectSuggestion(Number(options[active].dataset.index)); }
-      else if (!els.commitAnswer.disabled) { event.preventDefault(); commitAnswer(); }
-    } else if (event.key === 'Escape') closeSuggestions();
-    else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); els.guessInput.focus(); }
-  }
-
-  function renderSuggestions(query) {
-    const round = state.rounds[state.roundIndex];
-    const normalizedQuery = normalize(query);
-    if (!round || normalizedQuery.length < 2) { closeSuggestions(); return; }
-    const matches = round.catalog.map((item, index) => ({ ...item, index, score: suggestionScore(normalizedQuery, item.label) })).filter((item) => item.score > 0).sort((a, b) => b.score - a.score || a.label.localeCompare(b.label)).slice(0, 6);
-    els.suggestionList.innerHTML = matches.map((item, index) => `<button type="button" role="option" id="suggestion-${index}" data-index="${item.index}" aria-selected="false"><span class="suggestion-icon" aria-hidden="true">⌖</span><span><b>${escapeHtml(item.label)}</b><small>${escapeHtml(item.secondary)}</small></span></button>`).join('');
-    els.suggestionList.hidden = matches.length === 0;
-    els.guessInput.setAttribute('aria-expanded', String(matches.length > 0));
-    els.guessInput.removeAttribute('aria-activedescendant');
-  }
-
-  function suggestionScore(query, label) {
-    const target = normalize(label);
-    if (target.startsWith(query)) return 3;
-    if (target.includes(query)) return 2;
-    return query.split(/\s+/).filter(Boolean).every((token) => target.includes(token)) ? 1 : 0;
-  }
-
-  function setActiveSuggestion(index) {
-    const options = [...els.suggestionList.querySelectorAll('[role="option"]')];
-    options.forEach((option, optionIndex) => option.setAttribute('aria-selected', String(optionIndex === index)));
-    const option = options[index];
-    if (!option) return;
-    els.guessInput.setAttribute('aria-activedescendant', option.id);
-    option.scrollIntoView({ block: 'nearest' });
-  }
-
-  function selectSuggestion(index) {
-    const item = state.rounds[state.roundIndex].catalog[index];
-    if (!item) return;
-    els.guessInput.value = item.label;
-    state.current.text = item.label;
-    state.current.selected = item;
-    els.clearInput.hidden = false;
-    closeSuggestions();
-    updateStagedAnswer();
-    announce(`Staged answer: ${item.label}.`);
-  }
-
-  function clearNamedAnswer() {
-    els.guessInput.value = '';
-    state.current.text = '';
-    state.current.selected = null;
-    els.clearInput.hidden = true;
-    closeSuggestions();
-    updateStagedAnswer();
-    els.guessInput.focus();
-  }
-
-  function closeSuggestions() {
-    els.suggestionList.hidden = true;
-    els.suggestionList.innerHTML = '';
-    els.guessInput.setAttribute('aria-expanded', 'false');
-    els.guessInput.removeAttribute('aria-activedescendant');
-  }
-
-  function updateStagedAnswer() {
-    const hasAnswer = state.current.method === 'named' ? Boolean(state.current.text.trim()) : Boolean(state.current.pin);
-    els.commitAnswer.disabled = !hasAnswer;
-    if (!hasAnswer) { els.stagedAnswer.hidden = true; return; }
-    const value = state.current.method === 'named' ? state.current.text.trim() : `Pin at ${Math.round(state.current.pin.x)}%, ${Math.round(state.current.pin.y)}% of scope`;
-    els.stagedAnswerText.textContent = value;
-    els.stagedAnswer.hidden = false;
-  }
-
-  function useClue() {
-    const mode = fixtures.modes[state.modeId];
-    if (!mode.clues || state.current.clueUsed) return;
-    state.current.clueUsed = true;
-    els.clueLabel.textContent = 'Clue used';
-    els.clueCost.textContent = '−20%';
-    els.clueButton.disabled = true;
-    els.cluePopover.hidden = false;
-    announce('Clue revealed. Your score for this round is reduced by 20 percent.');
-  }
-
-  function closeClue() { els.cluePopover.hidden = true; }
-
-  function handleMapClick(event) {
-    if (event.target.closest('.map-guess-pin')) return;
-    const rect = els.mapStage.getBoundingClientRect();
-    setPin(((event.clientX - rect.left) / rect.width) * 100, ((event.clientY - rect.top) / rect.height) * 100);
-  }
-
-  function handleMapKeydown(event) {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); nudgePin(event.key.replace('Arrow', '').toLowerCase()); }
-    else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (!state.current.pin) setPin(50, 50); }
-  }
-
-  function setPin(x, y) {
-    state.current.pin = { x: clamp(x, 4, 96), y: clamp(y, 6, 94) };
-    els.mapGuessPin.style.left = `${state.current.pin.x}%`;
-    els.mapGuessPin.style.top = `${state.current.pin.y}%`;
-    els.mapGuessPin.hidden = false;
-    els.pinStatus.textContent = `Pin placed at ${Math.round(state.current.pin.x)}% east, ${Math.round(state.current.pin.y)}% within the scope.`;
-    updateStagedAnswer();
-    announce('Guess pin placed. Use the arrow controls to nudge it, or lock it in.');
-  }
-
-  function nudgePin(direction) {
-    const pin = state.current.pin || { x: 50, y: 50 };
-    const step = 2.5;
-    const deltas = { up: [0, -step], down: [0, step], left: [-step, 0], right: [step, 0] };
-    const [dx, dy] = deltas[direction] || [0, 0];
-    setPin(pin.x + dx, pin.y + dy);
-  }
-
-  function clearPin() {
-    state.current.pin = null;
-    els.mapGuessPin.hidden = true;
-    els.pinStatus.textContent = 'No pin placed yet.';
-    updateStagedAnswer();
-    els.mapStage.focus();
-    announce('Guess pin removed.');
-  }
-
-  function commitAnswer() {
-    if (els.commitAnswer.disabled) { showToast(state.current.method === 'named' ? 'Choose or type an answer first.' : 'Place a pin on the map first.'); focusCurrentMethod(); return; }
-    closeSuggestions();
-    const round = state.rounds[state.roundIndex];
-    const result = scoreRound(round);
-    state.current.result = result;
-    state.scores[state.roundIndex] = result;
-    renderReveal(round, result);
-    showView('reveal');
-    announce(`Round complete. ${result.score} points.`);
-  }
-
-  function scoreRound(round) {
-    const hintFactor = state.current.clueUsed ? 0.8 : 1;
-    if (state.current.method === 'named') {
-      const normalized = normalize(state.current.text);
-      const correct = round.accepted.some((answer) => normalize(answer) === normalized);
-      const nearMiss = !correct && round.nearMiss.some((token) => normalized.includes(token));
-      return { score: correct ? Math.round(1000 * hintFactor) : 0, method: 'named', correct, nearMiss, distance: null, answer: state.current.text.trim(), clueUsed: state.current.clueUsed, message: correct ? (state.current.clueUsed ? 'Correct — with a little help from the field notes.' : 'You were right on the connection.') : (nearMiss ? 'Right street, different corner.' : 'Not quite this time. The reveal will make the relationship clearer.') };
-    }
-    const target = round.targetPin;
-    const dx = state.current.pin.x - target.x;
-    const dy = state.current.pin.y - target.y;
-    const distance = Math.round(Math.hypot(dx, dy) * 12);
-    const tolerance = 25;
-    const falloff = 125;
-    const quality = distance >= tolerance + (falloff * 6) ? 0 : Math.exp(-Math.max(0, distance - tolerance) / falloff);
-    return { score: Math.round(1000 * quality * hintFactor), method: 'pin', correct: distance <= tolerance, nearMiss: distance <= 150, distance, answer: `Pin at ${Math.round(state.current.pin.x)}%, ${Math.round(state.current.pin.y)}%`, clueUsed: state.current.clueUsed, message: distance <= tolerance ? 'You landed inside the target area.' : distance <= 150 ? 'Close enough to see the connection.' : 'A useful first guess. The target is marked on the reveal.' };
-  }
-
-  function renderReveal(round, result) {
-    els.roundScoreValue.textContent = result.score.toLocaleString();
-    els.revealHeading.textContent = result.score >= 800 ? 'You found the connection.' : result.score >= 350 ? 'You were in the neighborhood.' : 'A new corner to remember.';
-    els.revealSubheading.textContent = result.method === 'pin' ? `${result.distance} m from the reviewed target. Accuracy beats speed here.` : 'Here’s what this place can teach you.';
-    els.revealAnswerType.textContent = round.category === 'PUBLIC BUILDING' ? 'STREET SHOWN' : 'TARGET SHOWN';
-    els.revealAnswer.textContent = round.answer;
-    els.resultMessage.innerHTML = `<span class="result-symbol ${result.correct ? '' : 'result-symbol-muted'}" aria-hidden="true">${result.correct ? '✓' : '·'}</span><p>${escapeHtml(result.message)}</p>`;
-    els.spatialNoteText.textContent = round.note;
-    els.revealMeta.textContent = `${result.method === 'pin' ? 'Pin answer' : 'Named answer'} · ${result.clueUsed ? 'clue used · −20%' : 'unassisted'}`;
-    els.revealMap.style.setProperty('--target-x', `${round.targetPin.x}%`);
-    els.revealMap.style.setProperty('--target-y', `${round.targetPin.y}%`);
-    if (result.method === 'pin') {
-      els.revealMap.style.setProperty('--guess-x', `${state.current.pin.x}%`);
-      els.revealMap.style.setProperty('--guess-y', `${state.current.pin.y}%`);
-      els.revealMap.classList.add('has-guess');
-      els.revealMap.setAttribute('aria-label', `Answer map. Your pin was ${result.distance} meters from the target. Target marker shown in coral.`);
-    } else {
-      els.revealMap.classList.remove('has-guess');
-      els.revealMap.setAttribute('aria-label', `Answer map showing the target at ${round.answer}. No pin was submitted.`);
-    }
-    els.nextRoundButton.innerHTML = state.roundIndex === state.rounds.length - 1 ? 'See your set result <span aria-hidden="true">→</span>' : 'Next place <span aria-hidden="true">→</span>';
-    renderRoundStrip();
-  }
-
-  function renderRoundStrip() {
-    els.roundStrip.innerHTML = state.rounds.map((round, index) => {
-      const result = state.scores[index];
-      const active = index === state.roundIndex;
-      const status = result ? `${result.score.toLocaleString()} pts` : active ? 'current' : 'locked';
-      return `<div class="round-strip-item ${active ? 'is-current' : ''} ${result ? 'is-complete' : ''}"><span class="round-strip-number">${String(index + 1).padStart(2, '0')}</span><span><b>${escapeHtml(round.category)}</b><small>${status}</small></span><span class="round-strip-symbol" aria-hidden="true">${result ? '✓' : active ? '•' : '·'}</span></div>`;
-    }).join('');
-  }
-
-  function nextRound() {
-    if (state.roundIndex >= state.rounds.length - 1) { finishSet(); return; }
-    state.roundIndex += 1;
-    renderRound();
-    showView('play');
-    announce(`Round ${state.roundIndex + 1} of ${state.rounds.length}.`);
-  }
-
-  function finishSet() {
-    const completed = state.scores.filter(Boolean);
-    const total = completed.reduce((sum, result) => sum + result.score, 0);
-    const correct = completed.filter((result) => result.correct).length;
-    const pinDistances = completed.filter((result) => result.distance !== null).map((result) => result.distance).sort((a, b) => a - b);
-    const median = pinDistances.length ? pinDistances[Math.floor(pinDistances.length / 2)] : null;
-    els.summaryScore.textContent = total.toLocaleString();
-    els.summaryAccuracy.textContent = `${Math.round((correct / Math.max(1, completed.length)) * 100)}%`;
-    els.summaryDistance.textContent = median === null ? 'Named' : `${median} m`;
-    els.summaryMarks.textContent = String(10 + (completed.filter((result) => result.correct && !result.clueUsed).length * 5));
-    els.summaryRankScore.textContent = `${total.toLocaleString()} pts`;
-    const lastRound = state.rounds[Math.min(state.roundIndex, state.rounds.length - 1)];
-    els.summaryNote.textContent = lastRound ? `You practiced ${lastRound.answer.replace(' × ', ' at ')}. Explore Field Notes for more street relationships. Progress lasts for this session.` : 'Explore Field Notes for more street relationships.';
-    els.summarySubheading.textContent = `${completed.length} of ${state.rounds.length} rounds completed. Replay to try a different answer method.`;
-    renderNotes();
-    showView('summary');
-    announce(`Set complete. ${total} points across ${completed.length} rounds.`);
-  }
-
-  function renderLeaderboard() {
-    els.leaderboardRows.innerHTML = fixtures.leaderboard.map(([name, score], index) => `<div class="leaderboard-row ${name === 'you · demo' ? 'is-you' : ''}"><span>${String(index + 1).padStart(2, '0')}</span><b>${escapeHtml(name)}</b><span>${score}</span></div>`).join('');
-  }
-
-  function renderNotes() {
-    const played = new Set(state.scores.map((result, index) => result ? state.rounds[index]?.id : null).filter(Boolean));
-    els.notesGrid.innerHTML = fixtures.notes.map((note, index) => {
-      const noticed = index === 0 || [...played].some((id) => id.includes('queen') && note.id === 'note-spadina');
-      return `<article class="note-card ${noticed ? 'is-noticed' : ''}"><div class="note-card-top"><span class="note-category">${escapeHtml(note.category)}</span><span class="note-state">${noticed ? 'NOTICED' : 'UNSEEN'}</span></div><h2>${escapeHtml(note.title)}</h2><p>${escapeHtml(note.relation)}</p><div class="note-card-foot"><span>${noticed ? note.due : 'Play to notice'}</span><span aria-hidden="true">↗</span></div></article>`;
-    }).join('');
-    els.journalProgress.textContent = `${Math.max(1, played.size)} / 12`;
-  }
-
-  function handleNavigation(target) {
-    if (!views.includes(target)) return;
-    if (target === 'rankings') renderLeaderboard();
-    if (target === 'notes') renderNotes();
-    showView(target);
-  }
-
-  function showView(target) {
-    state.view = target;
-    views.forEach((view) => {
-      const node = document.getElementById(`${view}View`);
-      const visible = view === target;
-      node.hidden = !visible;
-      node.classList.toggle('is-hidden', !visible);
-      node.setAttribute('aria-hidden', String(!visible));
+}
+function selectedCity() {
+  return config?.cities.find((city) => city.id === $("city").value);
+}
+function locationControls() {
+  $("city").disabled = busy || !config;
+  $("locate").disabled =
+    busy ||
+    locating ||
+    !config ||
+    !navigator.geolocation ||
+    !window.isSecureContext;
+  $("locate").textContent = locating ? "Locating…" : "Use my location";
+}
+function cancelLocation() {
+  locationGeneration++;
+  locating = false;
+  locationControls();
+}
+function chooseCity(cityId, status) {
+  if (!config.cities.some((city) => city.id === cityId)) return;
+  $("city").value = cityId;
+  $("city-status").textContent = status;
+  startKey = null;
+  coverage();
+}
+function recommendationText(match) {
+  const city =
+    config.cities.find((city) => city.id === match?.city_id) ||
+    config.cities[0];
+  const only =
+    config.cities.length === 1
+      ? ` ${city.name} is our only available city so far.`
+      : "";
+  if (!match || match.source === "default")
+    return `${city.name} is ready to play. Use your location to find the nearest available city.${only}`;
+  const distance =
+    match.distance_km >= 50
+      ? ` · about ${Math.round(match.distance_km).toLocaleString()} km away`
+      : "";
+  return `${city.name} is your nearest available city${distance}. ${match.source === "browser" ? "Selected using your browser location." : "Based on your approximate network location."}${only}`;
+}
+async function locateCity() {
+  if (busy || locating || !config) return;
+  const generation = ++locationGeneration;
+  locating = true;
+  locationControls();
+  $("city-status").textContent =
+    "Finding your nearest city. Allow location if your browser asks. Your exact location stays in this browser.";
+  try {
+    const position = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject({ code: 3 }), 12000);
+      const finish = (callback) => (value) => {
+        clearTimeout(timeout);
+        callback(value);
+      };
+      navigator.geolocation.getCurrentPosition(
+        finish(resolve),
+        finish(reject),
+        {
+          enableHighAccuracy: false,
+          maximumAge: 300000,
+          timeout: 8000,
+        },
+      );
     });
-    document.querySelectorAll('.nav-button').forEach((button) => button.classList.toggle('is-active', button.dataset.viewTarget === target || (target === 'play' && button.dataset.viewTarget === 'setup')));
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-    const heading = document.querySelector(`#${target}View h1, #${target}View h2`);
-    if (heading) window.setTimeout(() => { heading.setAttribute('tabindex', '-1'); heading.focus({ preventScroll: true }); }, 0);
+    if (generation !== locationGeneration) return;
+    const match = nearestCity(
+      {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      },
+      config.cities,
+    );
+    if (!match) throw Error("Location unavailable");
+    cityPreference(null);
+    chooseCity(
+      match.city_id,
+      recommendationText({ ...match, source: "browser" }),
+    );
+  } catch (error) {
+    if (generation !== locationGeneration) return;
+    const reason =
+      error.code === 1
+        ? "Location access is off."
+        : "We couldn’t get your location.";
+    $("city-status").textContent =
+      `${reason} You can still play in ${selectedCity().name} or choose an available city.`;
+  } finally {
+    if (generation === locationGeneration) {
+      locating = false;
+      locationControls();
+    }
   }
-
-  function normalize(value) {
-    return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[×&/]+/g, ' & ').replace(/\b(avenue|ave)\b/g, 'ave').replace(/\b(street|st)\b/g, 'st').replace(/\s+/g, ' ').trim();
+}
+async function initCities() {
+  config.cities = config.cities?.length ? config.cities : SUPPORTED_CITIES;
+  $("city").replaceChildren(
+    ...config.cities.map(
+      (city) => new Option(`${city.name}, ${city.country}`, city.id),
+    ),
+  );
+  const saved = config.cities.find((city) => city.id === cityPreference());
+  const recommended =
+    config.cities.find((city) => city.id === config.recommendation?.city_id) ||
+    config.cities[0];
+  chooseCity(
+    saved?.id || recommended.id,
+    saved
+      ? `${saved.name} · your selected city.`
+      : recommendationText(config.recommendation),
+  );
+  locationControls();
+  if (
+    saved ||
+    !navigator.geolocation ||
+    !navigator.permissions ||
+    !window.isSecureContext
+  )
+    return;
+  const generation = locationGeneration;
+  try {
+    const permission = await navigator.permissions.query({
+      name: "geolocation",
+    });
+    if (
+      permission.state === "granted" &&
+      generation === locationGeneration &&
+      currentView === "setup" &&
+      !busy
+    )
+      await locateCity();
+  } catch {
+    /* The approximate recommendation works without the Permissions API. */
   }
-
-  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
-  function announce(message) { els.liveRegion.textContent = ''; window.setTimeout(() => { els.liveRegion.textContent = message; }, 20); }
-  function showToast(message) { els.toast.textContent = message; els.toast.classList.add('show'); window.clearTimeout(showToast.timeout); showToast.timeout = window.setTimeout(() => els.toast.classList.remove('show'), 3200); }
-  function prefersReducedMotion() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
-  function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character])); }
-
-  cacheElements();
-  updateSetupCopy();
-  renderLeaderboard();
-  renderNotes();
-})();
+}
+function message(text = "") {
+  $("notice").textContent = text;
+  $("notice").hidden = !text;
+}
+function go(view) {
+  currentView = view;
+  if (view !== "setup") cancelLocation();
+  document.body.classList.toggle("is-playing", view === "play");
+  $("map-help").open = false;
+  for (const e of document.querySelectorAll("main>section"))
+    e.hidden = e.id !== view;
+  for (const e of document.querySelectorAll("[data-view]"))
+    e.classList.toggle("is-active", e.dataset.view === view);
+  message();
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+async function api(path, body) {
+  const res = await fetch(API + path, {
+    credentials: "same-origin",
+    cache: "no-store",
+    ...(body
+      ? {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      : {}),
+  });
+  const data = await res
+    .json()
+    .catch(() => ({ error: "The game could not connect. Please retry." }));
+  if (!res.ok) throw Error(data.error);
+  return data;
+}
+function selectedMode() {
+  return new FormData($("setup-form")).get("mode");
+}
+function coverage() {
+  const mode = selectedMode();
+  const city = selectedCity();
+  if (city) {
+    $("city-eyebrow").textContent = `${city.name.toUpperCase()} · REAL PLACES`;
+    $("area-note").textContent =
+      `${city.area || city.name}. Wider areas use this city's current collection; more places will be added over time.`;
+  }
+  $("radius").disabled = mode === "daily";
+  if (mode === "daily") $("radius").value = "3";
+  const radius = Number($("radius").value),
+    count =
+      (selectedCity()?.coverage || config?.coverage)?.find(
+        (c) => c.mode === mode && c.radius === radius,
+      )?.count || 0;
+  $("coverage").textContent = config
+    ? `${count} verified ${mode === "landmark" ? "landmarks" : "intersections"} in this area${count < 3 ? " · choose a wider area to play" : mode === "daily" ? ` · resets at midnight ${city?.name || "Toronto"} time` : ""}.`
+    : "Connecting to the game…";
+  $("start").disabled = !config?.ready || count < 3 || busy;
+  $("start").textContent =
+    mode === "daily" ? "Play today’s three ↗" : "Start exploring ↗";
+  if (config && !config.ready)
+    message(
+      "Live maps are temporarily unavailable. Please check back shortly.",
+    );
+}
+function setBusy(value) {
+  busy = value;
+  locationControls();
+  updateSubmit();
+  $("skip").disabled = value;
+  $("clue").disabled = value || Boolean(round?.clue_used);
+  $("next").disabled = value;
+  coverage();
+}
+function updateSubmit() {
+  $("submit").disabled =
+    busy || !sceneReady || Boolean(result) || !pin || !mapReady || mapBusy;
+}
+async function loadImage(url, img, kind) {
+  const generation = kind === "scene" ? ++sceneGeneration : ++mapGeneration;
+  const check = () =>
+    generation === (kind === "scene" ? sceneGeneration : mapGeneration);
+  const loading = $(kind === "scene" ? "scene-loading" : "map-loading"),
+    retry = $(kind === "scene" ? "retry-scene" : "retry-map");
+  loading.hidden = false;
+  loading.textContent =
+    kind === "scene" ? "Loading the street…" : "Loading map…";
+  retry.hidden = true;
+  if (kind === "scene") {
+    sceneReady = false;
+    img.hidden = true;
+  } else {
+    mapReady = false;
+    mapBusy = true;
+    mapButtons();
+    paintPins();
+  }
+  updateSubmit();
+  try {
+    const res = await fetch(url, {
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw Error(data.error || "The image could not load. Please retry.");
+    }
+    const object = URL.createObjectURL(await res.blob());
+    if (!check()) {
+      URL.revokeObjectURL(object);
+      return false;
+    }
+    img.src = object;
+    try {
+      await img.decode();
+    } catch {
+      URL.revokeObjectURL(object);
+      throw Error("The image could not display. Please retry.");
+    }
+    if (!check()) {
+      URL.revokeObjectURL(object);
+      return false;
+    }
+    if (kind === "scene") {
+      if (sceneObject) URL.revokeObjectURL(sceneObject);
+      sceneObject = object;
+      sceneReady = true;
+    } else {
+      if (mapObject) URL.revokeObjectURL(mapObject);
+      mapObject = object;
+      mapReady = true;
+    }
+    img.hidden = false;
+    loading.hidden = true;
+    return true;
+  } catch (e) {
+    if (check()) {
+      loading.textContent =
+        e.name === "TimeoutError"
+          ? "Loading took too long. Please retry."
+          : e.message;
+      retry.hidden = false;
+    }
+    return false;
+  } finally {
+    if (check()) {
+      if (kind === "map") {
+        mapBusy = false;
+        mapButtons();
+        paintPins();
+      }
+      updateSubmit();
+    }
+  }
+}
+function mapButtons() {
+  for (const b of document.querySelectorAll("[data-map]"))
+    b.disabled =
+      mapBusy ||
+      (b.dataset.map === "in" && mapZoom >= 17) ||
+      (b.dataset.map === "out" && mapZoom <= 11);
+  $("show-answer").disabled = mapBusy;
+}
+async function loadMap(force = false) {
+  $("map-section").hidden = false;
+  if (mapBusy) return;
+  const key = [game.id, mapCenter.latitude, mapCenter.longitude, mapZoom].join(
+    ":",
+  );
+  if (!force && key === mapKey && mapReady) {
+    paintPins();
+    return;
+  }
+  mapKey = key;
+  const q = new URLSearchParams({
+    lat: mapCenter.latitude,
+    lng: mapCenter.longitude,
+    zoom: mapZoom,
+  });
+  await loadImage(`${API}/games/${game.id}/map?${q}`, $("map-image"), "map");
+}
+function paintPins() {
+  for (const [el, point] of [
+    [$("guess-pin"), pin],
+    [$("answer-pin"), result?.point],
+  ]) {
+    if (!point || !mapReady) {
+      el.hidden = true;
+      continue;
+    }
+    const pos = project(point, mapCenter, mapZoom);
+    el.hidden = pos.x < 3 || pos.x > 97 || pos.y < 3 || pos.y > 85;
+    el.style.left = pos.x + "%";
+    el.style.top = pos.y + "%";
+  }
+  if (pin && !result)
+    $("pin-status").textContent = "Pin placed. Tap again to move it.";
+  else
+    $("pin-status").textContent = result
+      ? "G: your guess · A: answer"
+      : "Tap the map to place a pin.";
+}
+function showPanel(panel) {
+  $("play").dataset.panel = panel;
+  for (const kind of ["scene", "map"]) {
+    $("view-" + kind).classList.toggle("selected", kind === panel);
+    $("view-" + kind).setAttribute("aria-pressed", String(kind === panel));
+  }
+  $("map-help").open = false;
+}
+async function playRound() {
+  round = game.current;
+  result = null;
+  pin = null;
+  go("play");
+  $("round-meta").textContent =
+    `${game.city || "Toronto"} · ${game.day} · ROUND ${round.ordinal} / ${game.total_rounds}`;
+  $("prompt").textContent = round.prompt;
+  $("prompt").focus();
+  $("answer-form").hidden = false;
+  showPanel("scene");
+  $("reveal").hidden = true;
+  $("show-answer").hidden = true;
+  $("clue").hidden = game.mode === "daily";
+  $("clue-box").hidden = !round.clue_used;
+  $("clue-box").textContent = round.clue || "";
+  setBusy(false);
+  paintPins();
+  await Promise.all([
+    loadMap(),
+    loadImage(round.scene_url, $("scene"), "scene"),
+  ]);
+}
+function showSummary() {
+  go("summary");
+  $("total").textContent =
+    `${game.rounds.reduce((sum, r) => sum + (r.result?.score || 0), 0).toLocaleString()} / 3,000`;
+  $("summary-rounds").replaceChildren(
+    ...game.rounds.map((r) =>
+      record(r.result.label, r.result.note, `${r.result.score} pts`),
+    ),
+  );
+}
+async function enterGame(nextGame) {
+  const different = game?.id !== nextGame.id;
+  game = nextGame;
+  $("scene").alt =
+    `Street View of the ${game.city || "Toronto"} location for this round`;
+  $("map-image").alt = `Google map of ${game.city || "Toronto"}`;
+  location.hash = "game=" + game.id;
+  if (different) {
+    // A slow map from the previous city must not overwrite this game's map.
+    mapGeneration++;
+    mapBusy = false;
+    mapCenter = { ...game.center };
+    mapZoom = game.map_zoom;
+    mapKey = "";
+    mapReady = false;
+    $("map-image").hidden = true;
+  }
+  if (game.complete) showSummary();
+  else await playRound();
+}
+async function submit(method) {
+  if (busy || result) return;
+  setBusy(true);
+  try {
+    const data = await api(`/games/${game.id}/rounds/${round.id}/guess`, {
+      method,
+      ...(method === "pin" ? { pin } : {}),
+    });
+    game = data.game;
+    result = data.result;
+    $("answer-form").hidden = true;
+    showPanel("map");
+    $("clue-box").hidden = true;
+    $("reveal").hidden = false;
+    $("result-score").textContent = `${result.score.toLocaleString()} / 1,000`;
+    $("result-label").textContent =
+      result.name && result.name !== result.label
+        ? `${result.name} · ${result.label}`
+        : result.label;
+    $("result-detail").textContent =
+      method === "skip"
+        ? "Skipped — take a moment to remember this place."
+        : result.method === "pin"
+          ? `${result.distance_m.toLocaleString()} m from the answer${result.correct ? " · Right on target!" : ""}`
+          : result.correct
+            ? "That’s the connection."
+            : "A new connection for next time.";
+    if (result.assisted) $("result-detail").textContent += " · Clue used";
+    $("next").textContent = game.complete ? "See my set →" : "Next place →";
+    $("show-answer").hidden = false;
+    paintPins();
+    message();
+  } catch (e) {
+    message(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+function record(title, detail, value, action) {
+  const e = document.createElement("article");
+  e.className = "record";
+  const left = document.createElement("div"),
+    h = document.createElement("h2"),
+    p = document.createElement("p");
+  h.textContent = title;
+  p.textContent = detail;
+  left.append(h, p);
+  e.append(left);
+  if (action) {
+    const b = document.createElement("button");
+    b.className = "secondary-button";
+    b.textContent = value;
+    b.onclick = action;
+    e.append(b);
+  } else {
+    const strong = document.createElement("strong");
+    strong.textContent = value;
+    e.append(strong);
+  }
+  return e;
+}
+async function resume(id) {
+  if (busy) return;
+  setBusy(true);
+  try {
+    await enterGame(await api("/games/" + id));
+  } catch (e) {
+    message(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+async function refreshHistory() {
+  const data = await api("/history");
+  $("scores-list").replaceChildren(
+    ...data.games.map((g) =>
+      record(
+        names[g.mode],
+        `${g.city || "Toronto"} · ${g.day} · ${g.completed}/3 rounds · ${g.score.toLocaleString()} points`,
+        g.completed === 3 ? "View set" : "Resume",
+        () => resume(g.id),
+      ),
+    ),
+  );
+  if (!data.games.length)
+    $("scores-list").textContent =
+      "Your first set is waiting. Play three places to start your record.";
+  $("resume-list").replaceChildren(
+    ...data.games
+      .filter((g) => g.completed < 3)
+      .slice(0, 3)
+      .map((g) =>
+        record(
+          "Pick up " + names[g.mode].toLowerCase(),
+          `${g.city || "Toronto"} · ${g.completed}/3 rounds complete · ${g.day}`,
+          "Resume",
+          () => resume(g.id),
+        ),
+      ),
+  );
+  $("notes-list").replaceChildren(
+    ...data.notes.map((n) => {
+      const e = document.createElement("article");
+      e.className = "note";
+      const h = document.createElement("h2"),
+        p = document.createElement("p");
+      h.textContent = n.name && n.name !== n.label ? `${n.name} · ${n.label}` : n.label;
+      p.textContent = `${n.city || "Toronto"} · ${n.note}`;
+      e.append(h, p);
+      return e;
+    }),
+  );
+  if (!data.notes.length)
+    $("notes-list").textContent =
+      "Answer a round to save your first place here.";
+}
+for (const button of document.querySelectorAll("[data-view]"))
+  button.onclick = async () => {
+    go(button.dataset.view);
+    history.replaceState(null, "", location.pathname);
+    try {
+      await refreshHistory();
+    } catch (e) {
+      message(e.message);
+    }
+  };
+$("setup-form").onchange = () => {
+  startKey = null;
+  coverage();
+};
+$("city").onchange = () => {
+  cancelLocation();
+  cityPreference($("city").value);
+  chooseCity($("city").value, `${selectedCity().name} · your selected city.`);
+};
+$("locate").onclick = () => void locateCity();
+$("setup-form").onsubmit = async (e) => {
+  e.preventDefault();
+  if (busy) return;
+  cancelLocation();
+  setBusy(true);
+  startKey ||= crypto.randomUUID();
+  try {
+    const nextGame = await api("/games", {
+      mode: selectedMode(),
+      city_id: $("city").value,
+      radius: Number($("radius").value),
+      request_id: startKey,
+    });
+    startKey = null;
+    await enterGame(nextGame);
+  } catch (error) {
+    message(error.message);
+  } finally {
+    setBusy(false);
+  }
+};
+$("view-scene").onclick = () => showPanel("scene");
+$("view-map").onclick = () => showPanel("map");
+$("answer-form").onsubmit = (e) => {
+  e.preventDefault();
+  if (!$("submit").disabled) void submit("pin");
+};
+$("skip").onclick = () => submit("skip");
+$("next").onclick = () => (game.complete ? showSummary() : playRound());
+$("leave").onclick = async () => {
+  go("setup");
+  history.replaceState(null, "", location.pathname);
+  try {
+    await refreshHistory();
+  } catch (e) {
+    message(e.message);
+  }
+};
+$("clue").onclick = async () => {
+  if (busy) return;
+  setBusy(true);
+  try {
+    const data = await api(`/games/${game.id}/rounds/${round.id}/clue`, {});
+    round.clue_used = true;
+    round.clue = data.clue;
+    $("clue-box").textContent = data.clue;
+    $("clue-box").hidden = false;
+    showPanel("scene");
+  } catch (e) {
+    message(e.message);
+  } finally {
+    setBusy(false);
+  }
+};
+$("retry-scene").onclick = () =>
+  loadImage(round.scene_url, $("scene"), "scene");
+$("retry-map").onclick = () => loadMap(true);
+$("show-answer").onclick = async () => {
+  if (!result || mapBusy) return;
+  mapCenter = { ...result.point };
+  mapZoom = 16;
+  await loadMap();
+};
+for (const b of document.querySelectorAll("[data-map]"))
+  b.onclick = async () => {
+    if (mapBusy) return;
+    const action = b.dataset.map;
+    if (action === "in") mapZoom = Math.min(17, mapZoom + 1);
+    else if (action === "out") mapZoom = Math.max(11, mapZoom - 1);
+    else if (action === "home") {
+      mapCenter = { ...game.center };
+      mapZoom = game.map_zoom;
+    } else {
+      const offsets = {
+        north: [50, 25],
+        south: [50, 75],
+        west: [25, 50],
+        east: [75, 50],
+      };
+      mapCenter = unproject(...offsets[action], mapCenter, mapZoom);
+    }
+    const bounds =
+      game.bounds ||
+      SUPPORTED_CITIES.find((city) => city.id === (game.city_id || "toronto"))
+        .bounds;
+    mapCenter.latitude = Math.max(
+      bounds.south,
+      Math.min(bounds.north, mapCenter.latitude),
+    );
+    mapCenter.longitude = Math.max(
+      bounds.west,
+      Math.min(bounds.east, mapCenter.longitude),
+    );
+    await loadMap();
+  };
+$("map").onclick = (e) => {
+  if (result || busy || !mapReady || mapBusy) return;
+  const box = $("map").getBoundingClientRect(),
+    x = ((e.clientX - box.left) / box.width) * 100,
+    y = ((e.clientY - box.top) / box.height) * 100;
+  if (x < 3 || x > 97 || y < 3 || y > 85) return;
+  pin = unproject(x, y, mapCenter, mapZoom);
+  paintPins();
+  updateSubmit();
+};
+$("map").onkeydown = (e) => {
+  if (
+    result ||
+    busy ||
+    !mapReady ||
+    mapBusy ||
+    !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)
+  )
+    return;
+  e.preventDefault();
+  const pos = pin ? project(pin, mapCenter, mapZoom) : { x: 50, y: 50 },
+    step = e.shiftKey ? 5 : 1;
+  if (e.key === "ArrowUp") pos.y -= step;
+  if (e.key === "ArrowDown") pos.y += step;
+  if (e.key === "ArrowLeft") pos.x -= step;
+  if (e.key === "ArrowRight") pos.x += step;
+  pin = unproject(
+    Math.max(3, Math.min(97, pos.x)),
+    Math.max(3, Math.min(85, pos.y)),
+    mapCenter,
+    mapZoom,
+  );
+  paintPins();
+  updateSubmit();
+};
+async function init() {
+  try {
+    config = await api("/config");
+    void initCities();
+    coverage();
+    await refreshHistory();
+    const id = location.hash.match(/^#game=([\da-f-]{36})$/)?.[1];
+    if (id) await resume(id);
+  } catch (e) {
+    message(e.message + " Reload this page to reconnect.");
+  }
+}
+void init();

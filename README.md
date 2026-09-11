@@ -43,7 +43,7 @@ Neutronium is deployed separately on a DigitalOcean VPS; see [VPS instructions](
 | `/`              | Company description, product links, founders, and contact         |
 | `/pulsedeals/`  | PulseDeals overview, legal information, and support               |
 | `/the-last-echo/` | The Last Echo game website                                       |
-| `/local-lore/`    | Local Lore playable browser demo                                |
+| `/local-lore/`    | Local Lore live Toronto geography game                                |
 | `/neutronium/`   | Redirects to the Neutronium VPS on runsit.ca                       |
 | `/zainpi/`, `/raishaikh/`, `/mikaelsid/` | Founder portfolios                     |
 | `/services`, `/case-studies` | Redirect to the homepage products section            |
@@ -104,7 +104,7 @@ See [Neutronium setup and architecture](docs/neutronium.md) for the database mig
 
 ## Local Lore
 
-Play the browser demo at [runsit.ca/local-lore/](https://runsit.ca/local-lore/).
+Play the live game at [runsit.ca/local-lore/](https://runsit.ca/local-lore/).
 It is served from `public/local-lore/` through a Next.js rewrite. The existing
 site navigation links directly to the game. See [Local Lore deployment](docs/local-lore.md)
-for its sample-content limits and update workflow.
+for its live API, saved progress, image limits, and update workflow.

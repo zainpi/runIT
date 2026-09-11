@@ -12,7 +12,9 @@
     "lint": "next lint",
     "neutronium:worker": "NODE_ENV=development tsx scripts/neutronium/worker.ts",
     "test:neutronium": "tsx --test tests/neutronium/*.test.ts",
-    "test:neutronium:browser": "playwright test --config tests/neutronium/playwright.config.ts"
+    "test:neutronium:browser": "playwright test --config tests/neutronium/playwright.config.ts",
+    "test:local-lore": "node --test tests/local-lore/*.test.mjs",
+    "test:local-lore:layout": "playwright test --config tests/local-lore/playwright.config.ts"
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",

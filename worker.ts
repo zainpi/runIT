@@ -3,6 +3,7 @@ import { getPulseDealsEnv } from "./src/lib/pulsedeals/compatibility";
 // scheduled handler without changing the existing Worker service binding.
 // @ts-ignore OpenNext generates this module during the Cloudflare build.
 import openNextWorker from "./.open-next/worker.js";
+import { handleLocalLore, cleanupLocalLore } from "./src/lib/local-lore/live/api.mjs";
 
 type WorkerEnvironment = {
   PULSEDEALS_CRON_SECRET?: string;
@@ -23,11 +24,13 @@ type PulseDealsExecutionContext = {
 const marketplaces = ["de", "uk", "es", "fr", "it"] as const;
 
 export default {
-  fetch(
+  async fetch(
     request: Request,
     env: WorkerEnvironment,
     ctx: PulseDealsExecutionContext,
   ) {
+    const localLore = await handleLocalLore(request, env);
+    if (localLore) return localLore;
     const url = new URL(request.url);
     if (
       (url.hostname === "runsit.ca" || url.hostname === "www.runsit.ca") &&
@@ -44,6 +47,7 @@ export default {
     ctx: PulseDealsExecutionContext,
   ) {
     if (_controller.cron !== "*/5 * * * *") return;
+    ctx.waitUntil(cleanupLocalLore(env));
     const secret = getPulseDealsEnv("PULSEDEALS_CRON_SECRET", env);
     if (!secret) return;
     const marketplace = marketplaces[Math.floor(Date.now() / (5 * 60_000)) % marketplaces.length];
