@@ -61,6 +61,8 @@ validates guesses and map requests against its bounds, and labels scores and
 notebook entries by city. Resuming a game uses its saved city independently of
 the currently selected city. Omitted city IDs from older clients mean Toronto;
 unsupported IDs and request IDs reused for another city are rejected.
+Notebook entries use the source place ID, so different landmarks on the same
+street stay separate and display their landmark names.
 
 ## Runtime and data
 

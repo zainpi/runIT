@@ -540,7 +540,7 @@ async function refreshHistory() {
       e.className = "note";
       const h = document.createElement("h2"),
         p = document.createElement("p");
-      h.textContent = n.label;
+      h.textContent = n.name && n.name !== n.label ? `${n.name} · ${n.label}` : n.label;
       p.textContent = `${n.city || "Toronto"} · ${n.note}`;
       e.append(h, p);
       return e;

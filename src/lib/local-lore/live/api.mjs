@@ -460,7 +460,7 @@ async function history(ctx) {
   const records = await rows(
     ctx.db
       .prepare(
-        "SELECT g.id,g.city_id,g.mode,g.radius,g.day_key,g.created_at,r.ordinal,r.result_json FROM ll_games g JOIN ll_rounds r ON r.game_id=g.id WHERE g.guest_id=? AND g.created_at>? ORDER BY g.created_at DESC,r.ordinal LIMIT 300",
+        "SELECT g.id,g.city_id,g.mode,g.radius,g.day_key,g.created_at,r.ordinal,r.target_id,r.result_json FROM ll_games g JOIN ll_rounds r ON r.game_id=g.id WHERE g.guest_id=? AND g.created_at>? ORDER BY g.created_at DESC,r.ordinal LIMIT 300",
       )
       .bind(ctx.guest, now() - 90 * DAY),
   );
@@ -483,11 +483,12 @@ async function history(ctx) {
       const result = JSON.parse(r.result_json);
       g.score += result.score;
       g.completed++;
-      const noteKey = r.city_id + ":" + result.label;
+      const noteKey = r.city_id + ":" + r.target_id;
       if (result.method !== "skip" && !notes.has(noteKey))
         notes.set(noteKey, {
           city_id: r.city_id,
           city: cityById(r.city_id).name,
+          name: result.name || null,
           label: result.label,
           note: result.note,
           correct: result.correct,

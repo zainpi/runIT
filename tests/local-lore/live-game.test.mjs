@@ -551,3 +551,17 @@ test("city daily dates respect their local midnight across seasons", () => {
     "2026-01-10",
   );
 });
+
+test("different landmarks on the same street keep separate named notebook entries", async (t) => {
+  const h=harness();t.after(()=>h.db.close());
+  const started=await h.request("/games",{city_id:"nyc",mode:"landmark",radius:3,request_id:crypto.randomUUID()});
+  const places=CATALOG.filter(c=>c.city_id==="nyc"&&c.type==="landmark"&&c.label==="5th Avenue").slice(0,2);
+  assert.equal(places.length,2);
+  for(const [i,place] of places.entries()){
+    const result={name:place.name,label:place.label,note:place.note,score:1000,method:"pin",correct:true,completed_at:Date.now()};
+    await h.db.prepare("UPDATE ll_rounds SET target_id=?,result_json=? WHERE id=?").bind(place.id,JSON.stringify(result),started.data.rounds[i].id).run();
+  }
+  const notes=(await h.request("/history")).data.notes;
+  assert.equal(notes.length,2);assert.deepEqual(new Set(notes.map(n=>n.name)),new Set(places.map(p=>p.name)));
+  assert.ok(notes.every(n=>n.city_id==="nyc"&&n.label==="5th Avenue"));
+});
