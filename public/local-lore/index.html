@@ -7,10 +7,10 @@
     <title>Local Lore — Know your Toronto</title>
     <meta
       name="description"
-      content="A Toronto street-knowledge game. Recognize real Street View photos, name intersections, and place your guess on the map."
+      content="A Toronto street-knowledge game. Recognize real Street View photos, and place your guess on the map."
     />
-    <link rel="stylesheet" href="./style.css?v=live1" />
-    <script type="module" src="./app.js?v=live1"></script>
+    <link rel="stylesheet" href="./style.css?v=pin-layout1" />
+    <script type="module" src="./app.js?v=pin-layout1"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to game</a>
@@ -67,16 +67,16 @@
                   ><input type="radio" name="mode" value="around" /><span
                     ><b>Around the corner</b
                     ><small
-                      >A fresh set of intersections. Name the crossing or place
-                      a pin.</small
+                      >A fresh set of intersections. Find each crossing on the
+                      map.</small
                     ></span
                   ></label
                 ><label class="mode-card"
                   ><input type="radio" name="mode" value="landmark" /><span
                     ><b>Landmark links</b
                     ><small
-                      >Recognize a Toronto building and connect it to its
-                      street.</small
+                      >Recognize a Toronto building and find its place on the
+                      map.</small
                     ></span
                   ></label
                 >
@@ -110,8 +110,14 @@
             </div>
             <button class="text-button" id="leave">Save & leave</button>
           </div>
+          <div class="view-toggle" role="group" aria-label="Game view">
+            <button id="view-scene" class="selected" aria-pressed="true">
+              Photo
+            </button>
+            <button id="view-map" aria-pressed="false">Map</button>
+          </div>
           <div class="play-grid">
-            <div>
+            <div class="scene-column">
               <figure class="photo-frame">
                 <img
                   id="scene"
@@ -123,102 +129,30 @@
                 </div>
               </figure>
               <div class="media-caption">
-                <span
-                  ><span class="gmp-attribution" translate="no"
-                    >Google Maps</span
-                  >
-                  · Look for street signs and familiar corners.</span
+                <span class="gmp-attribution" translate="no">Google Maps</span
                 ><button id="retry-scene" class="text-button" hidden>
                   Retry photo
                 </button>
               </div>
               <div id="clue-box" class="clue-box" hidden></div>
-              <section id="reveal" class="reveal" aria-live="polite" hidden>
-                <p id="result-score" class="eyebrow"></p>
-                <h2 id="result-label"></h2>
-                <p id="result-detail"></p>
-                <p id="result-note"></p>
-                <button id="next" class="primary-button">Next place →</button>
-              </section>
             </div>
-            <div class="answer-card">
-              <div id="answer-controls">
-                <p class="eyebrow">02 / MAKE THE CONNECTION</p>
-                <div class="answer-tabs">
-                  <button
-                    id="choose-name"
-                    class="secondary-button selected"
-                    type="button"
-                    aria-pressed="true"
-                  >
-                    Name it</button
-                  ><button
-                    id="choose-pin"
-                    class="secondary-button"
-                    type="button"
-                    aria-pressed="false"
-                  >
-                    Pin it
-                  </button>
-                </div>
-                <form id="answer-form">
-                  <div id="name-answer">
-                    <label class="field-label" for="answer"
-                      >Street or intersection</label
-                    ><input
-                      id="answer"
-                      type="text"
-                      list="answer-options"
-                      placeholder="e.g. Queen & Spadina"
-                      maxlength="200"
-                      autocomplete="off"
-                    /><datalist id="answer-options"></datalist>
-                    <p class="fine">
-                      Type your answer or choose a suggestion. Street
-                      abbreviations are welcome.
-                    </p>
-                  </div>
-                  <div id="pin-instructions" hidden>
-                    <p>
-                      Tap the map to place your guess. Zoom for a closer look.
-                    </p>
-                    <p class="fine">
-                      Closer pins earn exponentially more points: 1,000 within
-                      50 m, about 640 at 500 m, and 390 at 1 km before clues.
-                    </p>
-                    <p class="fine">
-                      Keyboard: focus the map and use arrow keys to move your
-                      pin.
-                    </p>
-                  </div>
-                  <button id="submit" class="primary-button wide" disabled>
-                    Lock in my guess →
-                  </button>
-                </form>
-                <div class="round-tools">
-                  <button id="clue" class="text-button">
-                    Use a clue (−20%)</button
-                  ><button id="skip" class="text-button">
-                    Skip this round
-                  </button>
-                </div>
+            <div class="answer-card" id="map-section">
+              <div class="map-heading">
+                <b>Place your pin</b
+                ><button id="show-answer" class="text-button" hidden>
+                  Centre on answer
+                </button>
               </div>
-              <div id="map-section" hidden>
-                <div class="map-heading">
-                  <b>Toronto</b
-                  ><button id="show-answer" class="text-button" hidden>
-                    Centre on answer
-                  </button>
-                </div>
-                <div class="map-controls" aria-label="Map controls">
-                  <button data-map="north" aria-label="Pan north">↑</button
-                  ><button data-map="west" aria-label="Pan west">←</button
-                  ><button data-map="east" aria-label="Pan east">→</button
-                  ><button data-map="south" aria-label="Pan south">↓</button
-                  ><button data-map="in" aria-label="Zoom in">+</button
-                  ><button data-map="out" aria-label="Zoom out">−</button
-                  ><button data-map="home" aria-label="Reset map">⌂</button>
-                </div>
+              <div class="map-controls" aria-label="Map controls">
+                <button data-map="north" aria-label="Pan north">↑</button
+                ><button data-map="west" aria-label="Pan west">←</button
+                ><button data-map="east" aria-label="Pan east">→</button
+                ><button data-map="south" aria-label="Pan south">↓</button
+                ><button data-map="in" aria-label="Zoom in">+</button
+                ><button data-map="out" aria-label="Zoom out">−</button
+                ><button data-map="home" aria-label="Reset map">⌂</button>
+              </div>
+              <div class="map-stage">
                 <div
                   id="map"
                   class="map-frame"
@@ -239,22 +173,60 @@
                     Loading map…
                   </div>
                 </div>
-                <p class="gmp-attribution" translate="no">Google Maps</p>
-                <p id="pin-status" class="fine" aria-live="polite">
-                  G = your guess · A = answer
+              </div>
+              <div class="map-meta">
+                <span class="gmp-attribution" translate="no">Google Maps</span>
+                <p id="pin-status" aria-live="polite">
+                  Tap the map to place a pin.
                 </p>
                 <button id="retry-map" class="text-button" hidden>
                   Retry map
                 </button>
-                <p class="fine">
-                  Each pan or zoom loads a new map. Moving your pin does not.
-                </p>
               </div>
-              <button id="reveal-map" class="secondary-button wide" hidden>
-                See this place on the map
-              </button>
             </div>
           </div>
+          <form id="answer-form" class="play-actions">
+            <div id="answer-controls" class="round-tools">
+              <button id="clue" class="secondary-button" type="button">
+                Clue −20%</button
+              ><button id="skip" class="text-button" type="button">Skip</button>
+            </div>
+            <details id="map-help" class="map-help">
+              <summary
+                aria-label="Scoring and map help"
+                title="Scoring and map help"
+              >
+                ?
+              </summary>
+              <div class="help-content">
+                <strong>Closer earns more.</strong>
+                <p>
+                  1,000 points within 50 m; about 640 at 500 m and 390 at 1 km.
+                  A clue reduces your points by 20%.
+                </p>
+                <p>
+                  Tap to move your pin. On a keyboard, focus the map and use the
+                  arrow keys.
+                </p>
+                <p>
+                  Pan or zoom to explore. Moving your pin uses the map already
+                  loaded.
+                </p>
+                <p>G = your guess · A = the answer</p>
+              </div>
+            </details>
+            <button id="submit" class="primary-button" disabled>
+              Lock guess
+            </button>
+          </form>
+          <section id="reveal" class="reveal" aria-live="polite" hidden>
+            <p id="result-score"></p>
+            <div class="result-copy">
+              <h2 id="result-label"></h2>
+              <p id="result-detail"></p>
+            </div>
+            <button id="next" class="primary-button">Next place →</button>
+          </section>
         </section>
         <section id="summary" class="view narrow" hidden>
           <p class="eyebrow">SET COMPLETE</p>

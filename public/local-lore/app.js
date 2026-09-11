@@ -10,7 +10,6 @@ let config,
   game,
   round,
   result,
-  answerMethod = "named",
   pin = null,
   busy = false,
   sceneReady = false,
@@ -30,6 +29,8 @@ function message(text = "") {
 }
 function go(view) {
   currentView = view;
+  document.body.classList.toggle("is-playing", view === "play");
+  $("map-help").open = false;
   for (const e of document.querySelectorAll("main>section"))
     e.hidden = e.id !== view;
   for (const e of document.querySelectorAll("[data-view]"))
@@ -87,12 +88,7 @@ function setBusy(value) {
 }
 function updateSubmit() {
   $("submit").disabled =
-    busy ||
-    !sceneReady ||
-    Boolean(result) ||
-    (answerMethod === "named"
-      ? !$("answer").value.trim()
-      : !pin || !mapReady || mapBusy);
+    busy || !sceneReady || Boolean(result) || !pin || !mapReady || mapBusy;
 }
 async function loadImage(url, img, kind) {
   const generation = kind === "scene" ? ++sceneGeneration : ++mapGeneration;
@@ -213,25 +209,19 @@ function paintPins() {
     el.style.top = pos.y + "%";
   }
   if (pin && !result)
-    $("pin-status").textContent =
-      `Pin at ${pin.latitude.toFixed(5)}, ${pin.longitude.toFixed(5)}. Move it until you’re sure.`;
+    $("pin-status").textContent = "Pin placed. Tap again to move it.";
   else
     $("pin-status").textContent = result
-      ? "G = your guess · A = answer. If a pin is outside this view, centre on the answer."
-      : "Tap the map to place a pin. The bottom attribution area is reserved.";
+      ? "G: your guess · A: answer"
+      : "Tap the map to place a pin.";
 }
-function chooseMethod(method) {
-  answerMethod = method;
-  const named = method === "named";
-  $("name-answer").hidden = !named;
-  $("pin-instructions").hidden = named;
-  $("choose-name").classList.toggle("selected", named);
-  $("choose-pin").classList.toggle("selected", !named);
-  $("choose-name").setAttribute("aria-pressed", String(named));
-  $("choose-pin").setAttribute("aria-pressed", String(!named));
-  $("map-section").hidden = named;
-  if (!named) void loadMap();
-  updateSubmit();
+function showPanel(panel) {
+  $("play").dataset.panel = panel;
+  for (const kind of ["scene", "map"]) {
+    $("view-" + kind).classList.toggle("selected", kind === panel);
+    $("view-" + kind).setAttribute("aria-pressed", String(kind === panel));
+  }
+  $("map-help").open = false;
 }
 async function playRound() {
   round = game.current;
@@ -242,25 +232,19 @@ async function playRound() {
     `${names[game.mode]} · ${game.day} · ROUND ${round.ordinal} / ${game.total_rounds}`;
   $("prompt").textContent = round.prompt;
   $("prompt").focus();
-  $("answer-controls").hidden = false;
+  $("answer-form").hidden = false;
+  showPanel("scene");
   $("reveal").hidden = true;
-  $("reveal-map").hidden = true;
   $("show-answer").hidden = true;
-  $("answer").value = "";
-  $("answer-options").replaceChildren(
-    ...game.answer_options.map((text) => {
-      const e = document.createElement("option");
-      e.value = text;
-      return e;
-    }),
-  );
   $("clue").hidden = game.mode === "daily";
   $("clue-box").hidden = !round.clue_used;
   $("clue-box").textContent = round.clue || "";
   setBusy(false);
-  chooseMethod(answerMethod);
   paintPins();
-  await loadImage(round.scene_url, $("scene"), "scene");
+  await Promise.all([
+    loadMap(),
+    loadImage(round.scene_url, $("scene"), "scene"),
+  ]);
 }
 function showSummary() {
   go("summary");
@@ -292,19 +276,16 @@ async function submit(method) {
   try {
     const data = await api(`/games/${game.id}/rounds/${round.id}/guess`, {
       method,
-      ...(method === "named"
-        ? { text: $("answer").value }
-        : method === "pin"
-          ? { pin }
-          : {}),
+      ...(method === "pin" ? { pin } : {}),
     });
     game = data.game;
     result = data.result;
-    $("answer-controls").hidden = true;
+    $("answer-form").hidden = true;
+    showPanel("map");
     $("clue-box").hidden = true;
     $("reveal").hidden = false;
     $("result-score").textContent =
-      `${result.score.toLocaleString()} / 1,000 POINTS${result.assisted ? " · CLUE USED" : ""}`;
+      `${result.score.toLocaleString()} / 1,000`;
     $("result-label").textContent = result.name
       ? `${result.name} · ${result.label}`
       : result.label;
@@ -316,9 +297,8 @@ async function submit(method) {
           : result.correct
             ? "That’s the connection."
             : "A new connection for next time.";
-    $("result-note").textContent = result.note;
+    if (result.assisted) $("result-detail").textContent += " · Clue used";
     $("next").textContent = game.complete ? "See my set →" : "Next place →";
-    $("reveal-map").hidden = mapReady && !$("map-section").hidden;
     $("show-answer").hidden = false;
     paintPins();
     message();
@@ -439,12 +419,11 @@ $("setup-form").onsubmit = async (e) => {
     setBusy(false);
   }
 };
-$("choose-name").onclick = () => chooseMethod("named");
-$("choose-pin").onclick = () => chooseMethod("pin");
-$("answer").oninput = updateSubmit;
+$("view-scene").onclick = () => showPanel("scene");
+$("view-map").onclick = () => showPanel("map");
 $("answer-form").onsubmit = (e) => {
   e.preventDefault();
-  if (!$("submit").disabled) void submit(answerMethod);
+  if (!$("submit").disabled) void submit("pin");
 };
 $("skip").onclick = () => submit("skip");
 $("next").onclick = () => (game.complete ? showSummary() : playRound());
@@ -466,6 +445,7 @@ $("clue").onclick = async () => {
     round.clue = data.clue;
     $("clue-box").textContent = data.clue;
     $("clue-box").hidden = false;
+    showPanel("scene");
   } catch (e) {
     message(e.message);
   } finally {
@@ -475,10 +455,6 @@ $("clue").onclick = async () => {
 $("retry-scene").onclick = () =>
   loadImage(round.scene_url, $("scene"), "scene");
 $("retry-map").onclick = () => loadMap(true);
-$("reveal-map").onclick = async () => {
-  $("reveal-map").hidden = true;
-  await loadMap();
-};
 $("show-answer").onclick = async () => {
   if (!result || mapBusy) return;
   mapCenter = { ...result.point };
@@ -508,7 +484,7 @@ for (const b of document.querySelectorAll("[data-map]"))
     await loadMap();
   };
 $("map").onclick = (e) => {
-  if (result || busy || !mapReady || mapBusy || answerMethod !== "pin") return;
+  if (result || busy || !mapReady || mapBusy) return;
   const box = $("map").getBoundingClientRect(),
     x = ((e.clientX - box.left) / box.width) * 100,
     y = ((e.clientY - box.top) / box.height) * 100;
@@ -523,7 +499,6 @@ $("map").onkeydown = (e) => {
     busy ||
     !mapReady ||
     mapBusy ||
-    answerMethod !== "pin" ||
     !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)
   )
     return;

@@ -170,8 +170,8 @@ async function viewGame(ctx, gameId) {
           type: targets.get(current.target_id).type,
           prompt:
             game.mode === "landmark"
-              ? `Which street is ${targets.get(current.target_id).name} on?`
-              : "Name the intersection shown.",
+              ? `Find ${targets.get(current.target_id).name} on the map.`
+              : "Pin the intersection shown.",
           clue_used: Boolean(current.clue_used),
           clue: current.clue_used ? targets.get(current.target_id).clue : null,
           scene_url: `${PREFIX}/games/${game.id}/rounds/${current.id}/scene`,

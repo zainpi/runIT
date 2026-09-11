@@ -11,8 +11,11 @@ the Wrangler default alone.
 
 Local Lore uses real Google Street View photos and Static Maps, with 17
 independently sourced OpenStreetMap intersections and five Toronto landmarks.
-Three-round daily, intersection practice, and landmark games support named
-answers, real map pins, clue penalties, reveals, and saved scores/notebooks.
+Three-round daily, intersection practice, and landmark games use map pins,
+clue penalties, reveals, and saved scores/notebooks. Desktop play keeps the
+photo and map side by side with actions underneath in a viewport-sized layout.
+Phones switch between Photo and Map in the same space; the site footer remains
+on the other screens so the active round has room for the map and results.
 The daily set follows Toronto time and gives the same places to all players.
 The 1 km landmark area has insufficient coverage and requires a wider radius.
 Wider radii currently reuse the downtown collection; this is not citywide coverage.
@@ -48,8 +51,9 @@ Each round is capped at 1,000 points. A pin within 50 m earns full points;
 otherwise the unassisted score is `round(1000 * exp(-(distance_m - 50) / 1000))`,
 with zero at 6,050 m or farther. This gives about 951 points at 100 m, 638 at
 500 m, and 387 at 1 km. The existing 20% clue penalty applies before rounding.
-The same proximity curve applies to all live modes. Named answers keep their
-existing all-or-nothing scoring. Results save their rules version; already
+The same proximity curve applies to all live modes. The API retains named
+answer compatibility for older open clients, but the current interface only
+offers map guesses. Results save their rules version; already
 submitted scores remain committed as originally earned.
 
 ## Image use and cost controls
@@ -60,8 +64,8 @@ Only panorama IDs are saved; free metadata verifies availability and refreshes
 missing IDs using independently sourced coordinates. Google images retain
 complete attribution and get an additional legible Google Maps text label.
 
-The client requests one photo when a round opens and loads a map only when
-requested. The displayed map persists between guesses and rounds, and moving
+The client requests one photo when a round opens and loads the initial map
+automatically. The displayed map persists between guesses and rounds, and moving
 a pin or showing the answer in the existing viewport makes no Google request.
 Panning, zooming, centering, retrying, and reloading can request new images.
 
@@ -93,6 +97,10 @@ checkout synchronized with the source workspace when changing API behavior.
 
 In runIT, run `npm run test:local-lore` with Node 22.14+, then
 `npm run build:cloudflare` (includes the required Next production build).
+With the source preview running, `npm run test:local-lore:layout` checks the
+pin-only interaction and viewport fit at desktop, short laptop, and phone sizes.
+Set `LOCAL_LORE_BASE_URL` to target another preview. Browser tests mock the game
+API and imagery, so they do not consume Google image requests or saved attempts.
 The live tests cover scoring, aliases, map projection, daily attempts,
 clue penalties, player isolation, CSRF, idempotence, concurrent submissions,
 future-round protection, image budgets, pano-only persistence, and expiry.
