@@ -1,10 +1,17 @@
 SUPABASE_SERVICE_ROLE_KEY=
 PULSEDEALS_SESSION_SECRET=
 PULSEDEALS_CRON_SECRET=
+# Shared only with KeepaBot; use at least 32 random bytes.
+PULSEDEALS_INGEST_SECRET=
 KEEPA_API_KEY=
 PULSEDEALS_APPLE_ID=
 PULSEDEALS_BUNDLE_ID=com.pulsedeals.app
 PULSEDEALS_PRODUCT_ID=com.pulsedeals.subscription.weekly
+# Optional Apple review account. The API creates this account lazily with an active Pro
+# entitlement when the configured credentials are used; keep both values server-side only.
+# PULSEDEALS_REVIEW_USERNAME=
+# PULSEDEALS_REVIEW_PASSWORD=
+# PULSEDEALS_REVIEW_PRODUCT_ID=com.pulsedeals.subscription.pro.weekly
 # Optional: base64-encoded AppleRootCA-G3.cer
 APPLE_ROOT_CA_G3_BASE64=
 

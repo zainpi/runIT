@@ -175,6 +175,17 @@ export async function readViewOnClient(
         )
       ).rows.map((r) => r.payload);
     }
+    const managerMemberships = (
+      await client.query(
+        "select employee_id from neutronium_memberships where organization_id=$1 and active and role='MANAGER' and employee_id is not null",
+        [a.orgId],
+      )
+    ).rows;
+    const managerIds = new Set(
+      managerMemberships.map((membership) => membership.employee_id),
+    );
+    for (const employee of w.employees)
+      if (managerIds.has(employee.id)) employee.isManager = true;
     if (!privileged && selected !== "grants")
       w.grants = (
         await client.query(

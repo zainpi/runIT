@@ -24,7 +24,8 @@ function scenario(baseURL: string, existing = false) {
   };
   const user = { id: uid(), email: "sam@example.com", signup_role: "employee" };
   let signedIn = existing,
-    linksCreated = 0;
+    linksCreated = 0,
+    activeInvitationId = uid();
   let application: any = existing ? makeApplication() : null;
   function makeApplication() {
     return {
@@ -110,7 +111,7 @@ function scenario(baseURL: string, existing = false) {
         expect(body.orgId).toBe(w.id);
         linksCreated++;
         data = {
-          id: uid(),
+          id: activeInvitationId,
           url: baseURL + path,
           expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
         };
@@ -154,10 +155,23 @@ function scenario(baseURL: string, existing = false) {
                 (url.searchParams.get("status") || "pending"))
               ? [application]
               : [],
-          links: [],
+          links: application
+            ? []
+            : [
+                {
+                  id: activeInvitationId,
+                  created_at: new Date().toISOString(),
+                  expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+                },
+              ],
           pendingCount: application?.status === "pending" ? 1 : 0,
           nextCursor: null,
         };
+      } else if (endpoint === "onboarding/copy-link") {
+        expect(admin).toBe(true);
+        expect(body.id).toBe(activeInvitationId);
+        expect(body.orgId).toBe(w.id);
+        data = { url: baseURL + path };
       } else if (endpoint === "onboarding/update") {
         expect(body.revision).toBe(application.revision);
         application = {
@@ -253,6 +267,34 @@ test("outside clicks preserve employee intake details until explicitly closed", 
   );
   await dialog.getByRole("button", { name: "Close dialog" }).click();
   await expect(dialog).toBeHidden();
+});
+
+test("admin can copy an unused invitation link from employee approvals", async ({
+  page,
+  baseURL,
+}) => {
+  const s = scenario(baseURL!);
+  await s.install(page, true);
+  await page.goto("/neutronium/");
+  await page
+    .getByRole("button", { name: "Onboard employee", exact: true })
+    .first()
+    .click();
+  await page
+    .getByRole("button", { name: "View employee approvals", exact: true })
+    .click();
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async () => {} },
+    }),
+  );
+  await page.getByText("Unused invitation links (1)", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Copy invitation link", exact: true })
+    .click();
+  await expect(page.getByRole("button", { name: "Copied", exact: true })).toBeVisible();
+  await expect(page.locator('[role="status"]').filter({ hasText: "Link copied." })).toBeVisible();
 });
 
 test("admin shares a link; employee creates account and submits; admin reviews and accepts", async ({

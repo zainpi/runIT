@@ -25,12 +25,16 @@ import {
   Employee,
   Template,
   Job,
+  Step,
   AccessRequest,
   canManagePeople,
   canAdmin,
   fullName,
   mayApprove,
   platformRoles,
+  CREATE_MANAGER_OPTION,
+  hasActiveManager,
+  isActiveManager,
 } from "@/lib/neutronium/model";
 import { Icon, Mark } from "./icons";
 import Link from "next/link";
@@ -46,6 +50,7 @@ type Config = {
   >;
 };
 type Dialog = { kind: string; id?: string };
+type NoticeAction = { label: string; view: string };
 const titles: Record<string, string> = {
   "employee-approvals": "Employee approvals",
   environments: "Test environments",
@@ -231,7 +236,9 @@ export function Neutronium() {
   const [view, setView] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<
+    { message: string; action?: NoticeAction } | undefined
+  >();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [recordCursor, setRecordCursor] = useState("");
@@ -468,13 +475,18 @@ export function Neutronium() {
   useEffect(() => {
     setRecordCursor("");
   }, [view, search, filter]);
-  async function run(path: string, data: unknown, success = "Changes saved.") {
+  async function run(
+    path: string,
+    data: unknown,
+    success = "Changes saved.",
+    action?: NoticeAction,
+  ) {
     if (actionPending.current)
       throw new Error("Please wait for the current action to finish.");
     actionPending.current = true;
     setBusy(true);
     setError("");
-    setNotice("");
+    setNotice(undefined);
     try {
       const r = await api(path, data, org.current);
       // A failed read must not turn a committed write into a retryable save error.
@@ -483,7 +495,7 @@ export function Neutronium() {
           "Your changes were saved, but the latest workspace could not load. Refresh to see them.",
         );
       });
-      setNotice(success);
+      setNotice({ message: success, action });
       setDialog(undefined);
       return r;
     } catch (e) {
@@ -513,9 +525,10 @@ export function Neutronium() {
             ? "companies"
             : "overview",
       );
-      setNotice(
-        "Development persona changed. Server permissions now match this role.",
-      );
+      setNotice({
+        message:
+          "Development persona changed. Server permissions now match this role.",
+      });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -967,7 +980,7 @@ export function Neutronium() {
                   setActor(undefined);
                   setW(undefined);
                   setDialog(undefined);
-                  setNotice("");
+                  setNotice(undefined);
                 } catch (e) {
                   setError((e as Error).message);
                 } finally {
@@ -1065,10 +1078,10 @@ export function Neutronium() {
                     </option>
                   ))}
                 {w?.employees
-                  .filter((e) => e.firstName === "Michael")
+                  .filter((e) => isActiveManager(w, e))
                   .map((e) => (
-                    <option key={e.id} value={`manager:${e.id}`}>
-                      Michael Ross · Manager
+                    <option key={`manager-${e.id}`} value={`manager:${e.id}`}>
+                      {fullName(e)} · Manager
                     </option>
                   ))}
                 <option value="platform">Platform operator</option>
@@ -1089,10 +1102,22 @@ export function Neutronium() {
           {notice && (
             <div role="status" className="nt-message nt-success">
               <Icon name="check" />
-              <span>{notice}</span>
+              <span>{notice.message}</span>
+              {notice.action && (
+                <button
+                  className="nt-message-action"
+                  onClick={() => {
+                    const destination = notice.action?.view;
+                    setNotice(undefined);
+                    if (destination) navigate(destination);
+                  }}
+                >
+                  {notice.action.label} <Icon name="arrow" size={14} />
+                </button>
+              )}
               <button
                 aria-label="Dismiss notification"
-                onClick={() => setNotice("")}
+                onClick={() => setNotice(undefined)}
               >
                 <Icon name="close" size={16} />
               </button>
@@ -2442,6 +2467,10 @@ export function Neutronium() {
             setDialog(undefined);
             setError("");
           }}
+          openDialog={(next) => {
+            setDialog(next);
+            setError("");
+          }}
           run={run}
           setError={setError}
           navigate={navigate}
@@ -2910,6 +2939,7 @@ function WorkspaceDialog({
   busy,
   error,
   close,
+  openDialog,
   run,
   setError,
   navigate,
@@ -2921,7 +2951,13 @@ function WorkspaceDialog({
   busy: boolean;
   error: string;
   close: () => void;
-  run: (path: string, data: unknown, success?: string) => Promise<any>;
+  openDialog: (dialog: Dialog) => void;
+  run: (
+    path: string,
+    data: unknown,
+    success?: string,
+    action?: NoticeAction,
+  ) => Promise<any>;
   setError: (s: string) => void;
   navigate: (s: string) => void;
 }) {
@@ -3006,6 +3042,88 @@ function WorkspaceDialog({
   );
   const safeRun = (path: string, data: unknown, message?: string) =>
     void run(path, data, message).catch(() => {});
+  const goToView = (destination: string) => {
+    close();
+    navigate(destination);
+  };
+  const workflowStepAction = (workflow: Job, step: Step) => {
+    const app = step.applicationId
+      ? w.applications.find((candidate) => candidate.id === step.applicationId)
+      : undefined;
+    const templateStep =
+      workflow.kind === "onboard" &&
+      Boolean(workflow.template?.id) &&
+      (step.operation === "license" ||
+        step.operation.startsWith("group:") ||
+        step.operation === "application");
+    const failed = ["failed", "retrying"].includes(step.status);
+    const microsoftStep =
+      [
+        "identity",
+        "license",
+        "disable",
+        "sessions",
+        "first_signin",
+        "unlicense",
+      ].includes(step.operation) || step.operation.startsWith("group:");
+
+    if (step.status === "manual_required" && canAdmin(actor)) {
+      return {
+        label: "Complete step",
+        open: () => {
+          const field = document.getElementById(
+            `nt-workflow-step-input-${step.id}`,
+          );
+          field?.scrollIntoView({ block: "nearest" });
+          field?.focus();
+        },
+      };
+    }
+    if (failed && app && ["manual", "coming_soon"].includes(app.mode)) {
+      return {
+        label: "Manage application",
+        open: () => openDialog({ kind: "application", id: app.id }),
+      };
+    }
+    if (failed && (microsoftStep || app?.mode === "microsoft"))
+      return {
+        label: "Fix in Integrations",
+        open: () => goToView("integrations"),
+      };
+    if (step.operation === "invitation")
+      return {
+        label: "Open onboarding",
+        open: () => openDialog({ kind: "onboard" }),
+      };
+    if (step.operation === "accepted_invitation")
+      return {
+        label: "Review approval",
+        open: () => goToView("employee-approvals"),
+      };
+    if (templateStep)
+      return {
+        label: "Edit role template",
+        open: () => openDialog({ kind: "template", id: workflow.template!.id }),
+      };
+    if (
+      app &&
+      (["application", "grant"].includes(step.operation) ||
+        step.operation.startsWith("revoke:"))
+    )
+      return {
+        label: "Manage application",
+        open: () => openDialog({ kind: "application", id: app.id }),
+      };
+    if (microsoftStep)
+      return {
+        label: "Open Integrations",
+        open: () => goToView("integrations"),
+      };
+    return {
+      label: "Open employee record",
+      open: () => openDialog({ kind: "employee", id: workflow.employeeId }),
+    };
+  };
   return (
     <dialog
       ref={ref}
@@ -3072,6 +3190,7 @@ function WorkspaceDialog({
                   w.demo
                     ? "Onboarding started. Follow each step in Workflows."
                     : "Employee application submitted for administrator review.",
+                  w.demo ? { label: "Workflows", view: "onboarding" } : undefined,
                 )
                   .then(() =>
                     navigate(w.demo ? "onboarding" : "employee-approvals"),
@@ -3134,14 +3253,25 @@ function WorkspaceDialog({
                         }
                       >
                         <option value="">Assign later</option>
+                        <option value={CREATE_MANAGER_OPTION}>
+                          Create as new manager
+                        </option>
                         {w.employees
                           .filter((e) => e.status === "active")
                           .map((e) => (
                             <option value={e.id} key={e.id}>
                               {fullName(e)}
+                              {isActiveManager(w, e) ? " · Manager" : ""}
                             </option>
                           ))}
                       </select>
+                      {!hasActiveManager(w) && (
+                        <p className="nt-subtle">
+                          No active managers yet. Choose “Create as new manager”
+                          to make this employee the first manager for the
+                          company.
+                        </p>
+                      )}
                     </Field>
                     {field("startDate", "Start date", "date", true)}
                     {field("location", "Location")}
@@ -3710,40 +3840,65 @@ function WorkspaceDialog({
               </div>
               <Badge value={job.status} />
             </div>
+            <p className="nt-workflow-hint">
+              Select a step to edit its configuration or fix an issue where it
+              is managed.
+            </p>
             <div className="nt-workflow-steps">
-              {job.steps.map((s, i) => (
-                <div className="nt-workflow-step" key={s.id}>
-                  <span className={`nt-step-marker nt-step-${s.status}`}>
-                    {s.status === "success" ? (
-                      <Icon name="check" size={15} />
-                    ) : s.status === "failed" ? (
-                      <Icon name="close" size={15} />
-                    ) : (
-                      i + 1
-                    )}
-                  </span>
-                  <div className="nt-grow">
-                    <div className="nt-row">
-                      <strong>{s.name}</strong>
-                      <Badge value={s.status} />
-                    </div>
-                    {s.error && <p>{s.error}</p>}
-                    {s.status === "pending" &&
-                      job.steps
-                        .slice(0, i)
-                        .some(
-                          (previous) =>
-                            !["success", "skipped"].includes(previous.status),
-                        ) && (
-                        <p className="nt-subtle">
-                          Waiting for earlier steps. This step has not run.
-                        </p>
-                      )}
-                    {s.attempts > 0 && (
-                      <small>
-                        {s.attempts} attempt{s.attempts > 1 ? "s" : ""}
-                      </small>
-                    )}
+              {job.steps.map((s, i) => {
+                const action = workflowStepAction(job, s);
+                return (
+                  <div className="nt-workflow-step" key={s.id}>
+                    <button
+                      type="button"
+                      className="nt-workflow-step-trigger"
+                      disabled={busy}
+                      onClick={action.open}
+                    >
+                      <span className={`nt-step-marker nt-step-${s.status}`}>
+                        {s.status === "success" ? (
+                          <Icon name="check" size={15} />
+                        ) : s.status === "failed" ? (
+                          <Icon name="close" size={15} />
+                        ) : (
+                          i + 1
+                        )}
+                      </span>
+                      <span className="nt-workflow-step-content">
+                        <span className="nt-workflow-step-heading">
+                          <strong>{s.name}</strong>
+                          <span className="nt-workflow-step-status">
+                            <Badge value={s.status} />
+                            <span className="nt-step-destination">
+                              {action.label} <Icon name="arrow" size={13} />
+                            </span>
+                          </span>
+                        </span>
+                        {s.error && (
+                          <span className="nt-workflow-step-description nt-step-error-copy">
+                            {s.error}
+                          </span>
+                        )}
+                        {s.status === "pending" &&
+                          job.steps
+                            .slice(0, i)
+                            .some(
+                              (previous) =>
+                                !["success", "skipped"].includes(
+                                  previous.status,
+                                ),
+                            ) && (
+                            <span className="nt-workflow-step-description nt-subtle">
+                              Waiting for earlier steps. This step has not run.
+                            </span>
+                          )}
+                        {s.attempts > 0 && (
+                          <small>
+                            {s.attempts} attempt{s.attempts > 1 ? "s" : ""}
+                          </small>
+                        )}
+                      </span>
+                    </button>
                     {s.status === "manual_required" &&
                       canAdmin(actor) &&
                       job.steps
@@ -3769,6 +3924,7 @@ function WorkspaceDialog({
                         >
                           <Field label="Completion evidence">
                             <input
+                              id={`nt-workflow-step-input-${s.id}`}
                               name="note"
                               required
                               placeholder="Describe what you verified in the provider"
@@ -3780,8 +3936,8 @@ function WorkspaceDialog({
                         </ValidatedForm>
                       )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {job.status === "failed" && canManagePeople(actor) && (
               <button
@@ -3935,6 +4091,7 @@ function WorkspaceDialog({
                         .map((v) => (
                           <option key={v.id} value={v.id}>
                             {fullName(v)}
+                            {isActiveManager(w, v) ? " · Manager" : ""}
                           </option>
                         ))}
                     </select>
@@ -3968,8 +4125,16 @@ function WorkspaceDialog({
                   requests from their direct reports. Reporting assignments are
                   managed in Edit employee details.
                 </p>
+                {e.isManager && (
+                  <p className="nt-subtle">
+                    This employee was marked as a manager during onboarding.
+                  </p>
+                )}
                 <Field label="Portal role">
-                  <select name="role">
+                  <select
+                    name="role"
+                    defaultValue={isActiveManager(w, e) ? "MANAGER" : "EMPLOYEE"}
+                  >
                     {[
                       "EMPLOYEE",
                       "MANAGER",

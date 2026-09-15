@@ -16,6 +16,7 @@ import {
   createStaffApplicationOnClient,
   updateApplicationOnClient,
   createOnboardingLink,
+  copyOnboardingLinkOnClient,
   submitApplicationOnClient,
   reviewApplicationOnClient,
 } from "../../src/lib/neutronium/employee-applications";
@@ -52,6 +53,7 @@ test("employee applications enforce verified identities, tenant boundaries and a
       "005_runtime_rls.sql",
       "007_employee_applications.sql",
       "008_application_review.sql",
+      "009_invitation_link_recovery.sql",
     ])
       await db.exec(
         await readFile(`deploy/neutronium/migrations/${migration}`, "utf8"),
@@ -176,6 +178,28 @@ test("employee applications enforce verified identities, tenant boundaries and a
         );
       },
     );
+    await t.test("unused invitation links can be copied and recovered", async () => {
+      process.env.NEUTRONIUM_ENCRYPTION_KEYS = JSON.stringify({
+        v1: Buffer.alloc(32, 9).toString("base64"),
+      });
+      process.env.NEUTRONIUM_ACTIVE_KEY_VERSION = "v1";
+      await scope();
+      const recovered = await copyOnboardingLinkOnClient(client, actor, unused.id);
+      const token = new URL(`https://example.test${recovered.path}`).searchParams.get("token");
+      assert.ok(token);
+      assert.notEqual(token, unused.token);
+      const copiedAgain = await copyOnboardingLinkOnClient(client, actor, unused.id);
+      assert.equal(copiedAgain.path, recovered.path);
+      const stored = (
+        await db.query<any>(
+          "select token_hash,token_ciphertext,token_key_version from neutronium_onboarding_links where id=$1",
+          [unused.id],
+        )
+      ).rows[0];
+      assert.equal(stored.token_key_version, "v1");
+      assert.ok(stored.token_ciphertext);
+      assert(!stored.token_ciphertext.includes(token));
+    });
     await t.test(
       "submission requires a verified account and creates only a pending application",
       async () => {

@@ -59,6 +59,17 @@ export async function commandOnClient(
           [a.orgId],
         )
       ).rows.map((r) => r.payload);
+    const managerMemberships = (
+      await client.query(
+        "select employee_id from neutronium_memberships where organization_id=$1 and active and role='MANAGER' and employee_id is not null",
+        [a.orgId],
+      )
+    ).rows;
+    const managerIds = new Set(
+      managerMemberships.map((membership) => membership.employee_id),
+    );
+    for (const employee of w.employees)
+      if (managerIds.has(employee.id)) employee.isManager = true;
     let employeeId = input.employeeId || a.employeeId;
     if (["decision", "reply", "retry", "manual-complete"].includes(action)) {
       if (

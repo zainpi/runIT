@@ -71,6 +71,14 @@ export function PeopleOverview({
     };
   }, [filters, w.id, w.revision]);
   const options = intakeOptions(w);
+  const openRow = (person: PersonRow) => {
+    if (person.employee_id) {
+      openEmployee(person.employee_id);
+      return;
+    }
+    if (person.application_id)
+      window.location.assign(applicationPath(w.id, person.application_id));
+  };
   const extraFilterCount = [
     filters.kind,
     filters.department,
@@ -255,42 +263,81 @@ export function PeopleOverview({
             </tr>
           </thead>
           <tbody>
-            {data?.rows.map((p) => (
-              <tr key={p.id}>
-                <td>{p.name}</td>
-                <td>{p.email}</td>
-                <td>{p.department || "Unassigned"}</td>
-                <td>{p.start_date || "—"}</td>
-                <td>
-                  {reviewLabels[p.status] || p.status}
-                  {p.employee_status && p.employee_status !== p.status && (
-                    <small>Employee: {p.employee_status}</small>
-                  )}
-                </td>
-                <td>
-                  {p.title || "—"}
-                  <small>{p.location}</small>
-                </td>
-                <td>
-                  {p.employee_id && (
-                    <button
-                      className="nt-link"
-                      onClick={() => openEmployee(p.employee_id!)}
-                    >
-                      View / edit employee
-                    </button>
-                  )}
-                  {p.application_id && (
-                    <a
-                      className="nt-link"
-                      href={applicationPath(w.id, p.application_id)}
-                    >
-                      View application
-                    </a>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {data?.rows.map((p) => {
+              const actionable = Boolean(p.employee_id || p.application_id);
+              return (
+                <tr
+                  key={p.id}
+                  className={actionable ? "nt-table-row-action" : undefined}
+                  role={
+                    actionable
+                      ? p.employee_id
+                        ? "button"
+                        : "link"
+                      : undefined
+                  }
+                  tabIndex={actionable ? 0 : undefined}
+                  aria-label={
+                    actionable
+                      ? p.employee_id
+                        ? `Open ${p.name} employee record`
+                        : `Review ${p.name} application`
+                      : undefined
+                  }
+                  onClick={(event) => {
+                    if (!actionable) return;
+                    if (
+                      event.target instanceof HTMLElement &&
+                      event.target.closest("a,button,input,select,textarea")
+                    )
+                      return;
+                    openRow(p);
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      actionable &&
+                      (event.key === "Enter" || event.key === " ")
+                    ) {
+                      event.preventDefault();
+                      openRow(p);
+                    }
+                  }}
+                >
+                  <td>{p.name}</td>
+                  <td>{p.email}</td>
+                  <td>{p.department || "Unassigned"}</td>
+                  <td>{p.start_date || "—"}</td>
+                  <td>
+                    {reviewLabels[p.status] || p.status}
+                    {p.employee_status && p.employee_status !== p.status && (
+                      <small>Employee: {p.employee_status}</small>
+                    )}
+                  </td>
+                  <td>
+                    {p.title || "—"}
+                    <small>{p.location}</small>
+                  </td>
+                  <td>
+                    {p.employee_id && (
+                      <button
+                        className="nt-link"
+                        onClick={() => openEmployee(p.employee_id!)}
+                      >
+                        View / edit employee
+                      </button>
+                    )}
+                    {p.application_id && (
+                      <a
+                        className="nt-link"
+                        href={applicationPath(w.id, p.application_id)}
+                      >
+                        View application
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

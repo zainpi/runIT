@@ -10,6 +10,7 @@ import {
   audit,
   notify,
   steps,
+  CREATE_MANAGER_OPTION,
 } from "./model";
 import { postgres, tenantConnection } from "./postgres";
 import { commandOnClient } from "./command-store";
@@ -21,6 +22,7 @@ import {
   type IntakeDetails,
 } from "./intake";
 import { joinPath } from "./onboarding-link";
+import { decrypt, encrypt } from "./providers";
 
 export type Applicant = { id: string; email: string };
 export type EmployeeApplication = {
@@ -103,16 +105,19 @@ export async function createOnboardingLink(a: Actor) {
       "Shareable invitations are available in a company workspace. Use manual onboarding to try the development demo.",
     );
   const client = await tenantConnection(a.orgId);
-  const token = randomBytes(32).toString("base64url");
   try {
+    const token = randomBytes(32).toString("base64url");
+    const securedToken = encrypt(token, a.orgId);
     await client.query("begin");
     const link = (
       await client.query(
-        "insert into neutronium_onboarding_links(id,organization_id,token_hash,created_by,expires_at) values($1,$2,$3,$4,now()+interval '7 days') returning id,expires_at",
+        "insert into neutronium_onboarding_links(id,organization_id,token_hash,token_ciphertext,token_key_version,created_by,expires_at) values($1,$2,$3,$4,$5,$6,now()+interval '7 days') returning id,expires_at",
         [
           uid(),
           a.orgId,
           createHash("sha256").update(token).digest("hex"),
+          securedToken.ciphertext,
+          securedToken.key_version,
           a.id,
         ],
       )
@@ -125,6 +130,83 @@ export async function createOnboardingLink(a: Actor) {
     throw e;
   } finally {
     client.release();
+  }
+}
+export async function copyOnboardingLink(a: Actor, linkId: string) {
+  requireRole(a, reviewers);
+  const client = await tenantConnection(a.orgId);
+  try {
+    return await copyOnboardingLinkOnClient(client, a, linkId);
+  } finally {
+    client.release();
+  }
+}
+export async function copyOnboardingLinkOnClient(
+  client: PoolClient,
+  a: Actor,
+  linkId: string,
+) {
+  requireRole(a, reviewers);
+  id(linkId);
+  try {
+    await client.query("begin");
+    const link = (
+      await client.query(
+        `select l.id,l.expires_at,l.token_hash,l.token_ciphertext,l.token_key_version
+         from neutronium_onboarding_links l
+         where l.organization_id=$1 and l.id=$2 and l.revoked_at is null
+           and l.expires_at>now()
+           and not exists(select 1 from neutronium_employee_applications a where a.link_id=l.id)
+         for update`,
+        [a.orgId, linkId],
+      )
+    ).rows[0];
+    if (!link)
+      throw new DomainError(
+        "This invitation is no longer available. Refresh the list and try again.",
+        404,
+      );
+
+    let token: string | undefined;
+    if (link.token_ciphertext && link.token_key_version) {
+      try {
+        const stored = decrypt(
+          link.token_ciphertext,
+          link.token_key_version,
+          a.orgId,
+        );
+        if (
+          typeof stored === "string" &&
+          createHash("sha256").update(stored).digest("hex") === link.token_hash
+        ) {
+          joinPath(stored);
+          token = stored;
+        }
+      } catch {
+        // A legacy link or a link encrypted with an unavailable key gets a
+        // replacement token below. The old hash cannot be recovered.
+      }
+    }
+    if (!token) {
+      token = randomBytes(32).toString("base64url");
+      const securedToken = encrypt(token, a.orgId);
+      await client.query(
+        "update neutronium_onboarding_links set token_hash=$1,token_ciphertext=$2,token_key_version=$3 where id=$4 and organization_id=$5",
+        [
+          createHash("sha256").update(token).digest("hex"),
+          securedToken.ciphertext,
+          securedToken.key_version,
+          link.id,
+          a.orgId,
+        ],
+      );
+    }
+    await events(client, a, "Employee invitation link copied", link.id);
+    await client.query("commit");
+    return { id: link.id, expires_at: link.expires_at, path: joinPath(token) };
+  } catch (e) {
+    await client.query("rollback");
+    throw e;
   }
 }
 async function invitationClient(token: string) {
@@ -493,6 +575,9 @@ export async function reviewApplicationOnClient(
           false,
         ),
       );
+      const managerSelection =
+        input.managerId ?? application.details.managerId ?? "";
+      const createManager = managerSelection === CREATE_MANAGER_OPTION;
       const job = (
         await client.query(
           "select payload from neutronium_jobs where organization_id=$1 and id=$2",
@@ -517,8 +602,8 @@ export async function reviewApplicationOnClient(
       );
       if (application.user_id)
         await client.query(
-          "insert into neutronium_memberships(organization_id,user_id,role,employee_id) values($1,$2,'EMPLOYEE',$3)",
-          [a.orgId, application.user_id, employeeId],
+          "insert into neutronium_memberships(organization_id,user_id,role,employee_id) values($1,$2,$3,$4)",
+          [a.orgId, application.user_id, createManager ? "MANAGER" : "EMPLOYEE", employeeId],
         );
     }
     const result = (

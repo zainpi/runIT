@@ -2,9 +2,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Actor, Workspace } from "@/lib/neutronium/model";
 import type { EmployeeApplication } from "@/lib/neutronium/employee-applications";
-import { canAdmin, fullName } from "@/lib/neutronium/model";
+import {
+  canAdmin,
+  fullName,
+  CREATE_MANAGER_OPTION,
+  hasActiveManager,
+  isActiveManager,
+} from "@/lib/neutronium/model";
 import { ValidatedForm } from "./form";
 import { requestJson } from "./http";
+import { Icon } from "./icons";
 
 import { IntakeFields } from "./intake-fields";
 import {
@@ -151,6 +158,7 @@ type Inbox = {
   pendingCount: number;
   nextCursor: string | null;
 };
+type NoticeAction = { label: string; view: string };
 export function EmployeeApprovals({
   w,
   actor,
@@ -158,7 +166,12 @@ export function EmployeeApprovals({
 }: {
   w: Workspace;
   actor: Actor;
-  run: (path: string, data: unknown, success?: string) => Promise<any>;
+  run: (
+    path: string,
+    data: unknown,
+    success?: string,
+    action?: NoticeAction,
+  ) => Promise<any>;
 }) {
   const [data, setData] = useState<Inbox>();
   const [status, setStatus] = useState("all");
@@ -170,6 +183,12 @@ export function EmployeeApprovals({
   const [selected, setSelected] = useState<EmployeeApplication>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [copyingLinkId, setCopyingLinkId] = useState("");
+  const [copiedLinkId, setCopiedLinkId] = useState("");
+  const [copyFallback, setCopyFallback] = useState<{
+    id: string;
+    url: string;
+  }>();
   const sequence = useRef(0);
   const options = intakeOptions(w);
   const load = useCallback(async () => {
@@ -265,8 +284,11 @@ export function EmployeeApprovals({
             orgId: w.id,
           },
           decision === "accepted"
-            ? "Employee approved. Follow progress in Workflows."
+            ? "Employee approved. Follow progress in"
             : "Employee application declined.",
+          decision === "accepted"
+            ? { label: "Workflows", view: "onboarding" }
+            : undefined,
         );
         select(undefined);
       }
@@ -275,6 +297,35 @@ export function EmployeeApprovals({
       setError((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  }
+  async function copyInvitationLink(linkId: string) {
+    setCopyingLinkId(linkId);
+    setCopiedLinkId("");
+    setCopyFallback(undefined);
+    setError("");
+    try {
+      const result = await requestJson(
+        "/neutronium/api/onboarding/copy-link/",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: linkId, orgId: w.id }),
+        },
+      );
+      try {
+        await navigator.clipboard.writeText(result.url);
+        setCopiedLinkId(linkId);
+      } catch {
+        setCopyFallback({ id: linkId, url: result.url });
+        setError(
+          "Copy was blocked. The link is shown below; select it and press ⌘C on Mac or Ctrl+C on Windows to copy it.",
+        );
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCopyingLinkId("");
     }
   }
   const label = (a: EmployeeApplication) =>
@@ -367,14 +418,24 @@ export function EmployeeApprovals({
                     defaultValue={selected.details.managerId || ""}
                   >
                     <option value="">No manager assigned</option>
+                    <option value={CREATE_MANAGER_OPTION}>
+                      Create as new manager
+                    </option>
                     {w.employees
                       .filter((e) => e.status === "active")
                       .map((e) => (
                         <option key={e.id} value={e.id}>
                           {fullName(e)}
+                          {isActiveManager(w, e) ? " · Manager" : ""}
                         </option>
                       ))}
                   </select>
+                  {!hasActiveManager(w) && (
+                    <p className="nt-subtle">
+                      No active managers yet. Choose “Create as new manager” to
+                      make this employee the first manager for the company.
+                    </p>
+                  )}
                 </label>
                 <label>
                   Onboarding template
@@ -627,31 +688,64 @@ export function EmployeeApprovals({
             remain available.
           </p>
           {data.links.map((link) => (
-            <p key={link.id}>
-              Created {new Date(link.created_at).toLocaleString()} · Expires{" "}
-              {new Date(link.expires_at).toLocaleDateString()}{" "}
-              <button
-                className="nt-button"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    await run(
-                      "onboarding/revoke-link",
-                      { id: link.id, orgId: w.id },
-                      "Invitation link revoked.",
-                    );
-                    await load();
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                Revoke invitation
-              </button>
-            </p>
+            <div className="nt-invitation-link-row" key={link.id}>
+              <span>
+                Created {new Date(link.created_at).toLocaleString()} · Expires{" "}
+                {new Date(link.expires_at).toLocaleDateString()}
+              </span>
+              <div className="nt-invitation-link-actions">
+                <button
+                  className="nt-button"
+                  disabled={busy || !!copyingLinkId}
+                  onClick={() => void copyInvitationLink(link.id)}
+                >
+                  <Icon name="copy" size={15} />
+                  {copyingLinkId === link.id
+                    ? "Copying…"
+                    : copiedLinkId === link.id
+                      ? "Copied"
+                      : "Copy invitation link"}
+                </button>
+                {copiedLinkId === link.id && (
+                  <span className="nt-copy-status" role="status">
+                    Link copied.
+                  </span>
+                )}
+                <button
+                  className="nt-button"
+                  disabled={busy || !!copyingLinkId}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      await run(
+                        "onboarding/revoke-link",
+                        { id: link.id, orgId: w.id },
+                        "Invitation link revoked.",
+                      );
+                      setCopiedLinkId("");
+                      setCopyFallback(undefined);
+                      await load();
+                    } catch (e) {
+                      setError((e as Error).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Revoke invitation
+                </button>
+              </div>
+              {copyFallback?.id === link.id && (
+                <label className="nt-invitation-link-fallback">
+                  Invitation link
+                  <input
+                    readOnly
+                    value={copyFallback.url}
+                    onFocus={(e) => e.target.select()}
+                  />
+                </label>
+              )}
+            </div>
           ))}
         </details>
       )}

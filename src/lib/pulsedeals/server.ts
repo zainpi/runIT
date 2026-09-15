@@ -19,6 +19,8 @@ const textEncoder = new TextEncoder();
 const SESSION_TTL_SECONDS = 15 * 60;
 const REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
 const SUBSCRIPTION_PRODUCT_ID = "com.pulsedeals.subscription.weekly";
+const REVIEW_SUBSCRIPTION_PRODUCT_ID = "com.pulsedeals.subscription.pro.weekly";
+const REVIEW_MEMBERSHIP_EXPIRES_AT = "2100-01-01T00:00:00.000Z";
 const APPLE_ISSUER = "https://appleid.apple.com";
 const APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys";
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -41,6 +43,12 @@ type AccountRow = {
   apple_sub: string;
   app_account_token: string;
   email: string | null;
+};
+
+type ReviewAccountConfig = {
+  username: string;
+  password: string;
+  productID: string;
 };
 
 type RateLimitResult = {
@@ -101,6 +109,19 @@ function getRequiredEnv(name: string): string {
 
 export function getProductID(): string {
   return getPulseDealsEnv("PULSEDEALS_PRODUCT_ID") ?? SUBSCRIPTION_PRODUCT_ID;
+}
+
+export function getReviewAccountConfig(): ReviewAccountConfig {
+  const username = getPulseDealsEnv("PULSEDEALS_REVIEW_USERNAME")?.trim();
+  const password = getPulseDealsEnv("PULSEDEALS_REVIEW_PASSWORD");
+  if (!username) throw new Error("Missing server configuration: PULSEDEALS_REVIEW_USERNAME");
+  if (!password) throw new Error("Missing server configuration: PULSEDEALS_REVIEW_PASSWORD");
+  const productID = getPulseDealsEnv("PULSEDEALS_REVIEW_PRODUCT_ID")?.trim();
+  return {
+    username,
+    password,
+    productID: productID || REVIEW_SUBSCRIPTION_PRODUCT_ID,
+  };
 }
 
 export async function isSupportedAppleProduct(admin: SupabaseClient, productID?: string): Promise<boolean> {
@@ -741,6 +762,59 @@ export async function createOrGetAccount(
   return inserted.data as AccountRow;
 }
 
+function secureTextEqual(left: string, right: string): boolean {
+  const leftBytes = textEncoder.encode(left);
+  const rightBytes = textEncoder.encode(right);
+  let difference = leftBytes.length ^ rightBytes.length;
+  const length = Math.max(leftBytes.length, rightBytes.length);
+  for (let index = 0; index < length; index += 1) {
+    difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
+  }
+  return difference === 0;
+}
+
+export async function authenticateReviewAccount(
+  admin: SupabaseClient,
+  username: string,
+  password: string,
+  requestedAppAccountToken: string,
+): Promise<AccountRow> {
+  const config = getReviewAccountConfig();
+  const submittedUsername = username.trim();
+  if (
+    !secureTextEqual(submittedUsername.toLowerCase(), config.username.toLowerCase()) ||
+    !secureTextEqual(password, config.password)
+  ) {
+    throw new Error("Invalid reviewer credentials");
+  }
+
+  // Reviewer accounts reuse the existing server identity and entitlement tables so
+  // the reviewer exercises the same feed, alerts, referrals, and membership checks
+  // as an Apple-authenticated member. They are created lazily on first sign-in.
+  const identity: AppleIdentity = {
+    sub: `pulsedeals-review:${config.username.toLowerCase()}`,
+    email: config.username.includes("@") ? config.username : undefined,
+  };
+  const account = await createOrGetAccount(admin, identity, requestedAppAccountToken);
+  const originalTransactionID = `pulsedeals-review:${config.username.toLowerCase()}`;
+  const transaction = {
+    productId: config.productID,
+    originalTransactionId: originalTransactionID,
+    transactionId: originalTransactionID,
+    appAccountToken: account.app_account_token,
+    environment: "Production",
+    expiresDate: Date.parse(REVIEW_MEMBERSHIP_EXPIRES_AT),
+    signedDate: Date.now(),
+  };
+  const entitlement = await admin.rpc("record_pulsedeals_apple_entitlement", {
+    p_account_id: account.id,
+    p_transaction: transaction,
+    p_status: "active",
+  });
+  if (entitlement.error) throw entitlement.error;
+  return account;
+}
+
 export async function issueSession(admin: SupabaseClient, account: AccountRow): Promise<SessionResponse> {
   const now = Math.floor(Date.now() / 1000);
   const expiresAt = new Date((now + SESSION_TTL_SECONDS) * 1000).toISOString();
@@ -1073,6 +1147,9 @@ export function handleApiError(request: Request, error: unknown): Response {
   }
   if (message.includes("Apple identity")) {
     return apiError(request, 401, "invalid_identity", "The Apple sign-in could not be verified.");
+  }
+  if (message === "Invalid reviewer credentials") {
+    return apiError(request, 401, "invalid_credentials", "The username or password is incorrect.");
   }
   if (message === "Invalid app account token") {
     return apiError(request, 400, "invalid_request", "The app account token is invalid.");

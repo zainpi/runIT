@@ -25,10 +25,12 @@ npm run lint     # eslint
 ## Production deployment
 
 Production is deployed through the Cloudflare Workers Builds integration
-connected to this repository. The Wrangler config targets the `runsit-ca`
-Worker; custom domains and routes stay managed in the Cloudflare dashboard.
-Pushing the intended branch to `origin` triggers the live deployment for those
-configured domains.
+connected to this repository. The public `runsit.ca` and `www.runsit.ca`
+domains route to the `runit` Worker; the separate `runsit-ca` Worker is a
+historical build target and does not hold the public production secrets.
+Custom domains and routes stay managed in the Cloudflare dashboard. Pushing
+the intended branch to `origin` triggers the live deployment for the configured
+domains. When managing secrets manually, use `wrangler secret ... --name runit`.
 
 Do **not** deploy production directly with `wrangler deploy` from a local
 machine. Verify changes with `npm run build`, then commit and push them through

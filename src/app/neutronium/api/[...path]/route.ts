@@ -11,6 +11,7 @@ import {
   updateEmployeeApplication,
   updateOwnApplication,
   createOnboardingLink,
+  copyOnboardingLink,
   readInvitation,
   submitApplication,
   listEmployeeApplications,
@@ -87,6 +88,7 @@ import {
   audit,
   fullName,
   now,
+  isActiveManager,
 } from "@/lib/neutronium/model";
 import { tick, deliverNotifications } from "@/lib/neutronium/worker";
 import {
@@ -734,6 +736,13 @@ export async function POST(req: NextRequest, ctx: Context) {
         url: new URL(link.path, appOrigin(req)).toString(),
       });
     }
+    if (path === "onboarding/copy-link") {
+      const link = await copyOnboardingLink(a, String(input.id || ""));
+      return json({
+        ...link,
+        url: new URL(link.path, appOrigin(req)).toString(),
+      });
+    }
     if (path === "onboarding/revoke-link") {
       await revokeOnboardingLink(a, String(input.id || ""));
       return json({ ok: true });
@@ -1053,13 +1062,33 @@ export async function POST(req: NextRequest, ctx: Context) {
           "Only the organization owner can assign administrators.",
           403,
         );
-      const linkedMember = (
+      const linkedMembers = (
         await tenantQuery(
           a.orgId,
-          "select user_id from neutronium_memberships where organization_id=$1 and employee_id=$2 and active",
+          "select user_id,employee_id,role from neutronium_memberships where organization_id=$1 and active and (employee_id=$2 or role='MANAGER')",
           [a.orgId, e.id],
         )
-      ).rows[0];
+      ).rows;
+      const linkedMember = linkedMembers.find(
+        (member) => member.employee_id === e.id,
+      );
+      const managerMemberIds = new Set(
+        linkedMembers
+          .filter((member) => member.role === "MANAGER" && member.employee_id)
+          .map((member) => member.employee_id),
+      );
+      if (
+        role !== "MANAGER" &&
+        (isActiveManager(w, e) || managerMemberIds.has(e.id)) &&
+        !w.employees.some(
+          (other) =>
+            other.id !== e.id &&
+            (isActiveManager(w, other) || managerMemberIds.has(other.id)),
+        )
+      )
+        throw new DomainError(
+          "Keep at least one active manager in the company before changing this role.",
+        );
       let userId: string;
       if (input.userId) {
         const user = await accountById(String(input.userId));
@@ -1103,7 +1132,18 @@ export async function POST(req: NextRequest, ctx: Context) {
           "Invitation sent, but membership assignment failed. Retry with the existing user ID.",
           503,
         );
-      await mutate(a.orgId, false, (state) =>
+      await mutate(a.orgId, false, (state) => {
+        const employee = state.employees.find((item) => item.id === e.id);
+        if (employee && role === "MANAGER") employee.isManager = true;
+        else if (
+          employee &&
+          !state.employees.some(
+            (report) =>
+              report.status !== "terminated" &&
+              report.managerId === employee.id,
+          )
+        )
+          employee.isManager = false;
         audit(
           state,
           a,
@@ -1112,8 +1152,8 @@ export async function POST(req: NextRequest, ctx: Context) {
           uid(),
           undefined,
           { role },
-        ),
-      );
+        );
+      });
       return json({ ok: true });
     }
     if (

@@ -7,6 +7,7 @@ import {
   project,
   mayApprove,
   DomainError,
+  CREATE_MANAGER_OPTION,
 } from "../../src/lib/neutronium/model";
 import { command, newGrant } from "../../src/lib/neutronium/service";
 import { claim, scheduleExpirations } from "../../src/lib/neutronium/worker";
@@ -58,6 +59,56 @@ test("onboarding persists an asynchronous, individually tracked workflow", () =>
   assert.equal(job.steps.length, 4);
   assert(job.steps.every((s) => s.status === "pending"));
   assert.equal(w.audit.at(-1)?.action, "Employee onboarding started");
+});
+test("the first employee can be created as the company's manager", () => {
+  const w = seed(uid(), false, "New company");
+  const admin: Actor = {
+    id: "owner",
+    name: "Owner",
+    role: "ORG_OWNER",
+    orgId: w.id,
+    demo: false,
+  };
+  const input = {
+    firstName: "Morgan",
+    lastName: "Lee",
+    email: "morgan@example.com",
+    department: "Operations",
+    title: "Operations Manager",
+    startDate: "2026-09-15",
+    managerId: CREATE_MANAGER_OPTION,
+    templateId: w.templates[0].id,
+  };
+  const jobId = command(w, admin, "onboard", input);
+  const employee = w.employees.find((item) => item.email === input.email);
+  assert(employee);
+  assert.equal(employee.managerId, "");
+  assert.equal(employee.isManager, true);
+  assert.equal(w.jobs.find((job) => job.id === jobId)?.employeeId, employee.id);
+});
+test("a company without a manager cannot onboard an unassigned employee", () => {
+  const w = seed(uid(), false, "New company");
+  const admin: Actor = {
+    id: "owner",
+    name: "Owner",
+    role: "ORG_OWNER",
+    orgId: w.id,
+    demo: false,
+  };
+  assert.throws(
+    () =>
+      command(w, admin, "onboard", {
+        firstName: "Morgan",
+        lastName: "Lee",
+        email: "morgan@example.com",
+        department: "Operations",
+        title: "Coordinator",
+        startDate: "2026-09-15",
+        managerId: "",
+        templateId: w.templates[0].id,
+      }),
+    /Create as new manager/,
+  );
 });
 test("employees and operators cannot create or offboard employees", () => {
   const { w, sarah, admin } = setup();

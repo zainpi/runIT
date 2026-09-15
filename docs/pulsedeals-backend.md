@@ -4,6 +4,11 @@ The PulseDeals API is deployed by the existing runsIT Cloudflare Worker. Both
 `https://runsit.ca` and `https://runs-it.com` route to that Worker; the iOS client uses
 `https://runsit.ca/pulsedeals/api/v1`.
 
+The public `runsit.ca` domain is attached to the `runit` Worker. The repository's
+`runsit-ca` Worker is a separate historical build target; configure production secrets and
+verify the release on `runit` (or through the Workers Build project that deploys `runit`).
+Do not assume the current Wrangler config's default name is the public route.
+
 For the coordinated database, API, and configuration rename, follow
 [the PulseDeals rename rollout](pulsedeals-rename-rollout.md) before releasing this build.
 The new code requires `20260910020000_pulsedeals_rename.sql` after all earlier service migrations.
@@ -17,10 +22,16 @@ live subscription test. Never commit their values.
 SUPABASE_SERVICE_ROLE_KEY=<Supabase service-role key for tkkuncbgyslnaukzhlgr>
 PULSEDEALS_SESSION_SECRET=<at least 32 random bytes, base64 or high-entropy text>
 PULSEDEALS_CRON_SECRET=<at least 32 random bytes, base64 or high-entropy text>
+PULSEDEALS_INGEST_SECRET=<at least 32 random bytes, shared only with KeepaBot>
 KEEPA_API_KEY=<Keepa API key>
 PULSEDEALS_APPLE_ID=<numeric App Store Connect app Apple ID>
 PULSEDEALS_BUNDLE_ID=com.pulsedeals.app
 PULSEDEALS_PRODUCT_ID=com.pulsedeals.subscription.weekly
+
+# TestFlight reviewer account (keep both values server-side only)
+PULSEDEALS_REVIEW_USERNAME=<review username>
+PULSEDEALS_REVIEW_PASSWORD=<review password>
+PULSEDEALS_REVIEW_PRODUCT_ID=com.pulsedeals.subscription.pro.weekly
 
 # Discord community access
 PULSEDEALS_DISCORD_CLIENT_ID=<Discord application client ID>
@@ -34,8 +45,8 @@ PULSEDEALS_DISCORD_SERVER_NAME=PulseDeals
 ```
 
 `APPLE_ROOT_CA_G3_BASE64` is optional. If it is absent, the Apple transaction verifier fetches
-Apple's published root certificates at runtime and caches them. The Keepa key is only used by the
-scheduled server sync; it is never sent to the app.
+Apple's published root certificates at runtime and caches them. The Keepa and ingest credentials
+are server-side only; neither is sent to the app.
 
 ## Database
 
@@ -57,6 +68,28 @@ https://runsit.ca/pulsedeals/api/v1/webhooks/apple
 Use the Production URL for the live app. Apple sandbox notifications use the same endpoint; the
 signed payload identifies the environment. Test Sign in with Apple, the introductory offer,
 restore, renewal/expiration, and account deletion in TestFlight before submission.
+
+## TestFlight reviewer account
+
+The API exposes a separate username/password sign-in at
+`POST /pulsedeals/api/v1/auth/password` for Apple review access. Configure
+`PULSEDEALS_REVIEW_USERNAME` and `PULSEDEALS_REVIEW_PASSWORD` as encrypted production secrets,
+then use those exact values in App Store Connect under **TestFlight → Test Information → Beta
+App Review Information → Sign-in required**. The first successful sign-in lazily creates the
+account in the existing account table and records an active Pro entitlement through the same
+membership RPC used for verified Apple transactions. The entitlement is valid through 2100 so
+reviewers can exercise feed, alerts, voting, referrals, country selection, Discord linking, and
+account deletion without buying a subscription. The password is never stored in the repository or
+returned by the API. Keep the credentials limited to App Review and rotate them after review.
+
+## Live deal-data gate
+
+The API and schema can be healthy while the feed is empty. Before sending a build to App Review,
+configure `KEEPA_API_KEY` and `PULSEDEALS_CRON_SECRET` on `runit`, deploy the current Worker, and
+run or wait for the five-minute sync until `pulsedeals_deals` contains current live rows. If
+`PULSEDEALS_PUSH_ENABLED=true`, start the separate Node APNs dispatcher only after its APNs
+credentials are configured and verify that the push-delivery queue drains. A successful Worker
+build or an authenticated session alone does not prove live deal data or notification delivery.
 
 ## Discord community access
 
@@ -101,11 +134,21 @@ it does not depend on a second AI API at request time; if the existing bot’s A
 later made available as a shared service, the normalized `score`, `confidence`, and `reasoning`
 fields are the integration point.
 
+DealsBrowser can also publish the exact deal selected for Discord to
+`POST /pulsedeals/api/v1/internal/deals`. Each request signs the timestamp and exact JSON body with
+HMAC-SHA256 using `PULSEDEALS_INGEST_SECRET`; signatures expire after five minutes. The endpoint
+accepts at most 24 KB, validates the marketplace, ASIN, prices, score, seller data, and Amazon image
+host, then idempotently upserts on `(asin, marketplace)`. If push delivery is enabled, the same
+request invokes the existing deduplicated alert queue. Keep the shared secret out of YAML, source,
+logs, and command output. The scheduled Keepa sync remains enabled as a fallback; overlapping ASINs
+update the same row rather than creating duplicate feed cards.
+
 ## Local development
 
 Copy `.dev.vars.example` to `.dev.vars` and fill in development values. `.dev.vars` is ignored by
 Git. `npm run build:next` checks the Next.js app; `npm run build:cloudflare` runs the full OpenNext
-Worker bundle check.
+Worker bundle check. Run `tsx --test tests/pulsedeals/ingest.test.ts` for the signed bot-ingestion
+contract.
 
 ## Weekly membership and reciprocal Discord access (September 10, 2026)
 

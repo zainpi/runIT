@@ -32,6 +32,8 @@ export type Employee = {
   mailbox?: { status: "pending" | "manually_verified"; evidence?: Evidence };
   employmentType: string;
   status: "active" | "onboarding" | "offboarding" | "terminated";
+  /** Set when this employee is intended to receive the manager portal role. */
+  isManager?: boolean;
   providerId?: string;
   templateId?: string;
   createdAt: string;
@@ -340,6 +342,26 @@ export const uid = () => crypto.randomUUID();
 export const now = () => new Date().toISOString();
 export const fullName = (e?: Employee) =>
   e ? `${e.firstName} ${e.lastName}` : "Unknown employee";
+export const CREATE_MANAGER_OPTION = "__create_manager__";
+export function isActiveManager(
+  w: Pick<Workspace, "employees">,
+  employee?: Employee,
+) {
+  return !!(
+    employee &&
+    employee.status === "active" &&
+    (employee.isManager === true ||
+      w.employees.some(
+        (report) =>
+          report.id !== employee.id &&
+          report.status !== "terminated" &&
+          report.managerId === employee.id,
+      ))
+  );
+}
+export function hasActiveManager(w: Pick<Workspace, "employees">) {
+  return w.employees.some((employee) => isActiveManager(w, employee));
+}
 export class DomainError extends Error {
   constructor(
     message: string,
@@ -448,6 +470,7 @@ export function seed(id = uid(), demo = true, name = "Acme Inc."): Workspace {
           location: "New York, USA",
           employmentType: "Full-time",
           status: "active",
+          isManager: true,
           createdAt: date,
         },
         {

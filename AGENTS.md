@@ -142,6 +142,26 @@ npm run build
    REMOTE
    ```
 
+   For invitation-link recovery, apply migration 009 after migration 007
+   (and any later application-review migration) before starting the updated
+   app. It adds encrypted-at-rest token recovery fields; existing unused
+   links receive a replacement token the first time an administrator copies
+   them. Check both fields so a partial migration is not mistaken for a
+   completed one:
+
+   ```sh
+   ssh root@165.22.236.188 'sh -s' <<'REMOTE'
+   set -eu
+   cd /opt/neutronium/deploy/neutronium
+   recovery_state=$(docker compose exec -T db psql -U neutronium -d neutronium -Atc "select (exists(select 1 from information_schema.columns where table_schema='public' and table_name='neutronium_onboarding_links' and column_name='token_ciphertext'))::int + (exists(select 1 from information_schema.columns where table_schema='public' and table_name='neutronium_onboarding_links' and column_name='token_key_version'))::int")
+   case "$recovery_state" in
+     0) docker compose exec -T db psql -v ON_ERROR_STOP=1 -U neutronium -d neutronium < migrations/009_invitation_link_recovery.sql ;;
+     2) echo 'Migration 009 already applied' ;;
+     *) echo 'Partial migration 009 detected; inspect before continuing'; exit 1 ;;
+   esac
+   REMOTE
+   ```
+
    On initial setup or a password rotation, ensure the runtime role password is installed. Skip this for ordinary releases with an unchanged password. The password is passed to
    the one-off command from the protected `.env` and is never echoed:
 

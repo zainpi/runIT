@@ -23,6 +23,8 @@ import {
   notify,
   steps,
   mayApprove,
+  CREATE_MANAGER_OPTION,
+  hasActiveManager,
 } from "./model";
 type Input = Record<string, unknown>;
 function str(v: unknown, label: string, required = true, max = 200) {
@@ -308,12 +310,17 @@ export function command(
       const companyEmail = email(input.email);
       if (w.employees.some((e) => e.email === companyEmail))
         throw new DomainError("An employee already has this email.", 409);
-      const managerId = str(input.managerId ?? "", "manager", false);
-      if (managerId) {
-        const manager = find(w.employees, managerId);
-        if (manager.status !== "active")
-          throw new DomainError("Choose an active manager.");
-      }
+      const managerSelection = str(input.managerId ?? "", "manager", false);
+      const createManager = managerSelection === CREATE_MANAGER_OPTION;
+      const managerId = createManager ? "" : managerSelection;
+      const manager = managerId ? find(w.employees, managerId) : undefined;
+      if (manager && manager.status !== "active")
+        throw new DomainError("Choose an active manager.");
+      if (!createManager && !hasActiveManager(w) && !manager)
+        throw new DomainError(
+          'Choose an active manager or select "Create as new manager". Every company needs at least one active manager.',
+        );
+      if (manager) manager.isManager = true;
       const startDate = str(input.startDate, "start date");
       if (!isCalendarDate(startDate))
         throw new DomainError("Choose a valid start date.");
@@ -337,6 +344,7 @@ export function command(
         ),
         templateId: template.id,
         status: "onboarding",
+        isManager: createManager,
         createdAt: now(),
       };
       w.employees.push(e);
@@ -477,8 +485,9 @@ export function command(
         location: e.location,
       };
       const managerId = str(input.managerId ?? "", "manager", false);
+      let manager: Employee | undefined;
       if (managerId) {
-        const manager = find(w.employees, managerId);
+        manager = find(w.employees, managerId);
         if (manager.id === e.id || manager.status !== "active")
           throw new DomainError(
             "Choose a different active employee as manager.",
@@ -512,6 +521,7 @@ export function command(
       e.title = str(input.title ?? "", "job title", false);
       e.department = str(input.department, "department");
       e.managerId = managerId;
+      if (manager) manager.isManager = true;
       e.location = str(input.location ?? "", "location", false);
       if (input.usageLocation)
         e.usageLocation = countryCode(input.usageLocation);

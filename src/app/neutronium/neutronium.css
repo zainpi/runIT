@@ -791,6 +791,13 @@
 .nt-root tbody tr:hover {
   background: #fdfefa;
 }
+.nt-root tbody tr.nt-table-row-action {
+  cursor: pointer;
+}
+.nt-root tbody tr.nt-table-row-action:focus-visible {
+  outline: 2px solid #48724f;
+  outline-offset: -2px;
+}
 .nt-person {
   display: flex;
   align-items: center;
@@ -1608,6 +1615,26 @@
   color: inherit;
   display: flex;
 }
+.nt-message > button.nt-message-action {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font: inherit;
+  font-weight: 600;
+  gap: 5px;
+  line-height: 1.4;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+.nt-message > button.nt-message-action:hover {
+  background: rgb(255 255 255 / 35%);
+}
+.nt-message > button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
 .nt-success {
   background: #edf5e7;
   color: #66884e;
@@ -1860,10 +1887,12 @@
   color: #8b9d77;
   margin-top: 4px;
 }
+.nt-workflow-hint {
+  color: #69785e;
+  font-size: 10px;
+  margin: -10px 0 20px;
+}
 .nt-workflow-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 15px;
   padding-bottom: 27px;
   position: relative;
 }
@@ -1875,6 +1904,26 @@
   left: 14px;
   width: 1px;
   background: #e4ebd9;
+}
+.nt-workflow-step-trigger {
+  align-items: flex-start;
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  color: inherit;
+  display: flex;
+  font: inherit;
+  gap: 15px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+.nt-workflow-step-trigger:hover {
+  background: #f7faf4;
+}
+.nt-workflow-step-trigger:focus-visible {
+  outline: 2px solid #438264;
+  outline-offset: 3px;
 }
 .nt-step-marker {
   width: 30px;
@@ -1903,26 +1952,59 @@
   color: #729355;
   animation: nt-pulse 1.5s infinite;
 }
-.nt-workflow-step .nt-row {
+.nt-workflow-step-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+.nt-workflow-step-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
   justify-content: space-between;
   min-height: 30px;
+}
+.nt-workflow-step-heading > strong {
+  min-width: 0;
 }
 .nt-workflow-step strong {
   font-size: 11px;
   font-weight: 550;
 }
-.nt-workflow-step p {
+.nt-workflow-step-status {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+}
+.nt-step-destination {
+  align-items: center;
+  color: #557b55;
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 600;
+  gap: 4px;
+  white-space: nowrap;
+}
+.nt-workflow-step-trigger:hover .nt-step-destination {
+  color: #315f42;
+}
+.nt-workflow-step-description {
+  display: block;
   font-size: 10px;
   color: #92a27d;
   margin-top: 6px;
   line-height: 1.8;
+}
+.nt-step-error-copy {
+  color: #a76251;
 }
 .nt-workflow-step small {
   font-size: 9px;
   margin-top: 5px;
 }
 .nt-workflow-step form {
-  margin-top: 13px;
+  margin: 13px 0 0 45px;
 }
 .nt-employee-access > div {
   display: flex;
@@ -2520,6 +2602,34 @@
 }
 .nt-tool-card p {
   margin: 12px 0;
+}
+.nt-invitation-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-top: 1px solid #e1e5e1;
+  font-size: 13px;
+}
+.nt-invitation-link-row:first-of-type {
+  margin-top: 16px;
+}
+.nt-invitation-link-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.nt-copy-status {
+  color: #527544;
+  font-size: 12px;
+  font-weight: 600;
+}
+.nt-invitation-link-fallback {
+  flex-basis: 100%;
+  margin: 0;
 }
 .nt-tool-card label {
   display: grid;
