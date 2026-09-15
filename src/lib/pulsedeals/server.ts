@@ -571,8 +571,12 @@ export async function unlinkDiscord(admin: SupabaseClient, accountID: string): P
 }
 
 export function getAdminClient(): SupabaseClient {
+  // PulseDeals has its own Supabase project. Keep the legacy fallback so older
+  // deployments can transition without breaking before the dedicated secret is set.
+  const dedicatedURL = getPulseDealsEnv("PULSEDEALS_SUPABASE_URL")?.trim();
+  const supabaseURL = dedicatedURL || getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
   return createClient(
-    getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    supabaseURL,
     getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
     {
       auth: {

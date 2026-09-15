@@ -19,7 +19,8 @@ Set these as encrypted secrets in the Cloudflare/GitHub deployment integration b
 live subscription test. Never commit their values.
 
 ```text
-SUPABASE_SERVICE_ROLE_KEY=<Supabase service-role key for tkkuncbgyslnaukzhlgr>
+PULSEDEALS_SUPABASE_URL=https://mjagaepkilhbmpfdsduw.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<Supabase service-role key for the PulseDeals project mjagaepkilhbmpfdsduw>
 PULSEDEALS_SESSION_SECRET=<at least 32 random bytes, base64 or high-entropy text>
 PULSEDEALS_CRON_SECRET=<at least 32 random bytes, base64 or high-entropy text>
 PULSEDEALS_INGEST_SECRET=<at least 32 random bytes, shared only with KeepaBot>
@@ -48,14 +49,21 @@ PULSEDEALS_DISCORD_SERVER_NAME=PulseDeals
 Apple's published root certificates at runtime and caches them. The Keepa and ingest credentials
 are server-side only; neither is sent to the app.
 
+`NEXT_PUBLIC_SUPABASE_URL` remains reserved for the website's separate AncientHorizon admin
+client. PulseDeals API and notification code must use `PULSEDEALS_SUPABASE_URL`.
+
 ## Database
 
-The original additive migration
-`supabase/migrations/20260807160000_heaterdeals_backend.sql` has been applied to the linked
-Supabase project and creates the account, entitlement, deal, alert, rate-limit, idempotency, and
-Keepa-lock tables/functions. Supabase's pre-existing migration history is preserved. Apply the
-Discord-specific migration
-`supabase/migrations/20260904000000_heaterdeals_discord.sql` before enabling the Discord routes.
+PulseDeals uses the Supabase project `mjagaepkilhbmpfdsduw`
+(`https://mjagaepkilhbmpfdsduw.supabase.co`). The `neutronium` migration in this repository
+belongs to the separate AncientHorizon project and must not be pushed to PulseDeals.
+
+The PulseDeals migration set through
+`supabase/migrations/20260911030000_pulsedeals_yearly.sql` has been applied to the linked
+Supabase project and creates the account, entitlement, deal, alert, rate-limit, idempotency,
+Keepa-lock, Discord, push, membership, referral, country-request, and yearly-billing
+tables/functions. Supabase's pre-existing migration history is preserved. No additional
+`supabase db push` is required for this project until a new PulseDeals migration is added.
 
 ## Apple configuration
 
