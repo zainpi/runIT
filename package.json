@@ -4,6 +4,8 @@
   "private": true,
   "description": "Premium website for an AI automation agency",
   "scripts": {
+    "test:templates": "node --conditions=react-server --import tsx --test tests/templates/*.test.ts",
+    "test:templates:browser": "playwright test --config tests/templates/playwright.config.ts",
     "dev": "next dev",
     "build": "next build",
     "build:next": "next build",
@@ -28,7 +30,9 @@
     "pg": "^8.23.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "server-only": "^0.0.1",
+    "stripe": "^22.6.2"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

@@ -5,11 +5,11 @@
 export const site = {
   name: "runsIT",
   legalName: "runsIT",
-  tagline: "Independent software studio",
+  tagline: "Products & AI templates",
   // Used for absolute URLs, sitemap, and structured data.
   url: "https://runsit.ca",
   description:
-    "runsIT is an independent Canadian software company building business tools, consumer apps, and games. Explore Neutronium, PulseDeals, and The Last Echo, and meet our three founders.",
+    "Explore runsIT apps and games, then build your own with AI templates based on their foundations. No coding experience needed to get started.",
   email: "info@runs-it.com",
   phone: "+1 (555) 018-2240",
   phoneHref: "+15550182240",
@@ -26,42 +26,40 @@ export const site = {
 export type NavLink = { label: string; href: string; external?: boolean };
 
 export const mainNav: NavLink[] = [
-  // Start a fresh document so marketing scripts never share the admin shell.
-  { label: "Neutronium", href: "/neutronium", external: true },
-  { label: "Services", href: "/services" },
-  { label: "Case Studies", href: "/case-studies" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
-  // Static landing page served by the Cloudflare Worker, outside Next's router.
-  { label: "The Last Echo", href: "/the-last-echo", external: true },
+  { label: "Products", href: "/#products" },
+  { label: "AI Templates", href: "/templates/" },
+  { label: "About us", href: "/#founders" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export const footerNav: { title: string; links: NavLink[] }[] = [
   {
-    title: "Solutions",
+    title: "Products",
     links: [
-      { label: "AI Agents", href: "/services#ai-agents" },
-      { label: "Workflow Automation", href: "/services#workflow-automation" },
-      { label: "CRM Automation", href: "/services#crm-automation" },
-      { label: "Lead Automation", href: "/services#lead-automation" },
-      { label: "Customer Support", href: "/services#customer-support" },
+      { label: "Neutronium", href: "https://neutronium.runsit.ca/neutronium/", external: true },
+      { label: "PulseDeals", href: "/pulsedeals/", external: true },
+      { label: "The Last Echo", href: "/the-last-echo/", external: true },
+      { label: "Local Lore", href: "/local-lore/", external: true },
+      { label: "Build Your Room", href: "https://www.roblox.com/games/95318676575728/Build-Your-Room", external: true },
+    ],
+  },
+  {
+    title: "AI templates",
+    links: [
+      { label: "Discord bot", href: "/templates/#discord-bot" },
+      { label: "Roblox game", href: "/templates/#roblox-game" },
+      { label: "Mobile game", href: "/templates/#mobile-game" },
+      { label: "Mobile app", href: "/templates/#mobile-app" },
+      { label: "Online store", href: "/templates/#storefront" },
+      { label: "Browser game", href: "/templates/#browser-game" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About", href: "/about" },
-      { label: "Case Studies", href: "/case-studies" },
-      { label: "Contact", href: "/contact" },
-      { label: "Book a Call", href: "/book" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { label: "Reporting & Analytics", href: "/services#reporting-analytics" },
-      { label: "Internal Operations", href: "/services#internal-operations" },
-      { label: "Our Process", href: "/#process" },
+      { label: "About us", href: "/#founders" },
+      { label: "Contact", href: "/#contact" },
+      { label: "My templates", href: "/templates/library/" },
     ],
   },
 ];

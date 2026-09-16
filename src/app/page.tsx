@@ -3,6 +3,8 @@ import Image from "next/image";
 import { ArrowRightIcon } from "@/components/icons";
 import { founders, products } from "@/lib/company";
 import { site } from "@/lib/site";
+import { templateCatalog } from "@/lib/templates/catalog";
+import { templateDemos } from "@/lib/templates/demos";
 import styles from "./home.module.css";
 
 function Wordmark() {
@@ -20,9 +22,9 @@ export default function HomePage() {
         <div className={`${styles.container} ${styles.headerInner}`}>
           <Wordmark />
           <nav className={styles.nav} aria-label="Primary">
-            <a href="#company">Company</a>
             <a href="#products">Products</a>
-            <a href="#founders">Founders</a>
+            <Link href="/templates/">AI templates</Link>
+            <a href="#founders">About us</a>
           </nav>
           <a className={styles.headerContact} href={`mailto:${site.email}`}>
             Say hello <ArrowRightIcon />
@@ -32,18 +34,19 @@ export default function HomePage() {
 
       <main id="main" className={styles.container}>
         <section className={styles.hero} id="company" aria-labelledby="company-heading">
-          <p className={styles.eyebrow}><span /> Independent software. Built in Canada.</p>
-          <h1 id="company-heading">Good ideas.<br />Built to <span>run.</span></h1>
+          <p className={styles.eyebrow}><span /> Products & AI templates. Built in Canada.</p>
+          <h1 id="company-heading">Explore our products.<br /><span>Build your own.</span></h1>
           <div className={styles.heroBottom}>
             <p className={styles.intro}>
-              We’re runsIT, an independent software company building tools for
-              work, apps for everyday life, and games to get lost in. Three
-              founders, bringing ideas to life through thoughtful design and
-              hands-on engineering.
+              We build apps, games and tools you can use today. Our AI templates
+              share the foundations behind those products, so you can turn your
+              own idea into an app with step-by-step guidance. No coding
+              experience needed to get started.
             </p>
-            <a className={styles.primaryLink} href="#products">
-              Explore our products <ArrowRightIcon />
-            </a>
+            <div className={styles.heroActions}>
+              <Link className={styles.primaryLink} href="/templates/">Build with a template <ArrowRightIcon /></Link>
+              <a className={styles.secondaryLink} href="#products">Explore our products <ArrowRightIcon /></a>
+            </div>
           </div>
         </section>
 
@@ -51,18 +54,18 @@ export default function HomePage() {
           <div className={styles.sectionHeading}>
             <div>
               <p className={styles.sectionLabel}>01 / Our products</p>
-              <h2 id="products-heading">Different ideas. Same care.</h2>
+              <h2 id="products-heading">Made by us. Ready for you.</h2>
             </div>
-            <p>From your workday to your downtime.</p>
+            <p>Explore the products, then find a template to make something of your own.</p>
           </div>
           <div className={styles.productGrid}>
-            {products.map((product) => (
-              <a
+            {products.map((product) => {
+              const template = templateCatalog.find((item) => templateDemos[item.id].some((demo) => demo.name === product.name));
+              return <article
                 key={product.id}
-                href={product.href}
                 className={`${styles.productCard} ${styles[product.id]}`}
-                aria-label={product.action}
               >
+                <a href={product.href} className={styles.productMainLink} aria-label={product.action}>
                 <div className={styles.productArtwork} aria-hidden="true">
                   {product.id === "the-last-echo" ? (
                     <span className={styles.gameTitle}>THE LAST<br /><strong>ECHO</strong></span>
@@ -70,8 +73,8 @@ export default function HomePage() {
                     <Image
                       src={product.artwork}
                       alt=""
-                      width={1536}
-                      height={1024}
+                      width={product.id === "build-your-room" ? 1920 : 1536}
+                      height={product.id === "build-your-room" ? 1080 : 1024}
                       className={styles.productImage}
                       unoptimized
                     />
@@ -85,18 +88,45 @@ export default function HomePage() {
                   <p className={styles.productDescription}>{product.description}</p>
                   <span className={styles.productAction}>{product.action} <ArrowRightIcon /></span>
                 </div>
-              </a>
-            ))}
+                </a>
+                {template && <Link className={styles.productTemplateLink} href={`/templates/#${template.id}`}>
+                  <span>Make your own with the {template.title.toLowerCase()} template</span><ArrowRightIcon />
+                </Link>}
+              </article>;
+            })}
           </div>
+        </section>
+
+        <section className={styles.templates} id="templates" aria-labelledby="templates-heading">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.sectionLabel}>02 / Build your own</p>
+              <h2 id="templates-heading">Our foundations. Your next idea.</h2>
+            </div>
+            <Link className={styles.secondaryLink} href="/templates/">Browse all templates <ArrowRightIcon /></Link>
+          </div>
+          <div className={styles.templateIntro}>
+            <p>Start with a detailed AI prompt based on the structure behind our products. Describe your idea in your own words, then let your AI guide you through building and running it.</p>
+            <p>No coding experience needed to get started. Each template covers setup, service connections, testing and upkeep, plus a file of follow-up prompts for what to do next.</p>
+          </div>
+          <div className={styles.templateGrid}>{templateCatalog.map((template, index) => (
+            <Link key={template.id} className={styles.templateCard} href={`/templates/#${template.id}`}>
+              <span className={styles.templateNumber}>0{index + 1} / AI build template</span>
+              <h3>{template.title}</h3>
+              <p>{template.description}</p>
+              <span className={styles.templateAction}>Make it yours <ArrowRightIcon /></span>
+            </Link>
+          ))}</div>
+          <p className={styles.templateNote}>Copy the prompt into your AI tool. Choose guided manual steps or computer control with a compatible AI. You own the app you build and use your own accounts; AI tools and hosting are separate.</p>
         </section>
 
         <section className={styles.founders} id="founders" aria-labelledby="founders-heading">
           <div className={styles.sectionHeading}>
             <div>
-              <p className={styles.sectionLabel}>02 / The founders</p>
+              <p className={styles.sectionLabel}>03 / The founders</p>
               <h2 id="founders-heading">The people behind runsIT.</h2>
             </div>
-            <p>A small team, involved from idea to release.</p>
+            <p>Three founders building products and helping you start your own.</p>
           </div>
           <div className={styles.founderGrid}>
             {founders.map((founder) => (
@@ -122,7 +152,8 @@ export default function HomePage() {
         <section className={styles.contact} id="contact" aria-labelledby="contact-heading">
           <div>
             <p className={styles.sectionLabel}>Get in touch</p>
-            <h2 id="contact-heading">Let’s make something happen.</h2>
+            <h2 id="contact-heading">A product question or a different idea?</h2>
+            <p className={styles.contactDescription}>Ask about our products or tell us the custom template you need.</p>
           </div>
           <a href={`mailto:${site.email}`}>{site.email} <ArrowRightIcon /></a>
         </section>

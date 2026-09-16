@@ -13,9 +13,7 @@ export function Footer() {
           <div className="flex flex-col gap-5">
             <Logo />
             <p className="max-w-sm text-sm leading-relaxed text-slate-400">
-              {site.legalName} designs, builds, and maintains AI-powered
-              automation systems that help businesses save time, cut costs, and
-              scale without adding overhead.
+              {site.description}
             </p>
             <ul className="flex flex-col gap-2.5 text-sm text-slate-400">
               <li>
@@ -52,12 +50,21 @@ export function Footer() {
                 <ul className="flex flex-col gap-2.5">
                   {group.links.map((link) => (
                     <li key={link.href + link.label}>
-                      <Link
-                        href={link.href}
-                        className="text-sm text-slate-400 transition-colors hover:text-white"
-                      >
-                        {link.label}
-                      </Link>
+                      {link.external ? (
+                        <a
+                          href={link.href}
+                          className="text-sm text-slate-400 transition-colors hover:text-white"
+                        >
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={link.href}
+                          className="text-sm text-slate-400 transition-colors hover:text-white"
+                        >
+                          {link.label}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

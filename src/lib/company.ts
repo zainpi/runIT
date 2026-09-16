@@ -38,6 +38,16 @@ export const products = [
     action: "Play Local Lore",
     artwork: "/products/local-lore-artwork.webp",
   },
+  {
+    id: "build-your-room",
+    name: "Build Your Room",
+    category: "Roblox game",
+    description:
+      "Build a bedroom that feels like you. Collect furniture, explore creative dreams, and visit your friends’ rooms on Roblox.",
+    href: "https://www.roblox.com/games/95318676575728/Build-Your-Room",
+    action: "Play on Roblox",
+    artwork: "/products/build-your-room-artwork.jpg",
+  },
 ] as const;
 
 export type Founder = {

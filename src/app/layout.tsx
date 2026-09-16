@@ -28,6 +28,9 @@ export const metadata: Metadata = {
   keywords: [
     "runsIT",
     "Canadian software company",
+    "AI app templates",
+    "build your own app",
+    "apps and games",
     "Neutronium",
     "PulseDeals",
     "The Last Echo",

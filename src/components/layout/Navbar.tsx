@@ -76,8 +76,8 @@ export function Navbar() {
         </div>
 
         <div className="hidden md:block">
-          <ButtonLink href="/book" size="md" withArrow>
-            Book a Free Call
+          <ButtonLink href="/templates/" size="md" withArrow>
+            Browse AI templates
           </ButtonLink>
         </div>
 
@@ -144,8 +144,8 @@ export function Navbar() {
                 </Link>
               );
             })}
-            <ButtonLink href="/book" size="lg" className="mt-3 w-full" withArrow>
-              Book a Free Call
+            <ButtonLink href="/templates/" size="lg" className="mt-3 w-full" withArrow>
+              Browse AI templates
             </ButtonLink>
           </div>
         </div>

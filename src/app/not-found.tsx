@@ -19,8 +19,8 @@ export default function NotFound() {
           <ButtonLink href="/" withArrow>
             Back to home
           </ButtonLink>
-          <ButtonLink href="/book" variant="secondary">
-            Book a Free Call
+          <ButtonLink href="/templates/" variant="secondary">
+            Browse AI templates
           </ButtonLink>
         </div>
       </div>

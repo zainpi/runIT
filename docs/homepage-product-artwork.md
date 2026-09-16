@@ -4,6 +4,8 @@ Created with the built-in image generation tool on 11 September 2026. Each image
 
 The page treats these images as decorative because the adjacent card names and descriptions identify each product. Images fit inside the artwork area without cropping; The Last Echo retains its existing forest artwork.
 
+Build Your Room was added on 16 September 2026 using its existing 1920 × 1080 promotional illustration, copied unchanged from `Build_Your_Room/assets/listing/v1/upload/game_thumbnail.jpg` to `public/products/build-your-room-artwork.jpg`. It is an illustration, not a gameplay screenshot. The card links directly to the Roblox experience and preserves the complete image without cropping its title.
+
 ## Final assets and prompts
 
 ### neutronium
