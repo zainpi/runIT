@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { bundlePrice, DEFAULT_TEMPLATE_CURRENCY, formatPrice, parseTemplateIds, SKILL_TREE_ADDON_CENTS, SUBAGENT_ADDON_CENTS, templateCatalog, type BuildMode, type TemplateCurrency, type TemplateId } from "@/lib/templates/catalog";
-import { composePrompt, emptyPersonalization, type Personalization } from "@/lib/templates/compose";
+import { bundlePrice, DEFAULT_TEMPLATE_CURRENCY, EXTRA_TEMPLATE_CENTS, FIRST_TEMPLATE_CENTS, formatPrice, parseTemplateIds, SKILL_TREE_ADDON_CENTS, SUBAGENT_ADDON_CENTS, templateCatalog, type BuildMode, type TemplateCurrency, type TemplateId } from "@/lib/templates/catalog";
+import { emptyPersonalization, type Personalization } from "@/lib/templates/compose";
 import { templateDemos } from "@/lib/templates/demos";
 import { site } from "@/lib/site";
 import { Personalize } from "./personalize";
+import { PromptBuilderOffer } from "./prompt-builder-offer";
 import { loadDraft, saveDraft, saveReceipt } from "./browser-storage";
 import styles from "./templates.module.css";
 
@@ -61,12 +62,13 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
       window.location.assign(url.href);
     } catch (cause) { setError(cause instanceof Error && cause.name !== "SecurityError" ? cause.message : "Allow browser storage so we can save your purchase access before checkout."); setBusy(false); }
   }
-  const sample = composePrompt("your app", "[Your purchased template adds the complete architecture, data model, service integrations, implementation milestones, tests, deployment and maintenance plan here.]", details, mode);
+  const selectedTemplates = templateCatalog.filter((template) => selected.includes(template.id));
   return <>
     <section className={styles.hero}>
       <p className={styles.eyebrow}><span className={styles.dot} /> AI build templates</p>
       <div className={styles.heroRow}><h1>Your idea.<br /><em>A head start.</em></h1><div><p className={styles.heroDescription}><strong>No coding experience needed to get started.</strong> Bring your idea, copy a template into your AI tool, and let it guide you through building your own app, one simple step at a time.</p><p className={styles.heroPrice}><strong>{price(999)} {currencyLabel}</strong> for your first template.<br /><span>+$5 for every extra one in your bundle. {currencyLabel}.</span></p><p className={styles.modelHint}>Our recommended setup: <strong>GPT-6 Astra + High thinking.</strong><br /><a href="#model-guide">See the thinking-level guide →</a></p></div></div>
       <div className={styles.steps}><span><b>01</b> Pick your foundation</span><span><b>02</b> Add your idea</span><span><b>03</b> Copy. Build. Make it yours.</span></div>
+      <a className={styles.builderTeaser} href="#prompt-builder"><span><strong>Love making apps?</strong> Check out our upcoming prompt builder.</span><span aria-hidden="true">→</span></a>
     </section>
     {canceled && <p className={styles.notice} role="status">Checkout canceled. Your selection is saved. You can try again whenever you’re ready.</p>}
     <section className={styles.shop} aria-labelledby="catalog-heading">
@@ -84,9 +86,10 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
         <div className={styles.customCard}><div><p className={styles.eyebrow}>Something different?</p><h3>Let’s find your foundation.</h3><p>Tell us what you want to build. We can talk about a custom template.</p></div><a href={`mailto:${site.email}?subject=${encodeURIComponent("Custom AI template request")}`}>Email for custom ↗</a></div>
       </div>
     </section>
+    <PromptBuilderOffer currency={currency} />
     <section id="personalize" className={styles.workshop}><Personalize details={details} mode={mode} onDetails={setDetails} onMode={setMode} previewOnly /></section>
     <aside id="bundle" className={styles.cart} aria-label="Your bundle"><div className={styles.cartOptions}><p className={styles.eyebrow}>Your bundle</p><h2>{selected.length ? `${selected.length} template${selected.length === 1 ? "" : "s"}` : "A fresh start."}</h2>
-        {selected.length ? <ul>{templateCatalog.filter((t) => selected.includes(t.id)).map((t, i) => <li key={t.id}><span>{t.title}</span><span>{price(i === 0 ? 999 : 500)}<button aria-label={`Remove ${t.title} from bundle`} onClick={() => toggle(t.id)}>×</button></span></li>)}</ul> : <p className={styles.muted}>Choose a template to start your bundle. Every extra template is just $5.</p>}
+        {selected.length ? <ul>{selectedTemplates.map((t, i) => <li key={t.id}><span>{t.title}</span><span>{price(i === 0 ? FIRST_TEMPLATE_CENTS : EXTRA_TEMPLATE_CENTS)}<button aria-label={`Remove ${t.title} from bundle`} onClick={() => toggle(t.id)}>×</button></span></li>)}</ul> : <p className={styles.muted}>Choose a template to start your bundle. Every extra template is just $5.</p>}
         <label className={styles.addon} data-selected={subagents}>
           <input type="checkbox" aria-label="Add subagent workflow" checked={subagents} disabled={busy} onChange={(event) => setSubagents(event.target.checked)} />
           <span><strong>Add subagent workflow <b>+{price(SUBAGENT_ADDON_CENTS)}</b></strong><span>A lead AI such as Astra plans and reviews. Cheaper agents handle suitable coding tasks.</span><small>One-time $5 {currencyLabel} for your entire bundle. Adds prompt instructions; AI usage is separate.</small></span>
@@ -95,9 +98,13 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
           <input type="checkbox" aria-label="Add skill tree setup" checked={skillTree} disabled={busy} onChange={(event) => setSkillTree(event.target.checked)} />
           <span><strong>Add skill tree setup <b>+{price(SKILL_TREE_ADDON_CENTS)}</b></strong><span>A setup prompt with source links for skills and tools, organized around your business and selected apps.</span><small>One-time $10 {currencyLabel} for your entire bundle. Includes Cloudflare, Stripe, Roblox tooling, design and more. Third-party access and fees are separate.</small></span>
         </label>
-      </div><div className={styles.cartSummary}>
-        {skillTree && selected.length > 0 && <p className={styles.addonLine}><span>Skill tree setup × 1</span><span>{price(SKILL_TREE_ADDON_CENTS)}</span></p>}
-        {subagents && selected.length > 0 && <p className={styles.addonLine}><span>Subagent workflow × 1</span><span>{price(SUBAGENT_ADDON_CENTS)}</span></p>}
+      </div><div className={styles.cartSummary} role="region" aria-labelledby="checkout-summary-heading">
+        <h3 id="checkout-summary-heading">Order summary</h3>
+        {selected.length > 0 ? <ul className={styles.orderItems} aria-label="Selected items">
+          {selectedTemplates.map((template, index) => <li key={template.id}><span>{template.title}</span><span>{price(index === 0 ? FIRST_TEMPLATE_CENTS : EXTRA_TEMPLATE_CENTS)}</span></li>)}
+          {subagents && <li className={styles.addonLine}><span>Subagent workflow × 1</span><span>{price(SUBAGENT_ADDON_CENTS)}</span></li>}
+          {skillTree && <li className={styles.addonLine}><span>Skill tree setup × 1</span><span>{price(SKILL_TREE_ADDON_CENTS)}</span></li>}
+        </ul> : <p className={styles.small}>Select a template to see your order here.</p>}
         <div className={styles.total}><span>One-time total <small>{currencyLabel}</small></span><strong>{price(bundlePrice(selected.length, subagents, skillTree))}</strong></div>
         <button className={styles.primary} disabled={!selected.length || busy || !checkout?.available} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Checking availability…" : !checkout.available ? "Checkout coming soon" : checkout.testMode ? "Try test checkout ↗" : "Continue to checkout ↗"}</button>
         <p className={styles.small}>{checkout?.testMode ? "Test mode. No real payment is collected." : "Secure payment with Stripe. Copy and download after payment."}</p>
@@ -108,7 +115,6 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
         <Link href="/templates/library/" className={styles.textLink}>Already purchased? My templates →</Link>
       </div>
     </aside>
-    <section className={styles.previewSection}><div><p className={styles.eyebrow}>A look inside</p><h2>A prompt with a plan.</h2><p className={styles.muted}>Start with an idea, even if this is your first app. Every template asks your AI to explain unfamiliar terms, provide the code, and walk you through setup, testing and keeping your app running with simple steps and direct links.</p><p className={styles.small}>This free preview shows the shared instructions and your brief. Each paid template adds its full, platform-specific foundation.</p>{subagents && <p className={styles.small}>Subagent add-on selected. Its delegation, budget, and review instructions unlock after payment and work with either build mode.</p>}{skillTree && <p className={styles.small}>Skill tree selected. Your source directory and installation prompt unlock after payment, with a separate setup download.</p>}</div><details className={styles.sample}><summary>Preview your personalized instructions <span>↗</span></summary><pre>{sample}</pre></details></section>
     <section className={styles.faq} aria-labelledby="faq-heading"><h2 id="faq-heading">Before you start.</h2><div>
       <details><summary>What do I get?</summary><p>A detailed, editable text prompt for each selected foundation. It covers structure, data, integrations, setup URLs, tests, publishing, and safe operation. Paste it into a coding AI, explain your idea, and work through the build. It also asks your AI to create FOLLOW_UP_PROMPTS.md: a file of ready-to-copy prompts for adding features, fixing issues, launching and maintaining your app.</p></details>
       <details><summary>Do I need coding experience?</summary><p>No. These templates are designed to help you build your first app without prior coding experience. Your AI explains unfamiliar terms, provides the code, and guides you through setup and testing. You bring the idea, create your own accounts, and check that the result works how you want. Choose guided manual steps or let a compatible AI tool help operate your computer.</p></details>

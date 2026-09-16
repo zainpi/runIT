@@ -1,0 +1,21 @@
+{
+  "video": "brag.mp4",
+  "durationSeconds": 22.0,
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "frames": 660,
+  "videoCodec": "h264",
+  "audioCodec": "aac",
+  "audioChannels": 2,
+  "bytes": 3716529,
+  "posterSourceSecond": 1.7,
+  "posterBakedIntoFrameZero": true,
+  "sourceFrameCountPreserved": true,
+  "sourceAudioCopied": true,
+  "posterFrameZeroSSIM": 0.99495,
+  "audioMeanDB": -27.7,
+  "audioPeakDB": -5.5,
+  "hyperframesCheckPassed": true,
+  "renderPath": "screenshot capture, hardware GPU, single-worker streaming"
+}

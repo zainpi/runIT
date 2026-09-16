@@ -36,6 +36,19 @@ This section is an internal engineering record and may name local source project
 
 Public demo links are separate from paid prompt content. The online store links to Baked@Night at https://baked-at-night.pages.dev/ (verified storefront HTML on 2026-09-16); no private brand or deployment URL is included in the generic downloadable foundation.
 
+## Prompt builder preview
+
+The homepage and template store also introduce an upcoming prompt builder for
+people making multiple apps. The offer lives at `/templates/#prompt-builder` and
+shows $16.99 in the storefront's CAD or USD currency every 2 weeks (14 days).
+It is explicitly a preview: the CTA opens an access enquiry email and does not
+start checkout or subscribe anyone. Creative directions, more project prompts
+and editable briefs are presented as planned features. No prompt quota,
+unlimited usage, AI generation credits or cancellation policy is promised.
+The existing one-time template cart and payment verification are unchanged.
+The builder itself, subscription checkout, recurring access checks and billing
+management still need implementation before this can become a purchasable plan.
+
 ## Stripe staging setup
 
 No Stripe key is currently configured, and reconnecting Stripe remains outstanding. Do not perform live-mode operations as part of this implementation pass. Configure and verify test mode first.

@@ -1,15 +1,5 @@
 export const products = [
   {
-    id: "neutronium",
-    name: "Neutronium",
-    category: "Business software",
-    description:
-      "A simpler workspace for company IT. Manage onboarding, employee access, and offboarding in one place.",
-    href: "https://neutronium.runsit.ca/neutronium/",
-    action: "Explore Neutronium",
-    artwork: "/products/neutronium-artwork.webp",
-  },
-  {
     id: "pulsedeals",
     name: "PulseDeals",
     category: "Shopping & discovery",
@@ -47,6 +37,16 @@ export const products = [
     href: "https://www.roblox.com/games/95318676575728/Build-Your-Room",
     action: "Play on Roblox",
     artwork: "/products/build-your-room-artwork.jpg",
+  },
+  {
+    id: "neutronium",
+    name: "Neutronium",
+    category: "Business software",
+    description:
+      "A simpler workspace for company IT. Manage onboarding, employee access, and offboarding in one place.",
+    href: "https://neutronium.runsit.ca/neutronium/",
+    action: "Explore Neutronium",
+    artwork: "/products/neutronium-artwork.webp",
   },
 ] as const;
 

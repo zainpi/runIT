@@ -101,17 +101,16 @@ test("manual/computer modes personalize the preview and persist the brief and ca
   await page.getByLabel("Look & feel").fill("Quiet, high contrast, midnight blue.");
   await page.getByLabel("Running budget").fill("$25 monthly");
 
-  await page.getByText("Preview your personalized instructions").click();
-  const preview = page.locator("details").filter({ hasText: "Preview your personalized instructions" }).locator("pre");
-  await expect(preview).toContainText("Moon Cart");
-  await expect(preview).toContainText("neighborhood marketplace");
-  await expect(preview).toContainText("WORKING MODE: I DO IT MYSELF");
-  await expect(preview).toContainText("one small numbered step at a time");
+  await page.getByText("Read the manual instructions").click();
+  const manualPreview = page.locator("details").filter({ hasText: "Read the manual instructions" }).locator("pre").first();
+  await expect(manualPreview).toContainText("WORKING MODE: I DO IT MYSELF");
+  await expect(manualPreview).toContainText("one small numbered step at a time");
 
   await page.getByLabel("Make AI control my computer").check();
   await expect(page.getByText("Read the computer control instructions")).toBeVisible();
-  await expect(preview).toContainText("WORKING MODE: AI CONTROLS MY COMPUTER");
-  await expect(preview).toContainText("available coding, terminal, browser and computer-control tools");
+  const computerPreview = page.locator("details").filter({ hasText: "Read the computer control instructions" }).locator("pre").first();
+  await expect(computerPreview).toContainText("WORKING MODE: AI CONTROLS MY COMPUTER");
+  await expect(computerPreview).toContainText("available coding, terminal, browser and computer-control tools");
   await page.reload();
   await expect(page.getByLabel("App name")).toHaveValue("Moon Cart");
   await expect(page.getByLabel("What do you want to make?")).toHaveValue("A neighborhood marketplace for night-shift workers.");

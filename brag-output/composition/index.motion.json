@@ -1,0 +1,23 @@
+{
+  "duration": 22,
+  "assertions": [
+    {
+      "kind": "appearsBy",
+      "selector": "#hook-first",
+      "bySec": 0.2
+    },
+    {
+      "kind": "appearsBy",
+      "selector": "#hook-second",
+      "bySec": 1
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": ".form-panel"
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": ".outro-copy"
+    }
+  ]
+}

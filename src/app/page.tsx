@@ -118,6 +118,10 @@ export default function HomePage() {
             </Link>
           ))}</div>
           <p className={styles.templateNote}>Copy the prompt into your AI tool. Choose guided manual steps or computer control with a compatible AI. You own the app you build and use your own accounts; AI tools and hosting are separate.</p>
+          <Link className={styles.builderTeaser} href="/templates/#prompt-builder">
+            <div><span className={styles.builderLabel}>Prompt builder · Coming soon</span><h3>Love making apps?</h3><p>More creative freedom. More prompts for your next idea.</p></div>
+            <span className={styles.builderAction}>Check out this tool <ArrowRightIcon /></span>
+          </Link>
         </section>
 
         <section className={styles.founders} id="founders" aria-labelledby="founders-heading">

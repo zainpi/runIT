@@ -79,6 +79,12 @@
 .templateCard p { padding-block: 14px 24px; color: var(--home-muted); font-size: .86rem; line-height: 1.8; }
 .templateAction { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; font-size: .82rem; color: #dce2ff; }
 .templateNote { max-width: 900px; margin-top: 24px!important; color: var(--home-muted); font-size: .8rem; line-height: 1.8; }
+.builderTeaser { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; margin-top: 32px; padding: 28px; border: 1px solid #485747; border-radius: 10px; background: #141d19; }
+.builderTeaser:hover { border-color: #c8e5ad; }
+.builderLabel { color: #c8e5ad; font-size: .75rem; }
+.builderTeaser h3 { margin-top: 12px; font-size: 1.6rem; font-weight: 500; letter-spacing: -.04em; }
+.builderTeaser p { margin-top: 10px; color: #bec9c2; font-size: .9rem; line-height: 1.8; }
+.builderAction { display: inline-flex; align-items: center; gap: 18px; min-height: 44px; color: #c8e5ad; font-size: .875rem; }
 .founderGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
 .founderCard { position: relative; padding: 28px 26px; border: 1px solid var(--home-line); border-radius: 10px; }
 .founderNumber { position: absolute; top: 28px; right: 24px; color: var(--home-muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }

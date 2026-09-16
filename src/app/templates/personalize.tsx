@@ -32,7 +32,14 @@ export function Personalize({ details, mode, onDetails, onMode, previewOnly = fa
       <label>App name <span>optional</span><input maxLength={100} value={details.name} onChange={(e) => onDetails({ ...details, name: e.target.value })} placeholder="Give your idea a name" /></label>
       <label>What do you want to make?<textarea maxLength={3000} rows={4} value={details.idea} onChange={(e) => onDetails({ ...details, idea: e.target.value })} placeholder="Who is it for? What should it help them do?" /></label>
       <label>Features & platforms<textarea maxLength={3000} rows={3} value={details.features} onChange={(e) => onDetails({ ...details, features: e.target.value })} placeholder="Must-haves, changes, iOS or Android, optional services…" /></label>
-      <div className={styles.fieldPair}><label>Look & feel<input maxLength={500} value={details.style} onChange={(e) => onDetails({ ...details, style: e.target.value })} placeholder="Minimal, playful, cozy…" /></label><label>Running budget<input maxLength={200} value={details.budget} onChange={(e) => onDetails({ ...details, budget: e.target.value })} placeholder="$20/month, 100 users" /></label></div>
+      <div className={styles.fieldPair}>
+        <label>Look & feel<input maxLength={500} value={details.style} onChange={(e) => onDetails({ ...details, style: e.target.value })} placeholder="Minimal, playful, cozy…" /></label>
+        <div>
+          <label>Running budget<input maxLength={200} value={details.decideBudget ? "" : details.budget} disabled={details.decideBudget === true} onChange={(e) => onDetails({ ...details, budget: e.target.value })} placeholder={details.decideBudget ? "AI will recommend a budget" : "$20/month, 100 users"} /></label>
+          <label className={styles.budgetChoice}><input type="checkbox" checked={details.decideBudget === true} onChange={(e) => onDetails({ ...details, decideBudget: e.target.checked })} />Decide for me</label>
+          {details.decideBudget && <p className={styles.budgetHint}>Your AI will recommend a starting budget and explain the costs.</p>}
+        </div>
+      </div>
       <details className={styles.modePreview}><summary>Read the {mode === "manual" ? "manual" : "computer control"} instructions</summary>
         {previewOnly ? <div className={styles.lockedModePreview}>
           <pre>{modeInstructions[mode].split("\n").slice(0, 2).join("\n")}</pre>

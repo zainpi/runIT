@@ -36,11 +36,11 @@ export const footerNav: { title: string; links: NavLink[] }[] = [
   {
     title: "Products",
     links: [
-      { label: "Neutronium", href: "https://neutronium.runsit.ca/neutronium/", external: true },
       { label: "PulseDeals", href: "/pulsedeals/", external: true },
       { label: "The Last Echo", href: "/the-last-echo/", external: true },
       { label: "Local Lore", href: "/local-lore/", external: true },
       { label: "Build Your Room", href: "https://www.roblox.com/games/95318676575728/Build-Your-Room", external: true },
+      { label: "Neutronium", href: "https://neutronium.runsit.ca/neutronium/", external: true },
     ],
   },
   {

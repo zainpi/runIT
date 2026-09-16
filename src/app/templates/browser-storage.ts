@@ -17,7 +17,8 @@ export function loadDraft(): { details: Personalization; mode: BuildMode; select
   try {
     const data = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
     const details = { ...emptyPersonalization };
-    for (const key of Object.keys(details) as (keyof Personalization)[]) if (typeof data.details?.[key] === "string") details[key] = data.details[key].slice(0, 3000);
+    for (const key of ["name", "idea", "features", "style", "budget"] as const) if (typeof data.details?.[key] === "string") details[key] = data.details[key].slice(0, 3000);
+    details.decideBudget = data.details?.decideBudget === true;
     const selected = templateCatalog.filter((t) => Array.isArray(data.selected) && data.selected.includes(t.id)).map((t) => t.id);
     return { details, mode: data.mode === "computer" ? "computer" : "manual", selected, subagents: data.subagents === true, skillTree: data.skillTree === true };
   } catch { return { details: { ...emptyPersonalization }, mode: "manual", selected: [], subagents: false, skillTree: false }; }

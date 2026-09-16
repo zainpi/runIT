@@ -1,7 +1,7 @@
 import type { BuildMode } from "./catalog";
 
-export type Personalization = { name: string; idea: string; features: string; style: string; budget: string };
-export const emptyPersonalization: Personalization = { name: "", idea: "", features: "", style: "", budget: "" };
+export type Personalization = { name: string; idea: string; features: string; style: string; budget: string; decideBudget?: boolean };
+export const emptyPersonalization: Personalization = { name: "", idea: "", features: "", style: "", budget: "", decideBudget: false };
 
 export const modeInstructions: Record<BuildMode, string> = {
   computer: `WORKING MODE: AI CONTROLS MY COMPUTER
@@ -20,7 +20,7 @@ Name: ${field(details.name, "Your app name")}
 What I want to make and who it is for: ${field(details.idea, "Describe your idea and audience")}
 Must-have features, platforms and changes to the foundation: ${field(details.features, "Describe the features you want; say which optional modules to enable")}
 Visual style and tone: ${field(details.style, "Describe the look and feel")}
-Monthly running budget and expected users: ${field(details.budget, "Your budget, currency and expected number of users")}
+Monthly running budget and expected users: ${details.decideBudget ? "Decide for me. Recommend a practical, low-cost starting budget for my app, state the currency and expected-user assumptions, and explain estimated monthly costs, one-time fees, free-tier limits and what could increase the cost. Ask only for missing details that materially affect the estimate. This requests a recommendation, not authorization to spend money or provision paid services." : field(details.budget, "Your budget, currency and expected number of users")}
 === END OF MY APP BRIEF ===`;
 }
 

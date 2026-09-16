@@ -1,0 +1,15 @@
+◇  onion-skin screenshot saved /Users/Zain/Developer/runIT/brag-output/cursor-motion.png
+   27 elements · open it to verify the motion matches your target, then read the keyframes below.
+
+◇  composition — 3 items
+
+index.html  (index.html)
+  .catalog-cursor position  trace  2 strokes @8.74s→10.8s
+    stroke 1: 0% {x:70 y:45 opacity:0}  100% {x:-44 y:-16 opacity:1}
+    stroke 2: 0% {x:0 y:0 opacity:1}  100% {x:20 y:40 opacity:0}
+
+  .catalog-cursor scale  to/flat  @9.29s→9.38s (0.09s)
+    0% {scale:1}  100% {scale:0.86}
+    ↑ composed with #choose-body: y -35..0, opacity 0..1
+
+Tip: edit the keyframes in source, then `hyperframes keyframes --shot out.png` to see the rendered motion.
