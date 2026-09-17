@@ -7,6 +7,7 @@ import * as checkout from "../../src/app/api/templates/checkout/route";
 import * as config from "../../src/app/api/templates/config/route";
 import * as library from "../../src/app/api/templates/library/route";
 import * as webhook from "../../src/app/api/templates/webhook/route";
+import * as ai from "../../src/app/api/templates/ai/route";
 
 process.env.TEMPLATES_STRIPE_KEY = "sk_test_synthetic_route_key";
 process.env.TEMPLATES_STRIPE_WEBHOOK_SECRET = "whsec_synthetic_route_secret";
@@ -52,6 +53,7 @@ function session(id: string, selected: TemplateId[], paid = true, subagents?: bo
 }
 
 function installStripeMock() {
+  Reflect.set(globalThis, Symbol.for("__cloudflare-context__"), { env: { TEMPLATES_AI_ENABLED: "true", TEMPLATES_AI_MODEL: "synthetic-model", TEMPLATES_OPENAI_API_KEY: "synthetic-key", TEMPLATES_AI_ORDERS: { getByName() { throw new Error("AI storage was not expected in a payment test"); } } } });
   sessions.clear();
   sessions.set(paidId, session(paidId, ids));
   sessions.set(unpaidId, session(unpaidId, ["discord-bot"], false));
@@ -107,6 +109,29 @@ function jsonRequest(pathname: string, value: unknown, extraHeaders: Record<stri
 async function body(response: Response): Promise<any> { return response.json(); }
 
 test.beforeEach(() => installStripeMock());
+
+test("AI routes reject cross-origin, invalid, unpaid and refunded purchase access before using storage", async () => {
+  for (const values of [
+    { sessionId: paidId, accessToken: wrongToken },
+    { sessionId: unpaidId, accessToken },
+    { sessionId: "malformed", accessToken },
+  ]) {
+    const response = await ai.POST(jsonRequest("/api/templates/ai", { action: "load", ...values }));
+    assert.ok([403, 409].includes(response.status));
+  }
+  assert.equal((await ai.POST(jsonRequest("/api/templates/ai", { action: "load", sessionId: paidId, accessToken }, { origin: "https://evil.example" }))).status, 403);
+  sessions.get(paidId)!.payment_intent.latest_charge.refunded = true;
+  const response = await ai.POST(jsonRequest("/api/templates/ai", { action: "load", sessionId: paidId, accessToken }));
+  assert.equal(response.status, 403);
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
+});
+
+test("new checkout pauses when included AI is not configured, while paid downloads remain available", async () => {
+  Reflect.set(globalThis, Symbol.for("__cloudflare-context__"), { env: {} });
+  assert.equal((await body(await config.GET(new Request(`${origin}/api/templates/config`)))).available, false);
+  assert.equal((await checkout.POST(jsonRequest("/api/templates/checkout", { templates: ids, accessToken }))).status, 503);
+  assert.equal((await library.POST(jsonRequest("/api/templates/library", { sessionId: paidId, accessToken }))).status, 200);
+});
 
 test("config exposes request-host currency only for validated storefront origins", async () => {
   for (const [requestOrigin, currency] of [

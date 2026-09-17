@@ -13,7 +13,7 @@ export function validSessionId(value: unknown): value is string { return typeof 
 
 export function checkoutParameters(ids: TemplateId[], token: string, origin: string, subagents = false, skillTree = false): Stripe.Checkout.SessionCreateParams {
   const currency = templateCurrencyForHostname(new URL(origin).hostname);
-  const metadata = { store: TEMPLATE_STORE, version: TEMPLATE_VERSION, templates: ids.join(","), access_hash: tokenHash(token), subagents: String(subagents), skill_tree: String(skillTree), currency, pricing_origin: origin };
+  const metadata = { store: TEMPLATE_STORE, version: TEMPLATE_VERSION, templates: ids.join(","), access_hash: tokenHash(token), subagents: String(subagents), skill_tree: String(skillTree), currency, pricing_origin: origin, ai_messages: "20", ai_overviews: "one_per_template" };
   return {
     mode: "payment",
     adaptive_pricing: { enabled: false },
@@ -29,7 +29,7 @@ export function checkoutParameters(ids: TemplateId[], token: string, origin: str
     })), ...(subagents ? [{ quantity: 1, price_data: { currency, unit_amount: SUBAGENT_ADDON_CENTS, product_data: { name: "Subagent build workflow add-on", description: "One add-on for every template in this order. Digital text download." } } }] : []), ...(skillTree ? [{ quantity: 1, price_data: { currency, unit_amount: SKILL_TREE_ADDON_CENTS, product_data: { name: "Skill tree setup add-on", description: "Skill source links and installation prompt for every template in this order. Digital text download." } } }] : [])],
     metadata,
     payment_intent_data: { metadata: { store: TEMPLATE_STORE, templates: ids.join(","), subagents: String(subagents), skill_tree: String(skillTree), currency, pricing_origin: origin } },
-    custom_text: { submit: { message: "After payment, return to the website and save your unique purchase URL to access your prompts again. One-time purchase of AI build prompts; AI tools, hosting, and other service fees are separate." } },
+    custom_text: { submit: { message: "After payment, return to the website and save your unique purchase URL to access your prompts again. Includes free template overviews and 20 AI editing messages per purchase. Coding AI tools, hosting, and other service fees are separate." } },
   };
 }
 

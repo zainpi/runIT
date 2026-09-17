@@ -1,4 +1,5 @@
 import type { BuildMode } from "./catalog";
+import { planPrompt, type AppPlan } from "./ai-contract";
 
 export type Personalization = { name: string; idea: string; features: string; style: string; budget: string; decideBudget?: boolean };
 export const emptyPersonalization: Personalization = { name: "", idea: "", features: "", style: "", budget: "", decideBudget: false };
@@ -59,12 +60,18 @@ Begin by confirming my AI tool, operating system and workspace. Then show the sk
 `;
 }
 
-export function composePrompt(title: string, foundation: string, details: Personalization, mode: BuildMode, subagentInstructions?: string, skillTreeInstructions?: string): string {
+export function composePrompt(title: string, foundation: string, details: Personalization, mode: BuildMode, subagentInstructions?: string, skillTreeInstructions?: string, appPlan?: AppPlan): string {
   return `BUILD MY ${title.toUpperCase()}
 
 You are my senior engineer and setup guide. Help me create an original, working application I can own, run and maintain myself. Follow this foundation while adapting the product to my brief. Deliver working source and operational instructions, not just a plan or mockup. Do not reuse any existing application's branding, private content, identifiers, assets, credentials or user data. Use synthetic sample data and assets with clear licenses.
 
 ${appBrief(details)}
+
+ADAPT THE FOUNDATION TO MY IDEA
+My brief and reviewed app specification define the product. The foundation supplies reusable engineering guidance; its example screens, entities, genre, workflows and providers are not mandatory features. Before coding, give me a concise overview and a table with Part and What my app would do columns. Distinguish explicit requirements, provisional assumptions and unresolved decisions. Map my core workflow to appropriate navigation, domain models and integrations. Keep the supplied name and requested platforms; explain any platform mismatch and a feasible alternative before implementation.
+Replace irrelevant examples rather than just renaming them. A social climbing app needs people, gyms, skill levels and session invitations instead of a content library or rule builder. A puzzle game need not have combat, prestige or maps. A digital store need not have local delivery. Add product-specific essentials missing from the examples, including visibility, consent and reporting/blocking for social interactions. Keep optional modules absent unless required by my brief or confirmed with me.
+Retain applicable security, accessibility, testing, setup, maintenance and handover requirements. Adapt checks to enabled features; do not build an unused feature just to satisfy an example test. Product customization never overrides the selected working mode or authorization boundaries. Ask only questions that materially change the build, state reasonable reversible assumptions, and work toward a manageable complete first release.
+${appPlan ? `\n${planPrompt(appPlan)}\n` : ""}
 
 ${modeInstructions[mode]}
 ${subagentInstructions?.trim() ? `\n=== SUBAGENT WORKFLOW ===\n${subagentInstructions.trim()}\n=== END OF SUBAGENT WORKFLOW ===\n` : ""}

@@ -141,6 +141,8 @@ test("checkout retry parameters derive canonical currency, prices, and metadata 
     version: TEMPLATE_VERSION,
     templates: ids.join(","),
     access_hash: tokenHash(accessToken),
+    ai_messages: "20",
+    ai_overviews: "one_per_template",
     subagents: "false",
     skill_tree: "false",
     currency: "usd",

@@ -154,7 +154,7 @@ test("checkout sends canonical IDs, access token, and add-on flag, then saves it
   expect(posted).not.toHaveProperty("brief");
   expect(posted!.accessToken).toMatch(/^[a-f0-9]{64}$/);
 
-  await page.goto("http://127.0.0.1:3100/templates/");
+  await page.goto("http://127.0.0.1:3102/templates/");
   const receipt = await page.evaluate(() => JSON.parse(localStorage.getItem("runit-template-orders-v1") || "[]"));
   const pending = await page.evaluate(() => JSON.parse(sessionStorage.getItem("runit-template-checkout") || "null"));
   expect(receipt[0]).toMatchObject({ sessionId, templates: ["discord-bot", "browser-game"], subagents: true, skillTree: true });
@@ -210,7 +210,7 @@ test("desktop and mobile layouts have no horizontal overflow", async ({ page }) 
 });
 
 test("paid library composes personalized prompt and supports copy and download", async ({ page, context }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:3100" });
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:3102" });
   let libraryRequest: Record<string, unknown> | undefined;
   await page.route("**/api/templates/library/**", async (route) => {
     libraryRequest = route.request().postDataJSON() as Record<string, unknown>;
@@ -233,7 +233,7 @@ test("paid library composes personalized prompt and supports copy and download",
   await page.getByRole("button", { name: "Browser game" }).click();
   await expect(prompt).toContainText("GAME_FOUNDATION_MARKER");
   await page.getByRole("button", { name: "Copy full prompt" }).click();
-  await expect(page.getByRole("status").last()).toContainText("Browser game prompt copied");
+  await expect(page.getByRole("status", { name: "Template library status" })).toContainText("Browser game prompt copied");
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("GAME_FOUNDATION_MARKER");
 
   const download = page.waitForEvent("download");
@@ -242,14 +242,14 @@ test("paid library composes personalized prompt and supports copy and download",
 });
 
 test("private purchase URL is prominent, bookmarkable, and matches copy and access download", async ({ page, context }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:3100" });
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:3102" });
   await page.route("**/api/templates/library/**", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
     body: JSON.stringify({ templates: [{ id: "storefront", foundation: "PURCHASE_URL_FOUNDATION" }] }),
   }));
 
-  const purchaseUrl = `http://127.0.0.1:3100/templates/library/#session_id=${sessionId}&access=${token}`;
+  const purchaseUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
   await page.goto(purchaseUrl);
   await expect(page.getByRole("heading", { name: "Save your purchase link", exact: true })).toBeVisible();
   const privateUrl = page.getByLabel("Your private purchase URL", { exact: true });
@@ -264,7 +264,7 @@ test("private purchase URL is prominent, bookmarkable, and matches copy and acce
 
   await page.getByRole("button", { name: "Copy purchase link", exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(purchaseUrl);
-  await expect(page.getByRole("status").last()).toContainText("Purchase link copied. Save it somewhere safe");
+  await expect(page.getByRole("status", { name: "Template library status" })).toContainText("Purchase link copied. Save it somewhere safe");
 
   const downloadEvent = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download access file", exact: true }).click();
@@ -274,7 +274,7 @@ test("private purchase URL is prominent, bookmarkable, and matches copy and acce
   expect(path).toBeTruthy();
   const accessFile = await readFile(path!, "utf8");
   expect(accessFile).toContain(purchaseUrl);
-  expect(accessFile.match(/http:\/\/127\.0\.0\.1:3100\/templates\/library\/#session_id=/g)).toHaveLength(1);
+  expect(accessFile.match(/http:\/\/127\.0\.0\.1:3102\/templates\/library\/#session_id=/g)).toHaveLength(1);
 
   await page.reload();
   await expect(page).toHaveURL(purchaseUrl);
@@ -283,14 +283,14 @@ test("private purchase URL is prominent, bookmarkable, and matches copy and acce
 });
 
 test("copied purchase URL restores the paid order in a clean browser with no receipt storage", async ({ browser }) => {
-  const cleanContext = await browser.newContext({ baseURL: "http://127.0.0.1:3100" });
+  const cleanContext = await browser.newContext({ baseURL: "http://127.0.0.1:3102" });
   const cleanPage = await cleanContext.newPage();
   await cleanPage.route("**/api/templates/library/**", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
     body: JSON.stringify({ templates: [{ id: "browser-game", foundation: "CROSS_DEVICE_FOUNDATION" }] }),
   }));
-  const purchaseUrl = `http://127.0.0.1:3100/templates/library/#session_id=${sessionId}&access=${token}`;
+  const purchaseUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
 
   await cleanPage.goto(purchaseUrl);
   await expect(cleanPage.getByRole("button", { name: "Browser game", exact: true })).toBeVisible();
@@ -311,13 +311,13 @@ test("incoming purchase URL remains usable when browser storage is blocked", asy
     contentType: "application/json",
     body: JSON.stringify({ templates: [{ id: "mobile-app", foundation: "NO_STORAGE_FOUNDATION" }] }),
   }));
-  const purchaseUrl = `http://127.0.0.1:3100/templates/library/#session_id=${sessionId}&access=${token}`;
+  const purchaseUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
 
   await page.goto(purchaseUrl);
   await expect(page.getByLabel(/Your brief .* complete foundation/)).toContainText("NO_STORAGE_FOUNDATION");
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(purchaseUrl);
   await expect(page).toHaveURL(purchaseUrl);
-  await expect(page.getByRole("status").last()).toContainText("Browser storage is unavailable");
+  await expect(page.getByRole("status", { name: "Template library status" })).toContainText("Browser storage is unavailable");
 });
 
 test("same-tab private-link navigation loads the new order and ignores a late prior response", async ({ page }) => {
@@ -340,8 +340,8 @@ test("same-tab private-link navigation loads the new order and ignores a late pr
       body: JSON.stringify({ templates: [{ id: "browser-game", foundation: "CURRENT_SECOND_ORDER" }], skillTree: false }),
     });
   });
-  const firstUrl = `http://127.0.0.1:3100/templates/library/#session_id=${sessionId}&access=${token}`;
-  const secondUrl = `http://127.0.0.1:3100/templates/library/#session_id=${newerSession}&access=${newerToken}`;
+  const firstUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
+  const secondUrl = `http://127.0.0.1:3102/templates/library/#session_id=${newerSession}&access=${newerToken}`;
 
   await page.goto(firstUrl);
   await page.evaluate(({ newerSession, newerToken }) => {
@@ -391,7 +391,7 @@ test("paid subagent add-on is enabled by default, survives mode changes, and is 
 });
 
 test("paid skill-tree add-on exposes a separate manual setup artifact with copy and download", async ({ page, context }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:3100" });
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:3102" });
   await page.route("**/api/templates/library/**", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
@@ -409,7 +409,7 @@ test("paid skill-tree add-on exposes a separate manual setup artifact with copy 
   await page.getByLabel("Do it myself").check();
 
   await page.getByRole("button", { name: "Copy skill setup prompt", exact: true }).click();
-  await expect(page.getByRole("status").last()).toContainText(/skill setup.*copied/i);
+  await expect(page.getByRole("status", { name: "Template library status" })).toContainText(/skill setup.*copied/i);
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toContain("SKILL_TREE_MARKER");
   expect(copied).toContain("WORKING MODE: I DO IT MYSELF");
@@ -456,14 +456,14 @@ test("forged skill-tree flags cannot expose instructions and switching orders cl
   }, { sessionId, token, secondSession, secondToken });
 
   await page.goto("/templates/library/");
-  const firstUrl = `http://127.0.0.1:3100/templates/library/#session_id=${sessionId}&access=${token}`;
+  const firstUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
   await expect(page).toHaveURL(firstUrl);
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(firstUrl);
   await expect(page.getByLabel("Include skill tree setup", { exact: true })).toBeChecked();
   await expect(page.getByRole("button", { name: "Copy skill setup prompt", exact: true })).toBeVisible();
 
   await page.getByLabel("Saved orders on this browser").selectOption(secondSession);
-  const secondUrl = `http://127.0.0.1:3100/templates/library/#session_id=${secondSession}&access=${secondToken}`;
+  const secondUrl = `http://127.0.0.1:3102/templates/library/#session_id=${secondSession}&access=${secondToken}`;
   await expect(page).toHaveURL(secondUrl);
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(secondUrl);
   await expect(page.getByLabel(/Your brief .* complete foundation/)).toContainText("BASE_ORDER");

@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { site } from "../site";
 import { StoreError } from "./payment";
 
-async function environment(): Promise<Record<string, unknown>> {
+export async function environment(): Promise<Record<string, unknown>> {
   try {
     const { getCloudflareContext } = await import("@opennextjs/cloudflare");
     return { ...process.env, ...getCloudflareContext().env };
@@ -63,9 +63,9 @@ export async function readBody(request: Request, maxBytes = 8192): Promise<strin
   return Buffer.concat(chunks).toString("utf8");
 }
 
-export async function readJson(request: Request): Promise<Record<string, unknown>> {
+export async function readJson(request: Request, maxBytes = 8192): Promise<Record<string, unknown>> {
   if (!request.headers.get("content-type")?.startsWith("application/json")) throw new StoreError("Send a JSON request.", 415);
-  const raw = await readBody(request);
+  const raw = await readBody(request, maxBytes);
   try {
     const value = JSON.parse(raw);
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error();

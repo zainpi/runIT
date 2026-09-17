@@ -35,6 +35,14 @@
 .primaryLink { display: inline-flex; justify-content: center; align-items: center; gap: 1.5rem; flex-shrink: 0; padding: 1rem 1.25rem; border: 1px solid var(--home-accent); border-radius: 6px; background: var(--home-accent); color: #101727; font-size: .9375rem; font-weight: 600; transition: background 160ms ease; }
 .primaryLink:hover { background: #c4ceff; }
 .heroActions { display: flex; flex-direction: column; align-items: stretch; gap: 12px; flex-shrink: 0; }
+.introVideo { margin: 44px 0 0; }
+.introVideo video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid var(--home-line); border-radius: 10px; background: var(--home-background); }
+.introVideo video:focus-visible, .videoDescription summary:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 6px; }
+.introVideo figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; margin-top: 16px; color: var(--home-muted); font-size: .8125rem; line-height: 1.7; }
+.introVideo figcaption span:last-child { white-space: nowrap; }
+.videoDescription { margin-top: 8px; color: var(--home-muted); font-size: .8125rem; line-height: 1.8; }
+.videoDescription summary { width: fit-content; min-height: 44px; padding-block: 10px; color: var(--home-accent); cursor: pointer; }
+.videoDescription p { max-width: 850px; padding-top: 6px; }
 .secondaryLink { display: inline-flex; align-items: center; justify-content: center; gap: 16px; min-height: 48px; color: var(--home-accent); font-size: .9rem; }
 .secondaryLink:hover { text-decoration: underline; text-underline-offset: 5px; }
 .products, .templates, .founders { padding-block: 64px 76px; border-top: 1px solid var(--home-line); }

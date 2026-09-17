@@ -4,7 +4,7 @@
   "private": true,
   "description": "Premium website for an AI automation agency",
   "scripts": {
-    "test:templates": "node --conditions=react-server --import tsx --test tests/templates/*.test.ts",
+    "test:templates": "node --conditions=react-server --import tsx --test tests/templates/*.test.ts && node --test tests/templates/*.test.mjs",
     "test:templates:browser": "playwright test --config tests/templates/playwright.config.ts",
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +16,8 @@
     "test:neutronium": "tsx --test tests/neutronium/*.test.ts",
     "test:neutronium:browser": "playwright test --config tests/neutronium/playwright.config.ts",
     "test:local-lore": "node --test tests/local-lore/*.test.mjs",
-    "test:local-lore:layout": "playwright test --config tests/local-lore/playwright.config.ts"
+    "test:local-lore:layout": "playwright test --config tests/local-lore/playwright.config.ts",
+    "types:cloudflare": "wrangler types cloudflare-env.d.ts --strict-vars false --include-runtime false"
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",
@@ -35,6 +36,7 @@
     "stripe": "^22.6.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260917.1",
     "@electric-sql/pglite": "^0.5.8",
     "@opennextjs/cloudflare": "^1.20.1",
     "@playwright/test": "^1.63.0",
@@ -45,8 +47,10 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "esbuild": "0.25.4",
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.5.25",
+    "miniflare": "5.20260910.0-alpha",
     "postcss": "^8.5.28",
     "tailwindcss": "^3.4.10",
     "tsx": "^4.23.13",

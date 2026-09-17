@@ -1,6 +1,7 @@
 import { parseTemplateIds } from "@/lib/templates/catalog";
 import { checkoutParameters, StoreError, tokenHash, validAccessToken } from "@/lib/templates/payment";
 import { assertSameOrigin, errorResponse, jsonResponse, readJson, stripeForStore } from "@/lib/templates/server";
+import { aiConfiguration } from "@/lib/templates/ai-service";
 export async function POST(request: Request) {
   try {
     const { stripe, origin } = await stripeForStore();
@@ -13,6 +14,8 @@ export async function POST(request: Request) {
     if (data.skillTree !== undefined && typeof data.skillTree !== "boolean") throw new StoreError("Choose whether to include the skill-tree add-on.");
     const subagents = data.subagents === true;
     const skillTree = data.skillTree === true;
+    const ai = await aiConfiguration();
+    if (!ai.enabled || !ai.key || !ai.model || !ai.orders) throw new StoreError("Checkout is paused while we prepare the included AI editor. Please try again later.", 503);
     const params = checkoutParameters(ids, data.accessToken, returnOrigin, subagents, skillTree);
     const session = await stripe.checkout.sessions.create(params, { idempotencyKey: `templates-${tokenHash(`${data.accessToken}:${ids.join(",")}:${returnOrigin}:${params.metadata!.currency}:${subagents}:${skillTree}`)}` });
     if (!session.url) throw new StoreError("Checkout could not be opened. Please retry.", 502);

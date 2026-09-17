@@ -4,6 +4,8 @@ import { getPulseDealsEnv } from "./src/lib/pulsedeals/compatibility";
 // @ts-ignore OpenNext generates this module during the Cloudflare build.
 import openNextWorker from "./.open-next/worker.js";
 import { handleLocalLore, cleanupLocalLore } from "./src/lib/local-lore/live/api.mjs";
+export { TemplateTrialCodes } from "./src/lib/templates/trial-codes";
+export { TemplateAiOrder } from "./src/lib/templates/ai-order";
 
 type WorkerEnvironment = {
   PULSEDEALS_CRON_SECRET?: string;

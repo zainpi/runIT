@@ -1,0 +1,8 @@
+.codeBox { border: 1px solid var(--line, #343d4b); border-radius: 20px; padding: clamp(24px, 4vw, 48px); margin: 32px 0 64px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; background: #101823; scroll-margin-top: 28px; }
+.codeBox h2 { font-size: clamp(24px, 3vw, 36px); margin: 8px 0 16px; }
+.form { display: grid; gap: 16px; min-width: 0; }
+.form label { display: grid; gap: 8px; }
+.form input, .form select { width: 100%; min-width: 0; padding: 14px; font: inherit; color: #edf0f6; background: #090e15; border: 1px solid #465266; border-radius: 8px; }
+.form input:focus-visible, .form select:focus-visible { outline: 2px solid #b7e9ce; outline-offset: 3px; }
+.form button { justify-self: start; }
+@media (max-width: 700px) { .codeBox { grid-template-columns: 1fr; gap: 24px; } }

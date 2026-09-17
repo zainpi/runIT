@@ -48,6 +48,26 @@ export default function HomePage() {
               <a className={styles.secondaryLink} href="#products">Explore our products <ArrowRightIcon /></a>
             </div>
           </div>
+          <figure className={styles.introVideo}>
+            <video
+              controls
+              playsInline
+              preload="none"
+              poster="/videos/runsit-intro-poster.jpg"
+              width={1920}
+              height={1080}
+              aria-label="Watch the runsIT introduction"
+              aria-describedby="intro-video-description"
+            >
+              <source src="/videos/runsit-intro.mp4" type="video/mp4" />
+              Your browser doesn’t support embedded video. <a href="/videos/runsit-intro.mp4">Watch the runsIT introduction</a>.
+            </video>
+            <figcaption><span>A quick look at what you can build.</span><span>22 seconds</span></figcaption>
+            <details className={styles.videoDescription}>
+              <summary>Read video description</summary>
+              <p id="intro-video-description">A short tour of runsIT’s apps and games: Neutronium, PulseDeals, The Last Echo, Local Lore and Build Your Room. An example shows choosing a browser game template, personalizing it as “City Quest,” then copying the purchased prompt into an AI tool. The video ends with “Our foundations. Your next idea.” Music and interface sounds play throughout; there is no spoken narration.</p>
+            </details>
+          </figure>
         </section>
 
         <section className={styles.products} id="products" aria-labelledby="products-heading">

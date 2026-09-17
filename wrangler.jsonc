@@ -12,6 +12,10 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "durable_objects": {
+    "bindings": [{ "name": "TEMPLATES_AI_ORDERS", "class_name": "TemplateAiOrder" }, { "name": "TEMPLATES_TRIAL_CODES", "class_name": "TemplateTrialCodes" }]
+  },
+  "migrations": [{ "tag": "templates-ai-v1", "new_sqlite_classes": ["TemplateAiOrder"] }, { "tag": "templates-trial-v1", "new_sqlite_classes": ["TemplateTrialCodes"] }],
   "d1_databases": [{
     "binding": "LOCAL_LORE_DB",
     "database_name": "local-lore",

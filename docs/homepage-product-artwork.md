@@ -1,5 +1,21 @@
 # Homepage product artwork
 
+## Homepage video
+
+The homepage intro embeds `public/videos/runsit-intro.mp4`, copied unchanged
+from the user-selected `composition_2026-09-16_19-54-09.mp4` export. It is a
+22-second, 1920 × 1080 H.264/AAC video (4,809,123 bytes). The poster at
+`public/videos/runsit-intro-poster.jpg` is extracted from 1.7 seconds into that
+same video. The player uses native controls, inline playback and `preload="none"`;
+it does not autoplay. A text description covers the visual sequence and notes
+that the audio is music and interface sounds without narration.
+
+To replace it, update those two files in `public/videos/` and keep the page’s
+duration and text description in sync. The source composition stays under
+`brag-output/`; only the finished video and poster are served by the homepage.
+
+## Product images
+
 Created with the built-in image generation tool on 11 September 2026. Each image is an original 1536 × 1024 illustration, encoded as WebP at quality 82 for the homepage. The originals remain in the image generation output directory.
 
 The page treats these images as decorative because the adjacent card names and descriptions identify each product. Images fit inside the artwork area without cropping; The Last Echo retains its existing forest artwork.

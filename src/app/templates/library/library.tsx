@@ -6,6 +6,8 @@ import { composePrompt, composeSkillSetupPrompt, emptyPersonalization, type Pers
 import { site } from "@/lib/site";
 import { downloadText, loadDraft, loadReceipts, receiptLink, saveDraft, saveReceipt, type Receipt } from "../browser-storage";
 import { Personalize } from "../personalize";
+import { AiEditor } from "./ai-editor";
+import { sameBrief, type AppPlan } from "@/lib/templates/ai-contract";
 import styles from "../templates.module.css";
 
 export function TemplateLibrary() {
@@ -23,9 +25,11 @@ export function TemplateLibrary() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [applied, setApplied] = useState<Partial<Record<TemplateId, { plan: AppPlan; brief: Personalization }>>>({});
   const orderRequest = useRef({ generation: 0 });
 
   async function openOrder(receipt: Receipt) {
+    setApplied({});
     const requestId = ++orderRequest.current.generation;
     setBusy(true); setError(""); setStatus(""); setActive(receipt); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setIncludeSubagents(false); setSkillTreeInstructions(undefined); setIncludeSkillTree(false);
     // Keep bookmarks tied to the active order, including when browser storage is unavailable.
@@ -67,6 +71,7 @@ export function TemplateLibrary() {
       } else if (!location.hash && saved[0]) {
         void openOrder(saved[0]);
       } else {
+        setApplied({});
         ++orderRequest.current.generation;
         setActive(null); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setIncludeSubagents(false); setSkillTreeInstructions(undefined); setIncludeSkillTree(false); setBusy(false); setStatus("");
         setError(location.hash ? "This purchase link is incomplete or invalid. Open the full URL from your saved access file, or choose one of your saved orders." : "");
@@ -80,7 +85,9 @@ export function TemplateLibrary() {
   const current = templates.find((template) => template.id === selected);
   const purchaseUrl = active ? receiptLink(active) : "";
   const title = templateCatalog.find((t) => t.id === selected)?.title ?? "Template";
-  const prompt = current ? composePrompt(title, current.foundation, details, mode, includeSubagents ? subagentInstructions : undefined, includeSkillTree ? skillTreeInstructions : undefined) : "";
+  const savedPlan = selected ? applied[selected] : undefined;
+  const appPlan = savedPlan && sameBrief(savedPlan.brief, details) ? savedPlan.plan : undefined;
+  const prompt = current ? composePrompt(title, current.foundation, details, mode, includeSubagents ? subagentInstructions : undefined, includeSkillTree ? skillTreeInstructions : undefined, appPlan) : "";
   const setupPrompt = skillTreeInstructions ? composeSkillSetupPrompt(skillTreeInstructions, details, mode) : "";
   function updateDetails(value: Personalization) { setDetails(value); try { const draft = loadDraft(); saveDraft(value, mode, draft.selected, draft.subagents, draft.skillTree); } catch { /* Editing still works. */ } }
   function updateMode(value: BuildMode) { setMode(value); try { const draft = loadDraft(); saveDraft(details, value, draft.selected, draft.subagents, draft.skillTree); } catch { /* Editing still works. */ } }
@@ -97,16 +104,18 @@ export function TemplateLibrary() {
     {active && <section className={styles.accessBar} aria-labelledby="save-purchase-heading">
       <p className={styles.eyebrow}>Your private order page</p>
       <h2 id="save-purchase-heading">Save your purchase link</h2>
-      <p className={styles.accessIntro}>Save this URL before you leave. It opens every prompt and add-on in this purchase, even on another device or after clearing your browser.</p>
+      <p className={styles.accessIntro}>Save this URL before you leave. It opens every prompt, add-on and saved AI conversation in this purchase, even on another device or after clearing your browser.</p>
       <label className={styles.small} htmlFor="purchase-url">Your private purchase URL</label>
       <input id="purchase-url" className={styles.purchaseUrl} type="text" readOnly value={purchaseUrl} spellCheck={false} autoComplete="off" onFocus={(event) => event.currentTarget.select()} />
-      <div className={styles.actions}><button className={styles.primary} onClick={() => void copy(purchaseUrl, "Purchase link copied. Save it somewhere safe so you can return to this order.")}>Copy purchase link</button><button className={styles.secondary} onClick={() => downloadText(`YOUR PRIVATE TEMPLATE PURCHASE LINK\n\n${purchaseUrl}\n\nSave this file. Open the full URL to return to the templates and add-ons in this order, including on another device or after clearing browser storage. Payment must be complete to access the prompts.\n\nKeep this URL private: anyone with it can access your purchase. Your custom brief stays in your browser, so download personalized prompts to preserve your edits.\n\nLost access? Contact ${site.email} with your Stripe receipt. Never send passwords or API keys.\n`, "template-order-access.txt")}>Download access file</button></div>
-      <p className={styles.small}>You can also bookmark this page. Keep the full URL private: anyone with it can access your purchase. Download your personalized prompts to keep your edits; your brief stays in this browser.</p>
+      <div className={styles.actions}><button className={styles.primary} onClick={() => void copy(purchaseUrl, "Purchase link copied. Save it somewhere safe so you can return to this order.")}>Copy purchase link</button><button className={styles.secondary} onClick={() => downloadText(`YOUR PRIVATE TEMPLATE PURCHASE LINK\n\n${purchaseUrl}\n\nSave this file. Open the full URL to return to the templates and add-ons in this order, including on another device or after clearing browser storage. Payment must be complete to access the prompts.\n\nKeep this URL private: anyone with it can access your purchase. Manual edits stay in your browser. AI plans and chats are saved with this purchase when you use AI editing; download your personalized prompts to keep a copy.\n\nLost access? Contact ${site.email} with your Stripe receipt. Never send passwords or API keys.\n`, "template-order-access.txt")}>Download access file</button></div>
+      <p className={styles.small}>You can also bookmark this page. Keep the full URL private: anyone with it can access your purchase. Download your personalized prompts to keep a copy. Manual edits stay in this browser; AI plans and chats are saved to this purchase.</p>
     </section>}
-    <p className={styles.status} role="status" aria-live="polite">{status}</p>
+    <p className={styles.status} role="status" aria-label="Template library status" aria-live="polite">{status}</p>
     {templates.length > 0 && <>
       <section className={styles.libraryTemplates}><p className={styles.eyebrow}>Your purchased foundations</p><div className={styles.libraryTabs} role="group" aria-label="Choose a purchased template">{templates.map((t) => <button key={t.id} aria-pressed={selected === t.id} onClick={() => setSelected(t.id)}>{templateCatalog.find((item) => item.id === t.id)?.title}</button>)}</div></section>
       <section className={styles.workshop}><Personalize details={details} mode={mode} onDetails={updateDetails} onMode={updateMode} /></section>
+      {active && current && <AiEditor key={`${active.sessionId}:${active.accessToken}:${current.id}`} receipt={active} templateId={current.id} details={details} onRestoreBrief={updateDetails} onCleared={() => setApplied({})} onApplied={(plan, brief) => setApplied((previous) => ({ ...previous, [current.id]: plan && brief ? { plan, brief } : undefined }))} />}
+      {savedPlan && !appPlan && <p className={styles.notice}>You changed the brief after applying an AI plan. The download currently uses your new brief without the older plan. Update and apply the plan to include it again.</p>}
       {subagentInstructions ? <label className={`${styles.addon} ${styles.libraryAddon}`} data-selected={includeSubagents}>
         <input type="checkbox" aria-label="Include subagent workflow" checked={includeSubagents} onChange={(event) => setIncludeSubagents(event.target.checked)} />
         <span><strong>Include subagent workflow <b>Purchased</b></strong><span>Let a lead AI such as Astra oversee cheaper coding agents. Included for every template in this order; you can turn it off for any download.</span><small>Uses the models and agent tools available to you. Manual mode keeps you in charge of applying changes. AI usage is billed by your provider.</small></span>

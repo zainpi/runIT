@@ -5,6 +5,7 @@ import { bundlePrice, DEFAULT_TEMPLATE_CURRENCY, EXTRA_TEMPLATE_CENTS, FIRST_TEM
 import { emptyPersonalization, type Personalization } from "@/lib/templates/compose";
 import { templateDemos } from "@/lib/templates/demos";
 import { site } from "@/lib/site";
+import { TrialCode } from "./trial-code";
 import { Personalize } from "./personalize";
 import { PromptBuilderOffer } from "./prompt-builder-offer";
 import { loadDraft, saveDraft, saveReceipt } from "./browser-storage";
@@ -88,6 +89,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     </section>
     <PromptBuilderOffer currency={currency} />
     <section id="personalize" className={styles.workshop}><Personalize details={details} mode={mode} onDetails={setDetails} onMode={setMode} previewOnly /></section>
+    <TrialCode selected={selected} />
     <aside id="bundle" className={styles.cart} aria-label="Your bundle"><div className={styles.cartOptions}><p className={styles.eyebrow}>Your bundle</p><h2>{selected.length ? `${selected.length} template${selected.length === 1 ? "" : "s"}` : "A fresh start."}</h2>
         {selected.length ? <ul>{selectedTemplates.map((t, i) => <li key={t.id}><span>{t.title}</span><span>{price(i === 0 ? FIRST_TEMPLATE_CENTS : EXTRA_TEMPLATE_CENTS)}<button aria-label={`Remove ${t.title} from bundle`} onClick={() => toggle(t.id)}>×</button></span></li>)}</ul> : <p className={styles.muted}>Choose a template to start your bundle. Every extra template is just $5.</p>}
         <label className={styles.addon} data-selected={subagents}>
@@ -108,15 +110,16 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
         <div className={styles.total}><span>One-time total <small>{currencyLabel}</small></span><strong>{price(bundlePrice(selected.length, subagents, skillTree))}</strong></div>
         <button className={styles.primary} disabled={!selected.length || busy || !checkout?.available} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Checking availability…" : !checkout.available ? "Checkout coming soon" : checkout.testMode ? "Try test checkout ↗" : "Continue to checkout ↗"}</button>
         <p className={styles.small}>{checkout?.testMode ? "Test mode. No real payment is collected." : "Secure payment with Stripe. Copy and download after payment."}</p>
-        <p className={styles.small}>After checkout, save your unique purchase URL. It brings you back to your prompts on any device.</p>
+        <p className={styles.small}>After checkout, save your unique purchase URL. It brings you back to your prompts and saved AI conversations on any device.</p>
         {error && <p className={styles.error} role="alert">{error}</p>}
-        <div className={styles.cartNotes}><p>✓ Complete architecture & service setup</p><p>✓ Guidance for complete beginners</p><p>✓ Both build modes included</p><p>✓ Copyable prompt & .txt download</p><p>✓ Follow-up prompt guide for your app</p></div>
-        <p className={styles.small}>Pricing applies per order. AI subscriptions, developer accounts, hosting, and service usage are separate. You’re buying a prompt, not a finished app.</p>
+        <div className={styles.cartNotes}><p>✓ Complete architecture & service setup</p><p>✓ Guidance for complete beginners</p><p>✓ Both build modes included</p><p>✓ Copyable prompt & .txt download</p><p>✓ Follow-up prompt guide for your app</p><p>✓ Free AI overviews + 20 editing messages</p></div>
+        <p className={styles.small}>Pricing applies per order. Includes a free overview per template and 20 AI editing messages shared across this purchase. Coding AI subscriptions, developer accounts, hosting, and other service usage are separate. You’re buying a prompt, not a finished app.</p>
         <Link href="/templates/library/" className={styles.textLink}>Already purchased? My templates →</Link>
       </div>
     </aside>
     <section className={styles.faq} aria-labelledby="faq-heading"><h2 id="faq-heading">Before you start.</h2><div>
       <details><summary>What do I get?</summary><p>A detailed, editable text prompt for each selected foundation. It covers structure, data, integrations, setup URLs, tests, publishing, and safe operation. Paste it into a coding AI, explain your idea, and work through the build. It also asks your AI to create FOLLOW_UP_PROMPTS.md: a file of ready-to-copy prompts for adding features, fixing issues, launching and maintaining your app.</p></details>
+      <details><summary>How does the included AI editing work?</summary><p>Open your private purchase link, describe your app, and create a free overview with a feature table. Each purchased template gets one free overview. You can then send 20 messages in total across the order to refine your plan. Review and apply a plan to include it in your downloadable build prompt. Chats and applied plans are saved to your purchase link. Failed responses do not use a message; refreshing or changing devices does not reset the allowance. This chat helps shape the prompt; building the app happens in your own coding AI tool.</p></details>
       <details><summary>Do I need coding experience?</summary><p>No. These templates are designed to help you build your first app without prior coding experience. Your AI explains unfamiliar terms, provides the code, and guides you through setup and testing. You bring the idea, create your own accounts, and check that the result works how you want. Choose guided manual steps or let a compatible AI tool help operate your computer.</p></details>
       <details><summary>Can I change the prompt after buying?</summary><p>Yes. Edit your idea, switch build modes, and copy or download it again. Save your private order link and downloaded files; browser storage can be cleared.</p></details>
       <details><summary>What does the subagent add-on do?</summary><p>For $5 {currencyLabel} once per order, every template in your bundle gets an optional workflow for a lead AI such as Astra to plan and review, with cheaper capable agents doing suitable coding tasks. It includes task boundaries, budget controls, testing, and a manual handoff option. Actual model availability and costs depend on your AI tool. This buys prompt instructions; it does not include AI credits or guarantee lower running costs.</p></details>

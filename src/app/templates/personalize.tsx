@@ -3,7 +3,7 @@ import { modeInstructions, type Personalization } from "@/lib/templates/compose"
 import type { BuildMode } from "@/lib/templates/catalog";
 import styles from "./templates.module.css";
 
-export function Personalize({ details, mode, onDetails, onMode, previewOnly = false }: { details: Personalization; mode: BuildMode; onDetails: (value: Personalization) => void; onMode: (value: BuildMode) => void; previewOnly?: boolean }) {
+export function Personalize({ details, mode, onDetails, onMode, previewOnly = false, previewPurchaseHref = "#bundle" }: { details: Personalization; mode: BuildMode; onDetails: (value: Personalization) => void; onMode: (value: BuildMode) => void; previewOnly?: boolean; previewPurchaseHref?: string }) {
   return <div className={styles.personalize}>
     <div><p className={styles.eyebrow}>02 / Make it yours</p><h2>Same foundation.<br />Your own idea.</h2><p className={styles.muted}>Describe your idea in your own words. No technical plan needed. Fill this in now or after buying, and change it whenever you like. Your brief stays in this browser.</p>
       <fieldset className={styles.mode}><legend>How do you want to build?</legend>
@@ -44,7 +44,7 @@ export function Personalize({ details, mode, onDetails, onMode, previewOnly = fa
         {previewOnly ? <div className={styles.lockedModePreview}>
           <pre>{modeInstructions[mode].split("\n").slice(0, 2).join("\n")}</pre>
           <div className={styles.modePreviewBlur} aria-hidden="true"><pre>Your full template continues with detailed workspace setup, service connections, implementation steps, verification checks, deployment instructions and a maintenance plan for your chosen foundation.</pre></div>
-          <a className={styles.modePreviewUnlock} href="#bundle">Purchase to see full template <span aria-hidden="true">→</span></a>
+          <a className={styles.modePreviewUnlock} href={previewPurchaseHref}>Purchase to see full template <span aria-hidden="true">→</span></a>
         </div> : <pre>{modeInstructions[mode]}</pre>}
       </details>
     </div>
