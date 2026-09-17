@@ -69,7 +69,6 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
       <p className={styles.eyebrow}><span className={styles.dot} /> AI build templates</p>
       <div className={styles.heroRow}><h1>Your idea.<br /><em>A head start.</em></h1><div><p className={styles.heroDescription}><strong>No coding experience needed to get started.</strong> Bring your idea, copy a template into your AI tool, and let it guide you through building your own app, one simple step at a time.</p><p className={styles.heroPrice}><strong>{price(999)} {currencyLabel}</strong> for your first template.<br /><span>+$5 for every extra one in your bundle. {currencyLabel}.</span></p><p className={styles.modelHint}>Our recommended setup: <strong>GPT-6 Astra + High thinking.</strong><br /><a href="#model-guide">See the thinking-level guide →</a></p></div></div>
       <div className={styles.steps}><span><b>01</b> Pick your foundation</span><span><b>02</b> Add your idea</span><span><b>03</b> Copy. Build. Make it yours.</span></div>
-      <a className={styles.builderTeaser} href="#prompt-builder"><span><strong>Love making apps?</strong> Check out our upcoming prompt builder.</span><span aria-hidden="true">→</span></a>
     </section>
     {canceled && <p className={styles.notice} role="status">Checkout canceled. Your selection is saved. You can try again whenever you’re ready.</p>}
     <section className={styles.shop} aria-labelledby="catalog-heading">
@@ -87,7 +86,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
         <div className={styles.customCard}><div><p className={styles.eyebrow}>Something different?</p><h3>Let’s find your foundation.</h3><p>Tell us what you want to build. We can talk about a custom template.</p></div><a href={`mailto:${site.email}?subject=${encodeURIComponent("Custom AI template request")}`}>Email for custom ↗</a></div>
       </div>
     </section>
-    <PromptBuilderOffer currency={currency} />
+    <PromptBuilderOffer />
     <section id="personalize" className={styles.workshop}><Personalize details={details} mode={mode} onDetails={setDetails} onMode={setMode} previewOnly /></section>
     <aside id="bundle" className={styles.cart} aria-label="Your bundle"><div className={styles.cartOptions}><p className={styles.eyebrow}>Your bundle</p><h2>{selected.length ? `${selected.length} template${selected.length === 1 ? "" : "s"}` : "A fresh start."}</h2>
         {selected.length ? <ul>{selectedTemplates.map((t, i) => <li key={t.id}><span>{t.title}</span><span>{price(i === 0 ? FIRST_TEMPLATE_CENTS : EXTRA_TEMPLATE_CENTS)}<button aria-label={`Remove ${t.title} from bundle`} onClick={() => toggle(t.id)}>×</button></span></li>)}</ul> : <p className={styles.muted}>Choose a template to start your bundle. Every extra template is just $5.</p>}

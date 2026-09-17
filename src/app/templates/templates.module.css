@@ -33,9 +33,6 @@
 .modelHint a { display:inline-flex; align-items:center; min-height:44px; }
 .steps { display:flex; flex-wrap:wrap; gap:1.5rem 3rem; margin-top:52px; padding:23px 0; border-block:1px solid var(--line); font-size:.8rem; color:var(--muted); }
 .steps b { color:var(--accent); font-size:.7rem; margin-right:10px; font-weight:500; }
-.builderTeaser { display:flex; justify-content:space-between; align-items:center; gap:20px; min-height:56px; padding-block:16px; border-bottom:1px solid var(--line); color:#c8e5ad; font-size:.84rem; line-height:1.8; }
-.builderTeaser strong { color:#f3f5fc; font-weight:500; }
-.builderTeaser:hover { text-decoration:underline; text-underline-offset:4px; }
 .shop { padding:56px 0; }
 .sectionHeading { display:flex; justify-content:space-between; align-items:end; gap:1.5rem; margin-bottom:26px; }
 .page h2 { font-size:clamp(1.5rem,2.5vw,2rem); line-height:1.25; font-weight:500; letter-spacing:-.045em; }

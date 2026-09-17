@@ -25,6 +25,7 @@ export function MicrosoftConnection({
 
   return (
     <ValidatedForm
+      className="nt-microsoft-connection"
       onSubmit={async (event) => {
         event.preventDefault();
         if (!ready || submitting) return;
@@ -68,6 +69,7 @@ export function MicrosoftConnection({
               type="button"
               className="nt-button"
               disabled={checking}
+              aria-busy={checking}
               onClick={async () => {
                 setChecking(true);
                 onError("");
@@ -153,7 +155,17 @@ export function MicrosoftConnection({
           Neutronium. Review that screen before approving access.
         </p>
       </div>
-      <button className="nt-button nt-primary" disabled={!ready || submitting}>
+      {!ready && (
+        <p id={`${id}-unavailable`} className="nt-subtle">
+          Neutronium must finish Microsoft setup before you can continue.
+        </p>
+      )}
+      <button
+        className="nt-button nt-primary"
+        disabled={!ready || submitting}
+        aria-busy={submitting}
+        aria-describedby={!ready ? `${id}-unavailable` : undefined}
+      >
         {submitting ? "Opening Microsoft…" : "Continue to Microsoft"}{" "}
         <Icon name="arrow" size={16} />
       </button>

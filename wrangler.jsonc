@@ -2,6 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   // Must match the Worker selected by the Cloudflare Workers Build.
   "name": "runsit-ca",
+  // Preserve runtime settings maintained in the Cloudflare dashboard.
+  "keep_vars": true,
   "main": "worker.ts",
   "compatibility_date": "2025-03-25",
   "compatibility_flags": [
@@ -22,7 +24,13 @@
     "database_id": "125038bb-ee87-415a-aa6a-f2d73ce93873",
     "migrations_dir": "migrations/local-lore"
   }],
-  "vars": { "LOCAL_LORE_IMAGE_DAILY_LIMIT": "250" },
+  "vars": {
+    "LOCAL_LORE_IMAGE_DAILY_LIMIT": "250",
+    "TEMPLATES_AI_ENABLED": "true",
+    "TEMPLATES_AI_MODEL": "gpt-5.6-luna",
+    "TEMPLATES_AI_REASONING_EFFORT": "max",
+    "TEMPLATES_TRIAL_ENABLED": "true"
+  },
   // Enable Next.js <Image> optimization on Cloudflare.
   "images": {
     "binding": "IMAGES"

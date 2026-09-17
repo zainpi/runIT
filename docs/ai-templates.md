@@ -51,6 +51,15 @@ No service has been provisioned, funded or deployed by this implementation. Exis
 - `TEMPLATES_AI_ENABLED=true`: generation switch. Missing/false disables new generations while existing paid downloads, saved AI reads, apply and deletion remain available when storage is bound.
 - `TEMPLATES_AI_ORDERS`: the generated Durable Object binding, configured in Wrangler rather than a secret.
 
+Set these on the runtime of each Worker serving the storefront, not only in its
+build environment. `runsit-ca` and `runit` are separate Workers and do not share
+settings. Keep `TEMPLATES_OPENAI_API_KEY` as an encrypted runtime secret. The AI
+enable switch, model, reasoning effort, and trial enable switch are tracked in
+`wrangler.jsonc`; update that file when changing them so the next deployment uses
+the intended values. `keep_vars: true` preserves additional dashboard-managed
+variables. A missing AI configuration pauses new checkout because AI editing is
+included in each purchase.
+
 GPT-5.6 Luna with Max reasoning is supported according to the [official model documentation](https://developers.openai.com/api/docs/models/gpt-5.6-luna), checked 2026-09-17. Explicit reasoning levels other than `none` receive a 25,000-token output ceiling shared by internal reasoning and visible output; omitted/`none` retains the existing 5,000-token ceiling. This follows the initial headroom guidance in [Reasoning models](https://developers.openai.com/api/docs/guides/reasoning). The provider timeout is 120 seconds and the durable reservation lasts 180 seconds, leaving time for entitlement re-verification and saving. Max can require more time and billable tokens; live latency, account access and plan quality still require provider validation.
 
 New checkout is paused unless Stripe and all AI configuration are present, so a new customer is not sold an editor that has not been configured. This readiness check verifies configuration, not live model access or billing. Perform a controlled staging provider smoke test before enabling real sales. Existing paid template downloads do not require AI availability. Set project-level API budgets/alerts and monitor failures and storage/AI costs; per-purchase limits do not replace an operator budget.
@@ -108,12 +117,11 @@ Public demo links are separate from paid prompt content. The online store links 
 ## Prompt builder preview
 
 The homepage and template store also introduce an upcoming prompt builder for
-people making multiple apps. The offer lives at `/templates/#prompt-builder` and
-shows $16.99 in the storefront's CAD or USD currency every 2 weeks (14 days).
-It is explicitly a preview: the CTA opens an access enquiry email and does not
-start checkout or subscribe anyone. Creative directions, more project prompts
-and editable briefs are presented as planned features. No prompt quota,
-unlimited usage, AI generation credits or cancellation policy is promised.
+people making multiple apps. The compact preview at `/templates/#prompt-builder`
+shows a title, a coming-soon label, a short description, and an access enquiry
+link. It displays no price or billing schedule, and the enquiry email contains
+no pricing. The link does not start checkout or subscribe anyone. No prompt
+quota, unlimited usage, AI generation credits or cancellation policy is promised.
 The existing one-time template cart and payment verification are unchanged.
 The builder itself, subscription checkout, recurring access checks and billing
 management still need implementation before this can become a purchasable plan.
