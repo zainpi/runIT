@@ -73,7 +73,45 @@ Generate an encryption key with `openssl rand -base64 32`; use separate random v
 
 ### Microsoft registration
 
-Register a confidential, multi-tenant Entra application. Set its web redirect URI to the exact consent redirect used by the application:
+The company **tenant ID** identifies the Microsoft directory you want to connect.
+Neutronium also needs its own **Application (client) ID** and **client secret** on
+the server. If the connection dialog says “Microsoft OAuth is not configured”
+(older releases) or “Microsoft 365 connection needs server setup,” the operator
+must configure the app credentials first. Entering a different tenant ID will
+not resolve missing server configuration.
+
+1. In [Microsoft Entra admin center](https://entra.microsoft.com/), open
+   **Entra ID → App registrations → New registration** and name it Neutronium.
+   Choose the account type for multiple Entra ID tenants so customer companies
+   can connect. See [Microsoft's registration guide](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app).
+2. Under **Authentication**, add a **Web** redirect URI matching the callback
+   below. For the current VPS, use
+   `https://neutronium.runsit.ca/neutronium/api/microsoft/callback` exactly,
+   without a trailing slash.
+3. Under **API permissions**, add **Microsoft Graph → Application permissions**
+   for the supported features below. Start with `User.Read.All` for account
+   inventory if that is all you need.
+4. The current adapter uses a client secret. Under **Certificates & secrets →
+   Client secrets → New client secret**, create one and store its **Value**
+   securely; the Secret ID is not the credential. Microsoft only displays the
+   value when it is created. See [Microsoft's credentials guide](https://learn.microsoft.com/en-us/entra/identity-platform/how-to-add-credentials).
+5. Set `NEUTRONIUM_MICROSOFT_CLIENT_ID` to the Application (client) ID from the
+   registration's Overview, and `NEUTRONIUM_MICROSOFT_CLIENT_SECRET` to the secret
+   value in the VPS's protected `/opt/neutronium/deploy/neutronium/.env`.
+   These differ from the `NEUTRONIUM_MICROSOFT_LOGIN_*` settings used for social
+   sign-in. Do not put credentials in the browser, chat, source, or logs.
+6. During an explicitly authorized deployment, recreate the app so it receives
+   the updated environment, following `AGENTS.md`. A container restart alone
+   does not reload Compose's `.env`. The config endpoint's `microsoftConfigured`
+   flag checks that both credentials are present; it does not verify their
+   validity or Microsoft permissions.
+7. Open **Apps → Microsoft 365 → Connect Microsoft 365**, enter the company's
+   tenant ID, select features, and continue to Microsoft for administrator
+   consent. Existing connections offer **Manage Microsoft connection** and
+   prefill the tenant ID and enabled features. **Check setup again** refreshes
+   server readiness without clearing the form.
+
+The consent callback for other deployments is:
 
 ```text
 https://your-domain.example/neutronium/api/microsoft/callback
@@ -84,8 +122,10 @@ Configure only the application permissions your deployment actually supports:
 | Feature                           | Microsoft application permissions                                           |
 | --------------------------------- | --------------------------------------------------------------------------- |
 | Inventory                         | `User.Read.All`                                                             |
+| Domain and license readiness      | `Domain.Read.All`, `LicenseAssignment.Read.All`                             |
+| Account risk detection            | `IdentityRiskyUser.Read.All` (requires applicable tenant licensing)          |
 | Create identities                 | `User.Create`, `User.Read.All`                                              |
-| Group-based application access    | `GroupMember.ReadWrite.All`                                                 |
+| Group-based application access    | `GroupMember.ReadWrite.All`, `GroupMember.Read.All`                          |
 | Assign licenses                   | `LicenseAssignment.ReadWrite.All`                                           |
 | Disable sign-in / revoke sessions | `User.EnableDisableAccount.All`, `User.Read.All`, `User.RevokeSessions.All` |
 

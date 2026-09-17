@@ -30,8 +30,8 @@ export function Personalize({ details, mode, onDetails, onMode, previewOnly = fa
     </div>
     <div className={styles.fields}>
       <label>App name <span>optional</span><input maxLength={100} value={details.name} onChange={(e) => onDetails({ ...details, name: e.target.value })} placeholder="Give your idea a name" /></label>
-      <label>What do you want to make?<textarea maxLength={3000} rows={4} value={details.idea} onChange={(e) => onDetails({ ...details, idea: e.target.value })} placeholder="Who is it for? What should it help them do?" /></label>
-      <label>Features & platforms<textarea maxLength={3000} rows={3} value={details.features} onChange={(e) => onDetails({ ...details, features: e.target.value })} placeholder="Must-haves, changes, iOS or Android, optional services…" /></label>
+      <label className={styles.longField}>What do you want to make?<textarea maxLength={3000} rows={4} value={details.idea} onChange={(e) => onDetails({ ...details, idea: e.target.value })} placeholder="Who is it for? What should it help them do?" /></label>
+      <label className={styles.longField}>Features & platforms<textarea maxLength={3000} rows={3} value={details.features} onChange={(e) => onDetails({ ...details, features: e.target.value })} placeholder="Must-haves, changes, iOS or Android, optional services…" /></label>
       <div className={styles.fieldPair}>
         <label>Look & feel<input maxLength={500} value={details.style} onChange={(e) => onDetails({ ...details, style: e.target.value })} placeholder="Minimal, playful, cozy…" /></label>
         <div>

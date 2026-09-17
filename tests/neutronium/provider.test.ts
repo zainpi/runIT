@@ -1,12 +1,59 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { seed } from "../../src/lib/neutronium/model";
+import { DomainError, seed } from "../../src/lib/neutronium/model";
 import {
   MicrosoftProvider,
   executeStep,
   microsoftWorkflowMarker,
+  microsoftConfigured,
+  microsoftCredentials,
+  microsoftToken,
 } from "../../src/lib/neutronium/providers";
 import { command } from "../../src/lib/neutronium/service";
+
+test("Microsoft setup requires both credentials before consent or token exchange", async (t) => {
+  const keys = [
+    "NEUTRONIUM_MICROSOFT_CLIENT_ID",
+    "NEUTRONIUM_MICROSOFT_CLIENT_SECRET",
+  ] as const;
+  const previous = keys.map((key) => process.env[key]);
+  t.after(() =>
+    keys.forEach((key, index) => {
+      if (previous[index] === undefined) delete process.env[key];
+      else process.env[key] = previous[index];
+    }),
+  );
+  const fetch = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("Incomplete setup must not contact Microsoft");
+  });
+  const needsSetup = (error: unknown) =>
+    error instanceof DomainError &&
+    error.status === 503 &&
+    /Neutronium operator/.test(error.message);
+  for (const [clientId, secret] of [
+    ["", ""],
+    ["app-id", ""],
+    ["", "secret"],
+    ["app-id", "   "],
+  ]) {
+    process.env[keys[0]] = clientId;
+    process.env[keys[1]] = secret;
+    assert.equal(microsoftConfigured(), false);
+    assert.throws(microsoftCredentials, needsSetup);
+    await assert.rejects(
+      microsoftToken("00000000-0000-0000-0000-000000000001"),
+      needsSetup,
+    );
+  }
+  assert.equal(fetch.mock.callCount(), 0);
+  process.env[keys[0]] = "app-id";
+  process.env[keys[1]] = "synthetic-secret";
+  assert.equal(microsoftConfigured(), true);
+  assert.deepEqual(microsoftCredentials(), {
+    clientId: "app-id",
+    secret: "synthetic-secret",
+  });
+});
 const validGroup = {
   securityEnabled: true,
   mailEnabled: false,

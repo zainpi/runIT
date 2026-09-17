@@ -1111,6 +1111,9 @@
 .nt-app-card > .nt-button {
   width: 100%;
 }
+.nt-app-card > .nt-button + .nt-button {
+  margin-top: 8px;
+}
 .nt-template-icon {
   display: grid;
   place-items: center;

@@ -89,7 +89,6 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     </section>
     <PromptBuilderOffer currency={currency} />
     <section id="personalize" className={styles.workshop}><Personalize details={details} mode={mode} onDetails={setDetails} onMode={setMode} previewOnly /></section>
-    <TrialCode selected={selected} />
     <aside id="bundle" className={styles.cart} aria-label="Your bundle"><div className={styles.cartOptions}><p className={styles.eyebrow}>Your bundle</p><h2>{selected.length ? `${selected.length} template${selected.length === 1 ? "" : "s"}` : "A fresh start."}</h2>
         {selected.length ? <ul>{selectedTemplates.map((t, i) => <li key={t.id}><span>{t.title}</span><span>{price(i === 0 ? FIRST_TEMPLATE_CENTS : EXTRA_TEMPLATE_CENTS)}<button aria-label={`Remove ${t.title} from bundle`} onClick={() => toggle(t.id)}>×</button></span></li>)}</ul> : <p className={styles.muted}>Choose a template to start your bundle. Every extra template is just $5.</p>}
         <label className={styles.addon} data-selected={subagents}>
@@ -108,13 +107,17 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
           {skillTree && <li className={styles.addonLine}><span>Skill tree setup × 1</span><span>{price(SKILL_TREE_ADDON_CENTS)}</span></li>}
         </ul> : <p className={styles.small}>Select a template to see your order here.</p>}
         <div className={styles.total}><span>One-time total <small>{currencyLabel}</small></span><strong>{price(bundlePrice(selected.length, subagents, skillTree))}</strong></div>
+        <TrialCode selected={selected} />
         <button className={styles.primary} disabled={!selected.length || busy || !checkout?.available} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Checking availability…" : !checkout.available ? "Checkout coming soon" : checkout.testMode ? "Try test checkout ↗" : "Continue to checkout ↗"}</button>
         <p className={styles.small}>{checkout?.testMode ? "Test mode. No real payment is collected." : "Secure payment with Stripe. Copy and download after payment."}</p>
         <p className={styles.small}>After checkout, save your unique purchase URL. It brings you back to your prompts and saved AI conversations on any device.</p>
         {error && <p className={styles.error} role="alert">{error}</p>}
+      </div>
+      <div className={styles.cartFooter}>
         <div className={styles.cartNotes}><p>✓ Complete architecture & service setup</p><p>✓ Guidance for complete beginners</p><p>✓ Both build modes included</p><p>✓ Copyable prompt & .txt download</p><p>✓ Follow-up prompt guide for your app</p><p>✓ Free AI overviews + 20 editing messages</p></div>
-        <p className={styles.small}>Pricing applies per order. Includes a free overview per template and 20 AI editing messages shared across this purchase. Coding AI subscriptions, developer accounts, hosting, and other service usage are separate. You’re buying a prompt, not a finished app.</p>
-        <Link href="/templates/library/" className={styles.textLink}>Already purchased? My templates →</Link>
+        <div className={styles.cartFinePrint}><p className={styles.small}>Pricing applies per order. Includes a free overview per template and 20 AI editing messages shared across this purchase. Coding AI subscriptions, developer accounts, hosting, and other service usage are separate. You’re buying a prompt, not a finished app.</p>
+          <Link href="/templates/library/" className={styles.textLink}>Already purchased? My templates →</Link>
+        </div>
       </div>
     </aside>
     <section className={styles.faq} aria-labelledby="faq-heading"><h2 id="faq-heading">Before you start.</h2><div>

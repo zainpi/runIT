@@ -17,7 +17,9 @@ export async function POST(request: Request) {
     const ai = await aiConfiguration();
     if (!ai.enabled || !ai.key || !ai.model || !ai.orders) throw new StoreError("Checkout is paused while we prepare the included AI editor. Please try again later.", 503);
     const params = checkoutParameters(ids, data.accessToken, returnOrigin, subagents, skillTree);
-    const session = await stripe.checkout.sessions.create(params, { idempotencyKey: `templates-${tokenHash(`${data.accessToken}:${ids.join(",")}:${returnOrigin}:${params.metadata!.currency}:${subagents}:${skillTree}`)}` });
+    // The explicit Managed Payments setting changes the request parameters.
+    // Version the key so saved carts don't replay an older, incompatible request.
+    const session = await stripe.checkout.sessions.create(params, { idempotencyKey: `templates-standard-v1-${tokenHash(`${data.accessToken}:${ids.join(",")}:${returnOrigin}:${params.metadata!.currency}:${subagents}:${skillTree}`)}` });
     if (!session.url) throw new StoreError("Checkout could not be opened. Please retry.", 502);
     return jsonResponse({ url: session.url, sessionId: session.id });
   } catch (error) { return errorResponse(error); }

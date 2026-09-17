@@ -147,6 +147,23 @@ export function decrypt(ciphertext: string, version: string, orgId: string) {
     ]).toString(),
   );
 }
+export function microsoftConfigured() {
+  return Boolean(
+    process.env.NEUTRONIUM_MICROSOFT_CLIENT_ID?.trim() &&
+      process.env.NEUTRONIUM_MICROSOFT_CLIENT_SECRET?.trim(),
+  );
+}
+export function microsoftCredentials() {
+  if (!microsoftConfigured())
+    throw new DomainError(
+      "Microsoft 365 connection needs server setup. Ask the Neutronium operator to configure the Microsoft application client ID and client secret, then try again. Your tenant ID alone cannot complete this setup.",
+      503,
+    );
+  return {
+    clientId: process.env.NEUTRONIUM_MICROSOFT_CLIENT_ID!.trim(),
+    secret: process.env.NEUTRONIUM_MICROSOFT_CLIENT_SECRET!.trim(),
+  };
+}
 export async function microsoftToken(
   tenantId: string,
 ): Promise<{ access_token: string; expires_in: number; roles: string[] }> {
@@ -156,13 +173,7 @@ export async function microsoftToken(
     )
   )
     throw new DomainError("Invalid Microsoft tenant identifier.");
-  const clientId = process.env.NEUTRONIUM_MICROSOFT_CLIENT_ID,
-    secret = process.env.NEUTRONIUM_MICROSOFT_CLIENT_SECRET;
-  if (!clientId || !secret)
-    throw new DomainError(
-      "Microsoft application credentials are not configured.",
-      503,
-    );
+  const { clientId, secret } = microsoftCredentials();
   const response = await fetch(
     `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
     {

@@ -71,6 +71,10 @@ function installStripeMock() {
     const parsed = new URL(url);
     if (method === "POST" && parsed.pathname === "/v1/checkout/sessions") {
       const fields = new URLSearchParams(rawBody);
+      // Reproduce an account with Managed Payments enabled by default.
+      if (fields.has("custom_text[submit][message]") && fields.get("managed_payments[enabled]") !== "false") {
+        return Response.json({ error: { type: "invalid_request_error", message: "custom_text cannot be used with Managed Payments, which is enabled by default on your account." } }, { status: 400 });
+      }
       const selected = (fields.get("metadata[templates]") || "").split(",") as TemplateId[];
       const created = session("cs_test_createdroute123456", selected, false, fields.get("metadata[subagents]") === "true", fields.get("metadata[skill_tree]") === "true");
       created.currency = fields.get("metadata[currency]");
@@ -183,6 +187,24 @@ test("checkout rejects malformed, oversized, foreign-origin, and duplicate carts
   assert.equal(stripeCalls.length, 0);
 });
 
+test("checkout works with Managed Payments enabled by default and retries with a new request version", async () => {
+  const cart = { templates: ids, accessToken, subagents: false, skillTree: false };
+  const first = await checkout.POST(jsonRequest("/api/templates/checkout", cart));
+  assert.equal(first.status, 200);
+  const retry = await checkout.POST(jsonRequest("/api/templates/checkout", cart));
+  assert.equal(retry.status, 200);
+  const [firstCall, retryCall] = stripeCalls;
+  const firstKey = firstCall.headers.get("idempotency-key");
+  assert.equal(retryCall.headers.get("idempotency-key"), firstKey);
+  assert.equal(retryCall.body, firstCall.body);
+  const legacyKey = `templates-${tokenHash(`${accessToken}:${ids.join(",")}:${origin}:cad:false:false`)}`;
+  assert.notEqual(firstKey, legacyKey, "changed parameters must not reuse a previous Checkout request's key");
+  const fields = new URLSearchParams(firstCall.body);
+  assert.equal(fields.get("managed_payments[enabled]"), "false");
+  assert.equal(fields.get("adaptive_pricing[enabled]"), "false");
+  assert.match(fields.get("custom_text[submit][message]") || "", /save your unique purchase URL/);
+});
+
 test("checkout ignores client price/currency and derives CAD metadata from its validated origin", async () => {
   const response = await checkout.POST(jsonRequest("/api/templates/checkout", {
     templates: ids,
@@ -196,7 +218,7 @@ test("checkout ignores client price/currency and derives CAD metadata from its v
   assert.equal(stripeCalls.length, 1);
   const call = stripeCalls[0];
   assert.equal(call.method, "POST");
-  assert.match(call.headers.get("idempotency-key") || "", /^templates-[a-f0-9]{64}$/);
+  assert.match(call.headers.get("idempotency-key") || "", /^templates-standard-v1-[a-f0-9]{64}$/);
   const posted = new URLSearchParams(call.body);
   assert.equal(posted.get("line_items[0][price_data][unit_amount]"), "999");
   assert.equal(posted.get("line_items[1][price_data][unit_amount]"), "500");

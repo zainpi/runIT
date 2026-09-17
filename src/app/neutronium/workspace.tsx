@@ -2,6 +2,7 @@
 import { ToolFinder, sectionViewLabels, workspaceSections } from "./navigation";
 import { AttentionItems, PeopleOverview } from "./people-overview";
 import { MicrosoftReadiness } from "./microsoft-readiness";
+import { MicrosoftConnection } from "./microsoft-connection";
 import { SecuritySettings } from "./security-settings";
 import { EmployeeApprovals, OnboardingInvite } from "./employee-approvals";
 import { ValidatedForm } from "./form";
@@ -44,6 +45,7 @@ type Config = {
   socialProviders?: string[];
   demoAvailable: boolean;
   authConfigured: boolean;
+  microsoftConfigured: boolean;
   microsoftFeatures: Record<
     string,
     { name: string; permissions: string[]; reason: string }
@@ -593,6 +595,9 @@ export function Neutronium() {
   const activeJobs =
     w?.jobs.filter((j) => !["success"].includes(j.status)) || [];
   const applications = w?.applications || [];
+  const microsoftIntegration = w?.integrations.find(
+    (integration) => integration.provider === "Microsoft 365",
+  );
   const appName = (id: string) =>
     applications.find((a) => a.id === id)?.name || "Application";
   const employeeName = (id: string) =>
@@ -1662,7 +1667,7 @@ export function Neutronium() {
                             app.mode === "development"
                               ? "Development"
                               : app.mode === "microsoft"
-                                ? w.integrations[0]?.status || "disconnected"
+                                ? microsoftIntegration?.status || "disconnected"
                                 : app.mode
                           }
                         />
@@ -1702,6 +1707,17 @@ export function Neutronium() {
                           </strong>
                         </span>
                       </div>
+                      {app.mode === "microsoft" && !w.demo && canAdmin(actor) && (
+                        <button
+                          className="nt-button nt-primary"
+                          onClick={() => setDialog({ kind: "connect" })}
+                        >
+                          {microsoftIntegration?.status === "connected"
+                            ? "Manage Microsoft connection"
+                            : "Connect Microsoft 365"}{" "}
+                          <Icon name="arrow" size={15} />
+                        </button>
+                      )}
                       {employee ? (
                         <a
                           className="nt-button"
@@ -1942,13 +1958,16 @@ export function Neutronium() {
                       access.
                     </p>
                   </div>
-                  <Badge value={w.integrations[0]?.status || "disconnected"} />
+                  <Badge value={microsoftIntegration?.status || "disconnected"} />
                   {!w.demo && canAdmin(actor) && (
                     <button
                       className="nt-button nt-primary"
                       onClick={() => setDialog({ kind: "connect" })}
                     >
-                      Connect Microsoft 365 <Icon name="arrow" size={15} />
+                      {microsoftIntegration?.status === "connected"
+                        ? "Manage Microsoft connection"
+                        : "Connect Microsoft 365"}{" "}
+                      <Icon name="arrow" size={15} />
                     </button>
                   )}
                 </div>
@@ -1976,7 +1995,7 @@ export function Neutronium() {
                         </div>
                         <Badge
                           value={
-                            w.integrations[0]?.features.includes(key)
+                            microsoftIntegration?.features.includes(key)
                               ? w.demo
                                 ? "Development"
                                 : "Approved"
@@ -2004,8 +2023,8 @@ export function Neutronium() {
                     </button>
                     <span>
                       Last checked:{" "}
-                      {w.integrations[0]?.checkedAt
-                        ? time(w.integrations[0].checkedAt)
+                      {microsoftIntegration?.checkedAt
+                        ? time(microsoftIntegration.checkedAt)
                         : "Not yet"}
                     </span>
                   </div>
@@ -3127,6 +3146,7 @@ function WorkspaceDialog({
   return (
     <dialog
       ref={ref}
+      aria-label={title}
       className={`nt-dialog ${dialog.kind === "onboard" ? "nt-dialog-wide" : ""}`}
       onCancel={(e) => {
         if (busy) e.preventDefault();
@@ -4203,13 +4223,26 @@ function WorkspaceDialog({
               </select>
             </Field>
             {app.mode === "microsoft" && (
-              <Field label="Microsoft security group object ID">
-                <input
-                  name="groupId"
-                  defaultValue={app.groupId}
-                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                />
-              </Field>
+              <>
+                {!w.demo && canAdmin(actor) && (
+                  <div className="nt-inline-note">
+                    <button
+                      type="button"
+                      className="nt-link"
+                      onClick={() => openDialog({ kind: "connect" })}
+                    >
+                      Set up Microsoft tenant connection
+                    </button>
+                  </div>
+                )}
+                <Field label="Microsoft security group object ID">
+                  <input
+                    name="groupId"
+                    defaultValue={app.groupId}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  />
+                </Field>
+              </>
             )}
             <div className="nt-dialog-actions">
               <a
@@ -4230,66 +4263,12 @@ function WorkspaceDialog({
           </ValidatedForm>
         )}
         {dialog.kind === "connect" && (
-          <ValidatedForm
-            onSubmit={async (ev) => {
-              ev.preventDefault();
-              try {
-                const f = new FormData(ev.currentTarget);
-                const result = await api("microsoft/connect", {
-                  tenantId: f.get("tenantId"),
-                  features: f.getAll("features"),
-                });
-                window.location.assign(result.url);
-              } catch (e) {
-                setError((e as Error).message);
-              }
-            }}
-          >
-            <p className="nt-subtle">
-              An authorized Microsoft tenant administrator must grant consent.
-              Neutronium validates the tenant and stores credentials encrypted
-              on the server.
-            </p>
-            <Field label="Microsoft tenant ID">
-              <input
-                name="tenantId"
-                required
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              />
-            </Field>
-            <h3>Enable only the features you need</h3>
-            <div className="nt-check-options">
-              {Object.entries(config?.microsoftFeatures || {}).map(
-                ([key, f]) => (
-                  <label key={key}>
-                    <input
-                      type="checkbox"
-                      name="features"
-                      value={key}
-                      defaultChecked={key === "inventory"}
-                    />
-                    <div>
-                      <strong>{f.name}</strong>
-                      <small>{f.permissions.join(", ")}</small>
-                    </div>
-                  </label>
-                ),
-              )}
-            </div>
-            <div className="nt-warning">
-              <Icon name="permissions" />
-              <p>
-                Application permissions use Microsoft’s admin-consent flow. The
-                Microsoft consent screen includes all application permissions
-                configured in the app registration. Review that screen
-                carefully; dynamic per-feature application consent is not
-                supported.
-              </p>
-            </div>
-            <button className="nt-button nt-primary">
-              Continue to Microsoft <Icon name="arrow" size={16} />
-            </button>
-          </ValidatedForm>
+          <MicrosoftConnection
+            configured={config?.microsoftConfigured === true}
+            features={config?.microsoftFeatures || {}}
+            integration={w.integrations.find((i) => i.provider === "Microsoft 365")}
+            onError={setError}
+          />
         )}
       </div>
     </dialog>

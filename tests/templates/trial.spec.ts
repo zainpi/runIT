@@ -18,8 +18,8 @@ test("trial code entry selects a template, retries safely and opens a private li
   await page.route("**/api/templates/ai/**", (route) => route.fulfill({ json: { available: true, state: { used: 0, remaining: 3, limit: 3, pending: false, projects: {}, overviewUsed: [] } } }));
   await page.goto("/templates/");
   await page.getByRole("button", { name: "Add Mobile app", exact: true }).click();
-  await expect(page.getByLabel("Template to try")).toHaveValue("mobile-app");
   await page.getByLabel("Free-trial code", { exact: true }).fill("sample-code");
+  await expect(page.locator("#free-trial")).toContainText("Try Mobile app");
   await page.locator("#free-trial").screenshot({ path: "/tmp/runit-template-trial-code.png" });
   await page.getByRole("button", { name: "Redeem free trial" }).click();
   await expect(page.locator("#free-trial").getByRole("alert")).toBeVisible();
@@ -28,6 +28,7 @@ test("trial code entry selects a template, retries safely and opens a private li
   expect(requests).toHaveLength(2);
   expect(requests[1].accessToken).toBe(requests[0].accessToken);
   expect(requests[1].code).toBe("SAMPLE-CODE");
+  expect(requests[1].templateId).toBe("mobile-app");
   await expect(page.getByLabel("Your private trial URL")).toHaveValue(new RegExp(sessionId));
   await expect(page.getByText("3 of 3 messages left")).toBeVisible();
 });

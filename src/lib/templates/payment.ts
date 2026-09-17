@@ -16,6 +16,9 @@ export function checkoutParameters(ids: TemplateId[], token: string, origin: str
   const metadata = { store: TEMPLATE_STORE, version: TEMPLATE_VERSION, templates: ids.join(","), access_hash: tokenHash(token), subagents: String(subagents), skill_tree: String(skillTree), currency, pricing_origin: origin, ai_messages: "20", ai_overviews: "one_per_template" };
   return {
     mode: "payment",
+    // This store uses standard Checkout, including custom text and fixed totals.
+    // Override accounts that enable Managed Payments by default.
+    managed_payments: { enabled: false },
     adaptive_pricing: { enabled: false },
     integration_identifier: "runit_templates_qmvptnks",
     success_url: `${origin}/templates/library/#session_id={CHECKOUT_SESSION_ID}&access=${token}`,

@@ -39,13 +39,17 @@ export function TrialCode({ selected }: { selected: TemplateId[] }) {
       sending.current = false; setBusy(false);
     }
   }
-  return <section id="free-trial" className={trialStyles.codeBox} aria-labelledby="trial-code-heading">
-    <div><p className={styles.eyebrow}>Try it first</p><h2 id="trial-code-heading">Have a free-trial code?</h2><p className={styles.muted}>Try an AI overview and 3 editing messages for one template. No payment details needed. Full build prompts and add-ons are available with a purchase.</p>{savedUrl && <a className={styles.small} href={savedUrl}>Return to my saved trial →</a>}</div>
-    <form className={trialStyles.form} onSubmit={(event) => { event.preventDefault(); void redeem(); }}>
-      <label>Template to try<select value={templateId} disabled={busy} onChange={(event) => setTemplateId(event.target.value as TemplateId)}>{templateCatalog.map((template) => <option key={template.id} value={template.id}>{template.title}</option>)}</select></label>
-      <label>Free-trial code<input value={code} onChange={(event) => setCode(event.target.value)} maxLength={100} placeholder="Enter your code" autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={busy} required /></label>
-      <button className={styles.primary} disabled={busy || !code.trim()} type="submit">{busy ? "Opening your trial…" : "Redeem free trial"}</button>
-      {error && <p className={styles.notice} role="alert">{error}</p>}
-    </form>
-  </section>;
+  return <form id="free-trial" className={trialStyles.form} aria-label="Redeem a free-trial code" onSubmit={(event) => { event.preventDefault(); void redeem(); }}>
+    <label htmlFor="trial-code">Free-trial code <span>optional</span></label>
+    <div className={trialStyles.codeRow}>
+      <input id="trial-code" aria-label="Free-trial code" value={code} onChange={(event) => setCode(event.target.value)} maxLength={100} placeholder="Enter your code" autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={busy} required />
+      <button className={styles.secondary} aria-label="Redeem free trial" disabled={busy || !code.trim()} type="submit">{busy ? "Opening…" : "Redeem"}</button>
+    </div>
+    {code.trim() && <div className={trialStyles.details}>
+      {selected.length !== 1 && <label>Template to try<select value={templateId} disabled={busy} onChange={(event) => setTemplateId(event.target.value as TemplateId)}>{templateCatalog.map((template) => <option key={template.id} value={template.id}>{template.title}</option>)}</select></label>}
+      <p className={styles.small}>Try {templateCatalog.find((template) => template.id === templateId)?.title}: one AI overview + 3 messages. Full templates require a purchase.</p>
+    </div>}
+    {error && <p className={styles.error} role="alert">{error}</p>}
+    {savedUrl && <a className={styles.small} href={savedUrl}>Return to my saved trial →</a>}
+  </form>;
 }

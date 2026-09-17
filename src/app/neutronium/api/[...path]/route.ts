@@ -93,6 +93,8 @@ import {
 import { tick, deliverNotifications } from "@/lib/neutronium/worker";
 import {
   microsoftFeatures,
+  microsoftConfigured,
+  microsoftCredentials,
   microsoftToken,
   storeToken,
   MicrosoftProvider,
@@ -146,6 +148,7 @@ export async function GET(req: NextRequest, ctx: Context) {
         socialProviders: socialProviders(),
         demoAvailable: developmentEnabled(),
         authConfigured: !!process.env.NEUTRONIUM_DATABASE_URL,
+        microsoftConfigured: microsoftConfigured(),
         microsoftFeatures,
       });
     if (path === "auth/mfa") return json(await mfaStatus());
@@ -862,12 +865,10 @@ export async function POST(req: NextRequest, ctx: Context) {
         throw new DomainError(
           "Development workspaces cannot connect a real tenant.",
         );
-      const tenant = String(input.tenantId || "");
+      const tenant = String(input.tenantId || "").trim().toLowerCase();
       if (!isUuid(tenant))
         throw new DomainError("Enter your Microsoft tenant ID.");
-      const clientId = process.env.NEUTRONIUM_MICROSOFT_CLIENT_ID;
-      if (!clientId)
-        throw new DomainError("Microsoft OAuth is not configured.", 503);
+      const { clientId } = microsoftCredentials();
       const features = Array.isArray(input.features)
         ? input.features.filter(
             (f: unknown) =>
