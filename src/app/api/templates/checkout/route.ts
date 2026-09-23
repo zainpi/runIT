@@ -18,10 +18,10 @@ export async function POST(request: Request) {
     const subagents = data.subagents === true;
     const skillTree = data.skillTree === true;
     const appIcon = data.appIcon === true;
-    if (data.referralCode !== undefined && typeof data.referralCode !== "string") throw new StoreError("Enter a valid founder referral code.");
+    if (data.referralCode !== undefined && typeof data.referralCode !== "string") throw new StoreError("Enter a valid discount code.");
     const referralCode = typeof data.referralCode === "string" ? data.referralCode.trim() : "";
     const referral = referralCode ? referralForCode(referralCode) ?? undefined : undefined;
-    if (referralCode && !referral) throw new StoreError("That founder referral code is not valid.");
+    if (referralCode && !referral) throw new StoreError("That discount code is not valid.");
     const ai = await aiConfiguration();
     if (!ai.enabled || !ai.key || !ai.model || !ai.orders) throw new StoreError("Checkout is paused while we prepare the included AI editor. Please try again later.", 503);
     if (appIcon) {

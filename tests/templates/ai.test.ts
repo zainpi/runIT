@@ -7,9 +7,10 @@ import { aiConfiguration, handleAiRequest, type AiOrderStore } from "../../src/l
 import { generateAppPlan, tailoringInstructions } from "../../src/lib/templates/ai-provider";
 import { AI_PROVIDER_TIMEOUT_MS, AI_RESERVATION_TTL_MS } from "../../src/lib/templates/ai-settings";
 import { composePrompt } from "../../src/lib/templates/compose";
+import { planTechnicalDetails } from "../../src/lib/templates/technical-details";
 
 const brief = { name: "BoulderMe", idea: "Find climbers at my gym with similar skills", features: "iOS", style: "cozy, fun", budget: "", decideBudget: false };
-const reply: AiReply = { message: "Here is a first release for BoulderMe.", plan: { overview: "Find a climbing partner at your gym.", features: [{ part: "Find climbers", description: "Filter by gym and skill level." }, { part: "Guest passes", description: "Show whether you can offer a guest pass." }], assumptions: ["Memberships are self-reported."], questions: ["Should invitations include in-app messaging?"] } };
+const reply: AiReply = { message: "Here is a first release for BoulderMe.", plan: { overview: "Find a climbing partner at your gym.", features: [{ part: "Find climbers", description: "Filter by gym and skill level." }, { part: "Guest passes", description: "Show whether you can offer a guest pass." }], assumptions: ["Memberships are self-reported."], questions: ["Should invitations include in-app messaging?"], technicalDetails: ["Keep gym and profile records scoped to each account.", "Validate invitations on the server before notifying another climber."] } };
 const safeModeration = { input: { type: "moderation_result", flagged: false }, output: { type: "moderation_result", flagged: false } };
 const providerReply = (disposition = "plan", moderation: unknown = safeModeration) => Response.json({ status: "completed", moderation, output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ disposition, ...reply }) }] }] });
 const generation = (kind: "overview" | "message" = "overview", revision = 0): AiGeneration => ({ requestId: randomUUID(), templateId: "mobile-app", brief, kind, revision, message: kind === "message" ? "Add guest passes" : "" });
@@ -65,6 +66,8 @@ test("stale revisions, brief and reply limits, and failure attempt ceiling", () 
   assert.throws(() => parseBrief({ ...brief, idea: "" }));
   assert.throws(() => parseBrief({ ...brief, style: "a".repeat(501) }));
   assert.throws(() => parseReply({ message: "ok", plan: { ...reply.plan, features: [] } }));
+  assert.throws(() => parseReply({ message: "ok", plan: { ...reply.plan, features: [{ part: "Too long", description: "x".repeat(321) }] } }));
+  assert.throws(() => parseReply({ message: "ok", plan: { ...reply.plan, technicalDetails: [] } }));
 });
 
 test("reviewed plan augments a foundation without replacing mode or engineering guidance", () => {
@@ -73,7 +76,16 @@ test("reviewed plan augments a foundation without replacing mode or engineering 
   assert.match(prompt, /Find climbers/);
   assert.match(prompt, /FOUNDATION SECURITY REQUIREMENTS/);
   assert.match(prompt, /Do not operate my computer/);
-  assert.match(prompt, /provisional assumptions/);
+  assert.match(prompt, /technical details are provisional/);
+});
+
+test("saved plans without technical notes get useful template starting points", () => {
+  const oldPlan = { ...reply.plan, technicalDetails: undefined };
+  const fallback = planTechnicalDetails(oldPlan, "mobile-app");
+  assert.equal(fallback.generated, false);
+  assert.match(fallback.notes.join(" "), /SwiftUI/);
+  assert.match(fallback.notes.join(" "), /offline/);
+  assert.deepEqual(planTechnicalDetails(reply.plan, "mobile-app"), { generated: true, notes: reply.plan.technicalDetails });
 });
 
 function harness() {
@@ -155,6 +167,7 @@ test("OpenAI uses bounded structured output with no access credentials or provid
       const data = JSON.parse(String(init?.body));
       assert.equal(data.store, false);
       assert.equal(data.text.format.strict, true);
+      assert.ok(data.text.format.schema.properties.plan.required.includes("technicalDetails"));
       assert.equal(data.max_output_tokens, 5000);
       assert.equal(data.reasoning, undefined);
       assert.doesNotMatch(data.input[0].content, /cs_test_|accessToken|synthetic-key/);

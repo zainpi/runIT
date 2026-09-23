@@ -10,12 +10,19 @@ const referrals = [
   { founderSlug: "raishaikh", codeDigest: "bd6b5aeb74270c66eb6bc26657194606691217b560b149bfd92f5fe3f48f8f41" },
   { founderSlug: "mikaelsid", codeDigest: "0b813083b6cffa984b50f0801c25eb8e82d65e4bc7bd1f30ee4776bcf23c1d8e" },
 ] as const;
+const gift = {
+  founderSlug: "gift",
+  founderName: "runsIT gift",
+  codeDigest: "09a6a82eb170af1f1b194b5a2c3bc651c9be846e9e08b1ab91e64000e1c567f9",
+  discountPercent: 100,
+  active: true,
+} as const;
 
 export type TemplateReferral = {
-  founderSlug: (typeof referrals)[number]["founderSlug"];
+  founderSlug: (typeof referrals)[number]["founderSlug"] | typeof gift.founderSlug;
   founderName: string;
   codeDigest: string;
-  discountPercent: typeof TEMPLATE_REFERRAL_DISCOUNT_PERCENT;
+  discountPercent: typeof TEMPLATE_REFERRAL_DISCOUNT_PERCENT | typeof gift.discountPercent;
 };
 
 export function normalizeReferralCode(value: unknown): string | null {
@@ -43,10 +50,14 @@ export function referralForCode(value: unknown): TemplateReferral | null {
     const expected = Buffer.from(candidate.codeDigest, "hex");
     return expected.length === digest.length && timingSafeEqual(expected, digest);
   });
-  return entry ? withFounder(entry) : null;
+  if (entry) return withFounder(entry);
+  const expectedGift = Buffer.from(gift.codeDigest, "hex");
+  return gift.active && expectedGift.length === digest.length && timingSafeEqual(expectedGift, digest) ? gift : null;
 }
 
 export function referralForMetadata(founderSlug: unknown, codeDigest: unknown, discountPercent: unknown): TemplateReferral | null {
+  // Keep historical gift digests verifiable after deactivating new redemptions.
+  if (founderSlug === gift.founderSlug && codeDigest === gift.codeDigest && discountPercent === String(gift.discountPercent)) return gift;
   if (typeof founderSlug !== "string" || typeof codeDigest !== "string" || discountPercent !== String(TEMPLATE_REFERRAL_DISCOUNT_PERCENT)) return null;
   const entry = referrals.find((candidate) => candidate.founderSlug === founderSlug && candidate.codeDigest === codeDigest);
   return entry ? withFounder(entry) : null;

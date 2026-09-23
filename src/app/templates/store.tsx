@@ -57,6 +57,12 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     return () => window.removeEventListener("hashchange", openTrial);
   }, []);
   useEffect(() => {
+    // Browser Back can restore this component from the page cache after Stripe navigation.
+    const resume = (event: PageTransitionEvent) => { if (event.persisted) setBusy(false); };
+    window.addEventListener("pageshow", resume);
+    return () => window.removeEventListener("pageshow", resume);
+  }, []);
+  useEffect(() => {
     if (!orderPanel.current) return;
     const observer = new IntersectionObserver(([entry]) => setOrderVisible(entry.intersectionRatio >= 0.15), { threshold: 0.15 });
     observer.observe(orderPanel.current);
@@ -148,8 +154,8 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
           </details>
           <div className={styles.total} aria-live="polite" aria-atomic="true"><div><span>{selected.length ? "Total" : "Starting at"}</span><small>One-time payment · {currencyLabel}</small></div><strong>{price(selected.length ? total : FIRST_TEMPLATE_CENTS)}</strong></div>
           {referral && <p className={styles.discount}>{referral.discountPercent}% off applied to this order</p>}
-          <button className={styles.checkoutButton} disabled={!selected.length || busy || !checkout?.available || (appIcon && !checkout.appIconAvailable)} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Loading…" : !checkout.available ? "Checkout coming soon" : appIcon && !checkout.appIconAvailable ? "App icon unavailable" : checkout.testMode ? "Try test checkout →" : "Continue to checkout →"}</button>
-          <p className={styles.paymentNote}>{checkout?.testMode ? "Test mode · No real payment" : "Secure checkout with Stripe"}</p>
+          <button className={styles.checkoutButton} disabled={!selected.length || busy || !checkout?.available || (appIcon && !checkout.appIconAvailable)} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Loading…" : !checkout.available ? "Checkout coming soon" : appIcon && !checkout.appIconAvailable ? "App icon unavailable" : referral?.discountPercent === 100 ? "Complete free checkout →" : checkout.testMode ? "Try test checkout →" : "Continue to checkout →"}</button>
+          <p className={styles.paymentNote}>{referral?.discountPercent === 100 ? "No card needed · Checkout with Stripe" : checkout?.testMode ? "Test mode · No real payment" : "Secure checkout with Stripe"}</p>
           {error && <p className={shared.error} role="alert">{error}</p>}
           <div className={styles.codeOptions}>
             <details open={referralOpen} onToggle={(event) => setReferralOpen(event.currentTarget.open)}><summary>Add a discount code</summary><ReferralCode value={referralCode} applied={referral} disabled={busy} onChange={(value) => { setReferralCode(value); setReferral(null); }} onApplied={setReferral} /></details>

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     catch { throw new StoreError("Invalid signature."); }
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object;
-      if (session.metadata?.store === TEMPLATE_STORE && session.payment_status === "paid") {
+      if (session.metadata?.store === TEMPLATE_STORE && (session.payment_status === "paid" || session.payment_status === "no_payment_required")) {
         try { await fulfillOrder(stripe, session.id); }
         catch (error) {
           // Already-refunded/disputed or obsolete orders must not cause endless retries.

@@ -458,3 +458,27 @@ test("webhook rejects invalid signatures and safely deduplicates repeated fulfil
   const updates = stripeCalls.filter((call) => call.method === "POST" && call.url.includes(`/${paidId}`));
   assert.equal(updates.length, 1, `duplicate webhook must not repeat delivery mutation: ${JSON.stringify(stripeCalls.map(({ method, url }) => ({ method, url })))}`);
 });
+
+test("completed gift checkout is fulfilled without a payment intent", async () => {
+  const giftId = "cs_test_giftroute123456789";
+  const gift = session(giftId, ids);
+  gift.amount_subtotal = 0;
+  gift.amount_total = 0;
+  gift.payment_status = "no_payment_required";
+  gift.payment_intent = null;
+  gift.metadata = { ...gift.metadata, referral_founder: "gift", referral_code_hash: "09a6a82eb170af1f1b194b5a2c3bc651c9be846e9e08b1ab91e64000e1c567f9", referral_discount_percent: "100" };
+  sessions.set(giftId, gift);
+  const event = JSON.stringify({
+    id: "evt_synthetic_gift",
+    object: "event",
+    api_version: "2025-12-15.clover",
+    created: Math.floor(Date.now() / 1000),
+    livemode: false,
+    pending_webhooks: 1,
+    type: "checkout.session.completed",
+    data: { object: gift },
+  });
+  assert.equal((await webhook.POST(signedWebhook(event))).status, 200);
+  assert.equal(gift.metadata.delivery, "available");
+  assert.equal((await library.POST(jsonRequest("/api/templates/library", { sessionId: giftId, accessToken }))).status, 200);
+});

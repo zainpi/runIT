@@ -4,6 +4,7 @@ import { TRIAL_MESSAGE_LIMIT } from "@/lib/templates/trial-contract";
 import { sameBrief, type AppPlan, type AiProject, type AiSnapshot } from "@/lib/templates/ai-contract";
 import type { TemplateId } from "@/lib/templates/catalog";
 import type { Personalization } from "@/lib/templates/compose";
+import { planTechnicalDetails } from "@/lib/templates/technical-details";
 import { downloadText, type Receipt } from "../browser-storage";
 import styles from "./ai-editor.module.css";
 import shared from "../templates.module.css";
@@ -105,7 +106,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
     {project && <>
       <div className={styles.overview}><h3>Based on your brief, your app would aim for:</h3><p>{project.plan.overview}</p>
         <table><caption className={styles.caption}>Features for {project.brief.name || "your app"}</caption><thead><tr><th scope="col">Part</th><th scope="col">What {project.brief.name || "your app"} would do</th></tr></thead><tbody>{project.plan.features.map((feature, index) => <tr key={index}><th scope="row">{feature.part}</th><td>{feature.description}</td></tr>)}</tbody></table>
-        {!!project.plan.assumptions.length && <div><h4>Assumptions to review</h4><ul>{project.plan.assumptions.map((value, index) => <li key={index}>{value}</li>)}</ul></div>}
+        <div><h4>Technical details</h4><p>{project.plan.technicalDetails?.length ? "Proposed implementation notes. Validate choices before building." : "Starting points based on this template. Review them against your final feature scope."}</p><ul>{planTechnicalDetails(project.plan, templateId).notes.map((value, index) => <li key={index}>{value}</li>)}</ul></div>
         {!!project.plan.questions.length && <div><h4>Decisions to make</h4><ul>{project.plan.questions.map((value, index) => <li key={index}>{value}</li>)}</ul></div>}
         <p className={shared.small}>This is a proposed specification. It does not mean the app or integrations have been built.</p>
       </div>

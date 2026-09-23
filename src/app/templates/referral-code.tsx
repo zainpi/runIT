@@ -31,11 +31,11 @@ export function ReferralCode({ value, applied, disabled, onChange, onApplied }: 
         body: JSON.stringify({ code: normalized }),
       });
       const result = await response.json() as { founder?: unknown; discountPercent?: unknown; error?: string };
-      if (!response.ok || typeof result.founder !== "string" || typeof result.discountPercent !== "number") throw new Error(result.error || "That referral code is not valid.");
+      if (!response.ok || typeof result.founder !== "string" || typeof result.discountPercent !== "number") throw new Error(result.error || "That discount code is not valid.");
       onApplied({ code: normalized, founder: result.founder, discountPercent: result.discountPercent });
     } catch (cause) {
       onApplied(null);
-      setError(cause instanceof Error ? cause.message : "The referral code could not be checked. Try again.");
+      setError(cause instanceof Error ? cause.message : "The discount code could not be checked. Try again.");
     } finally {
       setBusy(false);
     }

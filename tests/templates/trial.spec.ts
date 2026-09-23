@@ -10,7 +10,7 @@ const plan = { overview: "BoulderMe helps climbers find their people. Meet someo
   { part: "Find climbers", description: "Browse people at the same gym with a similar skill level." },
   { part: "Plan a session", description: "Invite someone to climb and agree on a gym and time." },
   { part: "Look & feel", description: "A cozy, playful design with friendly copy and approachable cards." },
-], assumptions: ["Gym memberships and guest passes are self-reported."], questions: ["Should climbers connect one-to-one, or join small group sessions?"] };
+], assumptions: ["Gym memberships and guest passes are self-reported."], questions: ["Should climbers connect one-to-one, or join small group sessions?", "Which gyms should be included at launch?"], technicalDetails: ["Keep gym, profile, and session records scoped to each account.", "Validate invitations on the server before notifying another climber."] };
 const fresh = (): AiSnapshot => ({ used: 0, remaining: 3, limit: 3, pending: false, projects: {}, overviewUsed: [], initialBrief: brief, overviewConsent: true, canStartOverview: true });
 
 async function mockWorkspace(page: Page, initial = fresh(), failOverview = false, loseMessage = false) {
@@ -25,7 +25,7 @@ async function mockWorkspace(page: Page, initial = fresh(), failOverview = false
       if (failOverview) { failOverview = false; return route.fulfill({ status: 502, json: { error: "The AI response could not be completed. No message was deducted. Try again." } }); }
       if (data.action === "message") { state.used++; state.remaining--; }
       state.overviewUsed = ["mobile-app"];
-      const updatedPlan = data.action === "message" ? { ...plan, overview: "Your revised climbing app includes small group sessions." } : plan;
+      const updatedPlan = data.action === "message" ? { ...(state.projects["mobile-app"]?.plan ?? plan), overview: "Your revised climbing app includes small group sessions." } : plan;
       state.projects["mobile-app"] = { brief: data.brief, plan: updatedPlan, revision: (state.projects["mobile-app"]?.revision ?? 0) + 1, appliedRevision: null, appliedPlan: null, appliedBrief: null, history: [...(state.projects["mobile-app"]?.history ?? []), ...(data.action === "message" ? [{ role: "user" as const, text: data.message }] : []), { role: "assistant", text: data.action === "overview" ? "I’ve shaped your brief into a first plan. Take a look at the features — tell me what you’d like to change." : "I’ve added small group sessions and saved your updated plan." }] };
       if (data.action === "message" && loseMessage) { loseMessage = false; return route.abort("failed"); }
     }
@@ -70,7 +70,7 @@ test("free checkout requires a template and description, preserves the brief and
   expect(redemptions[1].accessToken).toBe(redemptions[0].accessToken);
   expect(redemptions[1]).toMatchObject({ code: "SAMPLE-CODE", templateId: "mobile-app", brief: { name: "", idea: brief.idea, features: "", style: "", budget: "" }, consent: true });
   await expect(page.getByRole("heading", { name: "BoulderMe", exact: true })).toBeVisible();
-  await expect(page.getByRole("table")).toContainText("Find climbers");
+  await expect(page.getByRole("list", { name: /Features for/ })).toContainText("Find climbers");
   expect(workspace.requests.filter((data) => data.action === "overview")).toHaveLength(1);
   await expect(page.getByText("3 of 3 editing messages left")).toBeVisible();
   await expect(page.getByLabel("What do you want to make?")).toHaveCount(0);
@@ -82,7 +82,17 @@ test("dashboard keeps the plan beside chat, updates it, restores on a clean brow
   await page.setViewportSize({ width: 1440, height: 1100 });
   const workspace = await mockWorkspace(page);
   await page.goto(trialUrl);
-  await expect(page.getByRole("table")).toContainText("Plan a session");
+  const featureList = page.getByRole("list", { name: /Features for/ });
+  await expect(featureList).toContainText("Plan a session");
+  const featureCard = featureList.getByRole("button", { name: /Find climbers/ });
+  await featureCard.click();
+  await expect(featureCard).toHaveAttribute("aria-pressed", "true");
+  await featureCard.click();
+  await expect(featureCard).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(() => featureCard.locator("span").first().evaluate((node) => getComputedStyle(node).transform)).toBe("none");
+  await expect(page.getByText("Working assumptions")).toHaveCount(0);
+  await page.locator("details").filter({ hasText: "Technical details" }).locator("summary").click();
+  await expect(page.getByText("Validate invitations on the server before notifying another climber.")).toBeVisible();
   const planBox = await page.getByRole("region", { name: "Your project plan" }).boundingBox();
   const chatBox = await page.getByRole("complementary", { name: "AI editing chat" }).boundingBox();
   expect(chatBox!.x).toBeGreaterThan(planBox!.x + planBox!.width);
@@ -90,25 +100,43 @@ test("dashboard keeps the plan beside chat, updates it, restores on a clean brow
   await page.screenshot({ path: "/tmp/runit-dashboard-desktop.png", fullPage: true });
   await expect(page.locator("#full-prompt")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Apply plan" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Answer in chat" }).click();
-  await expect(page.getByLabel("Ask for a change")).toBeFocused();
-  await expect(page.getByLabel("Ask for a change")).toHaveValue(/Should climbers connect/);
   const chat = page.getByRole("complementary", { name: "AI editing chat" });
+  await expect(page.getByRole("region", { name: "Your project plan" }).getByText("Decisions to make")).toHaveCount(0);
   await expect(chat.getByText("I’ve shaped your brief into a first plan.", { exact: false })).toBeVisible();
   const decisions = chat.getByRole("region", { name: "Decisions to make" });
   await expect(decisions).toContainText(plan.questions[0]);
-  await decisions.getByRole("button", { name: /Should climbers connect/ }).click();
-  await expect(page.getByLabel("Ask for a change")).toHaveValue(/Should climbers connect/);
+  await page.getByLabel("Ask for a change").fill("Keep the design welcoming.");
+  const composerBox = await page.getByLabel("Ask for a change").boundingBox();
+  const conversationBox = await chat.getByRole("log", { name: "Conversation" }).boundingBox();
+  expect(composerBox!.y).toBeLessThan(conversationBox!.y);
+  const collapse = chat.getByRole("button", { name: "Collapse" });
+  await collapse.click();
+  await expect(chat.getByRole("log", { name: "Conversation" })).toBeHidden();
+  await expect(page.getByLabel("Ask for a change")).toBeHidden();
+  await expect(chat.getByRole("button", { name: "Expand" })).toHaveAttribute("aria-expanded", "false");
+  await chat.getByRole("button", { name: "Expand" }).click();
+  await expect(page.getByLabel("Ask for a change")).toHaveValue("Keep the design welcoming.");
+  await decisions.getByRole("listitem").filter({ hasText: plan.questions[0] }).getByRole("button", { name: "Yes" }).click();
+  await expect(page.getByLabel("Ask for a change")).toHaveValue(`Keep the design welcoming.\n\nAbout “${plan.questions[0]}”: Yes`);
+  await expect(decisions.getByRole("listitem").filter({ hasText: plan.questions[0] })).toHaveCount(0);
+  await decisions.getByRole("listitem").filter({ hasText: plan.questions[1] }).getByRole("button", { name: "Write answer" }).click();
+  await decisions.getByLabel("Your answer").fill("Start with downtown gyms.");
+  await decisions.getByRole("button", { name: "Add answer" }).click();
+  await expect(page.getByLabel("Ask for a change")).toHaveValue(`Keep the design welcoming.\n\nAbout “${plan.questions[0]}”: Yes\n\nAbout “${plan.questions[1]}”: Start with downtown gyms.`);
+  await expect(decisions).toHaveCount(0);
+  await page.getByRole("button", { name: "Suggest a starting budget" }).click();
+  await expect(page.getByLabel("Ask for a change")).toHaveValue(/Keep the design welcoming\.[\s\S]*Should climbers connect[\s\S]*Which gyms[\s\S]*recommend a practical starting budget/);
   for (let i = 0; i < 3; i++) {
     await page.getByLabel("Ask for a change").fill(i === 0 ? `About “${plan.questions[0]}”: Let people join small group sessions.` : `Add small group sessions ${i}`);
-    await page.getByRole("button", { name: "Send change" }).click();
+    await page.getByRole("button", { name: "Send changes" }).click();
     await expect(page.getByText(`${2 - i} of 3 editing messages left`)).toBeVisible();
     await expect(page.getByRole("region", { name: "Your project plan" })).toContainText("Your revised climbing app includes small group sessions.");
   }
   await expect(chat.getByText("I’ve shaped your brief into a first plan.", { exact: false })).toBeVisible();
   await expect(chat.getByText(`About “${plan.questions[0]}”: Let people join small group sessions.`)).toBeVisible();
   await expect(chat.getByText("I’ve added small group sessions and saved your updated plan.").first()).toBeVisible();
-  await expect(decisions).toContainText(plan.questions[0]);
+  await expect(decisions).toContainText(plan.questions[1]);
+  await expect(decisions).not.toContainText(plan.questions[0]);
   await expect(page.getByLabel("Ask for a change")).toHaveCount(0);
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
@@ -121,26 +149,101 @@ test("dashboard keeps the plan beside chat, updates it, restores on a clean brow
   await downloadButtons.last().click();
   expect((await download).suggestedFilename()).toBe("boulderme-plan.json");
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("list", { name: /Features for/ })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "AI editing chat" })).toBeHidden();
   await page.screenshot({ path: "/tmp/runit-dashboard-mobile-plan.png", fullPage: true });
   await page.getByRole("button", { name: "AI chat" }).click();
   await expect(page.getByRole("complementary", { name: "AI editing chat" })).toBeVisible();
-  await expect(decisions).toContainText(plan.questions[0]);
+  await expect(decisions).toContainText(plan.questions[1]);
   await expect(chat.getByText("I’ve shaped your brief into a first plan.", { exact: false })).toBeVisible();
   expect(await chat.getByRole("log", { name: "Conversation" }).evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true);
-  await expect(page.getByRole("table")).toBeHidden();
+  await expect(page.getByRole("list", { name: /Features for/ })).toBeHidden();
   await page.screenshot({ path: "/tmp/runit-dashboard-mobile-chat.png", fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await page.getByText("Manage saved content", { exact: true }).click();
   await page.getByRole("button", { name: "Delete saved content", exact: true }).click();
   await page.getByRole("button", { name: "Confirm delete", exact: true }).click();
   await expect(page.getByText("Saved brief, plan, and chat deleted.", { exact: false })).toBeVisible();
-  await expect(page.getByRole("table")).toHaveCount(0);
+  await expect(page.getByRole("list", { name: /Features for/ })).toHaveCount(0);
   await expect(page.getByText("0 of 3 editing messages left")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "BoulderMe", exact: true })).toHaveCount(0);
   expect(workspace.requests.filter((data) => data.action === "overview")).toHaveLength(1);
+});
+
+test("decisions show three at a time and collect seven answers in one message", async ({ page }) => {
+  const questions = [
+    "Which city should launch first?",
+    "Should gym partners approve guest passes?",
+    "Should members save favorite gyms?",
+    "Should sessions support groups?",
+    "Should profiles show climbing grades?",
+    "Should invites expire after one day?",
+    "Should new members get a welcome tour?",
+  ];
+  const initial = fresh();
+  initial.canStartOverview = false;
+  initial.overviewUsed = ["mobile-app"];
+  initial.projects["mobile-app"] = {
+    brief,
+    plan: { ...plan, questions },
+    revision: 1,
+    appliedRevision: null,
+    appliedPlan: null,
+    appliedBrief: null,
+    history: [{ role: "assistant", text: "Here is your first plan." }],
+  };
+  const workspace = await mockWorkspace(page, initial);
+  await page.goto(trialUrl);
+  const decisions = page.getByRole("region", { name: "Decisions to make" });
+  const cards = decisions.getByRole("listitem");
+  const composer = page.getByLabel("Ask for a change");
+  await expect(cards).toHaveCount(3);
+  await expect(decisions).toContainText("7 left");
+  await expect(decisions).not.toContainText(questions[3]);
+  await composer.fill("Keep the interface welcoming.");
+
+  await cards.filter({ hasText: questions[0] }).getByRole("button", { name: "Write answer" }).click();
+  await decisions.getByLabel("Your answer").fill("Toronto first.");
+  await decisions.getByRole("button", { name: "Add answer" }).click();
+  await expect(cards.filter({ hasText: questions[0] })).toHaveCount(0);
+  await expect(cards).toHaveCount(3);
+  await expect(decisions).toContainText(questions[3]);
+  await expect(decisions).toContainText("6 left");
+
+  const answers = ["No", "Yes", "Yes", "No", "Yes", "No"];
+  for (let index = 1; index < questions.length; index++) {
+    await cards.filter({ hasText: questions[index] }).getByRole("button", { name: answers[index - 1], exact: true }).click();
+    await expect(cards.filter({ hasText: questions[index] })).toHaveCount(0);
+    expect(await composer.inputValue()).toContain(`About “${questions[index]}”: ${answers[index - 1]}`);
+  }
+  await expect(decisions).toHaveCount(0);
+  await expect(composer).toHaveValue(`Keep the interface welcoming.\n\nAbout “${questions[0]}”: Toronto first.${questions.slice(1).map((question, index) => `\n\nAbout “${question}”: ${answers[index]}`).join("")}`);
+
+  await page.getByRole("button", { name: "Send changes" }).click();
+  await expect(page.getByText("2 of 3 editing messages left")).toBeVisible();
+  expect(workspace.requests.filter((request) => request.action === "message")).toHaveLength(1);
+  await expect(decisions).toHaveCount(0);
+  await page.reload();
+  await expect(decisions).toHaveCount(0);
+});
+
+test("managed launch request describes mobile hosting and omits the private trial credential", async ({ page }) => {
+  await mockWorkspace(page);
+  await page.goto(trialUrl);
+  await page.getByRole("button", { name: "Have us launch it" }).click();
+  const card = page.locator("#managed-launch");
+  await expect(card).toContainText("backend, database and other cloud services");
+  await card.getByLabel("Host my app’s cloud services").check();
+  await card.getByLabel("Anything we should know?").fill("Need iOS release and sign-in.");
+  const href = await card.getByRole("link", { name: "Email us a request" }).getAttribute("href");
+  const request = new URL(href!);
+  expect(request.protocol).toBe("mailto:");
+  expect(request.searchParams.get("body")).toContain("Need iOS release and sign-in.");
+  expect(request.searchParams.get("body")).toContain("Host my app’s cloud services");
+  expect(href).not.toContain(token);
+  expect(href).not.toContain(sessionId);
+  await expect(page).toHaveURL(trialUrl);
 });
 
 test("quick options keep their labels and fill detailed, fully visible drafts", async ({ page }) => {
@@ -167,7 +270,7 @@ test("a failed overview offers a manual retry without an automatic request loop"
   await expect(page.getByRole("button", { name: "Create free overview" })).toBeEnabled();
   expect(workspace.requests.filter((data) => data.action === "overview")).toHaveLength(1);
   await page.getByRole("button", { name: "Create free overview" }).click();
-  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("list", { name: /Features for/ })).toBeVisible();
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
   expect(workspace.requests.filter((data) => data.action === "overview")).toHaveLength(2);
   await expect(page.getByText("3 of 3 editing messages left")).toBeVisible();
@@ -176,9 +279,9 @@ test("a failed overview offers a manual retry without an automatic request loop"
 test("a lost message response recovers the saved reply and clears the composer without another charge", async ({ page }) => {
   const workspace = await mockWorkspace(page, fresh(), false, true);
   await page.goto(trialUrl);
-  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("list", { name: /Features for/ })).toBeVisible();
   await page.getByLabel("Ask for a change").fill("Add small group sessions");
-  await page.getByRole("button", { name: "Send change" }).click();
+  await page.getByRole("button", { name: "Send changes" }).click();
   await expect(page.getByText("2 of 3 editing messages left")).toBeVisible();
   await expect(page.getByLabel("Ask for a change")).toHaveValue("");
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
@@ -193,7 +296,7 @@ test("existing private links without a checkout brief have a compact setup", asy
   await page.getByRole("button", { name: "Save idea", exact: true }).click();
   await page.getByLabel("Allow OpenAI to use my brief").check();
   await page.getByRole("button", { name: "Create free overview" }).click();
-  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("list", { name: /Features for/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "BoulderMe", exact: true })).toBeVisible();
 });
 
@@ -230,7 +333,7 @@ test("reopening a pending overview polls the saved result without starting anoth
   await page.goto(trialUrl);
   await expect(page.getByRole("heading", { name: "Turning your idea into a plan" })).toBeVisible();
   ready = true;
-  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("list", { name: /Features for/ })).toBeVisible();
   expect(loads).toBeGreaterThan(1);
   expect(generations).toBe(0);
   await expect(page.getByText("3 of 3 editing messages left")).toBeVisible();
@@ -243,7 +346,7 @@ test("mobile overview failure remains visible on the plan tab", async ({ page })
   await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
   await expect(page.getByRole("button", { name: "Create free overview" })).toBeEnabled();
   await page.getByRole("button", { name: "Create free overview" }).click();
-  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("list", { name: /Features for/ })).toBeVisible();
   await page.getByRole("button", { name: "AI chat" }).click();
   await expect(page.getByLabel("Ask for a change")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Make it yours" })).toBeInViewport();

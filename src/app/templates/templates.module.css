@@ -175,6 +175,7 @@
 .libraryHero { padding:70px 0 40px; }
 .libraryHero h1 { font-size:clamp(2.8rem,6vw,4.5rem); margin-block:20px; }
 .libraryHero .muted { max-width:620px; }
+.launchShortcut { margin-top:16px; padding:0; color:#c7ebd4; background:none; border:0; cursor:pointer; text-align:left; font-size:.83rem; text-decoration:underline; text-underline-offset:4px; }
 .orderPicker { display:flex; align-items:center; gap:20px; font-size:.8rem; margin-bottom:24px; }
 .orderPicker select { max-width:440px; }
 .accessBar { display:flex; flex-direction:column; align-items:stretch; gap:16px; border:1px solid #697eac; background:#151f31; border-radius:10px; padding:28px; }

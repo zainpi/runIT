@@ -191,6 +191,46 @@ test("checkout sends canonical IDs, access token, and add-on flag, then saves it
   expect(pending.token).toBe(posted!.accessToken);
 });
 
+test("browser Back from Stripe lets the customer retry checkout", async ({ page }) => {
+  await mockConfiguration(page);
+  let attempts = 0;
+  await page.route("**/api/templates/checkout/**", async (route) => {
+    attempts++;
+    await route.fulfill({ json: { url: "https://checkout.stripe.com/c/pay/back-test", sessionId } });
+  });
+  await page.route("https://checkout.stripe.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Mock Stripe Checkout</title>" }));
+  await waitForStore(page);
+  await page.getByLabel("Add Mobile app", { exact: true }).click();
+  const checkout = page.getByRole("button", { name: /checkout/ });
+  await checkout.click();
+  await page.waitForURL("https://checkout.stripe.com/**");
+  await page.goBack();
+  await expect(page.getByLabel("Remove Mobile app", { exact: true })).toBeVisible();
+  await expect(checkout).toBeEnabled();
+  await checkout.click();
+  await page.waitForURL("https://checkout.stripe.com/**");
+  expect(attempts).toBe(2);
+});
+
+test("a cached return from Stripe clears the checkout loading state", async ({ page }) => {
+  await mockConfiguration(page);
+  let releaseCheckout!: () => void;
+  const heldResponse = new Promise<void>((resolve) => { releaseCheckout = resolve; });
+  await page.route("**/api/templates/checkout/**", async (route) => {
+    await heldResponse;
+    await route.fulfill({ json: { url: "https://checkout.stripe.com/c/pay/cache-test", sessionId } });
+  });
+  await page.route("https://checkout.stripe.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Mock Stripe Checkout</title>" }));
+  await waitForStore(page);
+  await page.getByLabel("Add Mobile app", { exact: true }).click();
+  await page.getByRole("button", { name: "Try test checkout" }).click();
+  await expect(page.getByRole("button", { name: "Opening checkout…" })).toBeDisabled();
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })));
+  await expect(page.getByRole("button", { name: "Try test checkout" })).toBeEnabled();
+  releaseCheckout();
+  await page.waitForURL("https://checkout.stripe.com/**");
+});
+
 test("founder referral code previews ten percent off and is sent to checkout", async ({ page }) => {
   await mockConfiguration(page);
   let posted: Record<string, unknown> | undefined;
@@ -217,6 +257,28 @@ test("founder referral code previews ten percent off and is sent to checkout", a
   await page.getByRole("button", { name: "Try test checkout" }).click();
   await page.waitForURL("https://checkout.stripe.com/**");
   expect(posted).toMatchObject({ templates: ["mobile-app"], referralCode: "ZAIN-RUNIT-10", appIcon: true });
+});
+
+test("private gift code makes the selected bundle free before checkout", async ({ page }) => {
+  await mockConfiguration(page);
+  let posted: Record<string, unknown> | undefined;
+  await page.route("**/api/templates/referral/**", (route) => route.fulfill({ json: { founder: "runsIT gift", discountPercent: 100 } }));
+  await page.route("**/api/templates/checkout/**", async (route) => {
+    posted = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ json: { url: "https://checkout.stripe.com/c/pay/gift", sessionId } });
+  });
+  await page.route("https://checkout.stripe.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Mock Stripe Checkout</title>" }));
+  await waitForStore(page);
+  await page.getByLabel("Add Mobile app", { exact: true }).click();
+  await page.getByText("Add a discount code", { exact: true }).click();
+  await page.getByLabel("Discount code", { exact: true }).fill("mock-gift-code");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(page.locator("#bundle")).toContainText("100% off applied to this order");
+  await expect(page.locator("#bundle")).toContainText("$0.00");
+  await expect(page.locator("#bundle")).toContainText("No card needed");
+  await page.getByRole("button", { name: "Complete free checkout" }).click();
+  await page.waitForURL("https://checkout.stripe.com/**");
+  expect(posted).toMatchObject({ templates: ["mobile-app"], referralCode: "MOCK-GIFT-CODE" });
 });
 
 test("canceled checkout returns to the saved selection", async ({ page }) => {

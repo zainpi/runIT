@@ -28,7 +28,7 @@ import {
   validSessionId,
   verifyOrder,
 } from "../../src/lib/templates/payment";
-import { referralForCode } from "../../src/lib/templates/referrals";
+import { referralForCode, referralForMetadata } from "../../src/lib/templates/referrals";
 
 const accessToken = "ab".repeat(32);
 const ids = ["discord-bot", "storefront"] satisfies TemplateId[];
@@ -218,6 +218,28 @@ test("paid-order verification accepts the discounted founder total and rejects f
     metadata: { ...discounted.metadata, referral_code_hash: "00".repeat(32) },
   });
   assert.throws(() => purchasedIds(forged), /referral discount could not be verified/);
+});
+
+test("a completed zero-total gift checkout grants access without a payment intent", async () => {
+  const gift = referralForMetadata("gift", "09a6a82eb170af1f1b194b5a2c3bc651c9be846e9e08b1ab91e64000e1c567f9", "100");
+  assert.ok(gift);
+  const params = checkoutParameters(ids, accessToken, "https://runs-it.com", true, true, gift, true);
+  const lines = params.line_items as Stripe.Checkout.SessionCreateParams.LineItem[];
+  assert.ok(lines.every((line) => line.price_data?.unit_amount === 0));
+  assert.equal(params.payment_intent_data, undefined);
+  assert.equal(params.metadata?.referral_discount_percent, "100");
+  const free = paidSession({ amount_subtotal: 0, amount_total: 0, payment_status: "no_payment_required", payment_intent: null, metadata: params.metadata });
+  assert.deepEqual(purchasedIds(free), ids);
+  const { stripe, updates } = fakeStripe(free);
+  assert.equal((await verifyOrder(stripe, free.id, accessToken)).appIcon, true);
+  await fulfillOrder(stripe, free.id, accessToken);
+  assert.deepEqual(updates, [{ id: free.id, params: { metadata: { delivery: "available" } } }]);
+  assert.equal((await verifyOrder(fakeStripe(paidSession({ ...free, payment_status: "paid" })).stripe, free.id, accessToken)).ids.length, ids.length);
+
+  await rejectsStoreError(() => verifyOrder(fakeStripe(paidSession({ ...free, status: "open" })).stripe, free.id, accessToken), 409, /not complete/);
+  await rejectsStoreError(() => verifyOrder(fakeStripe(paidSession({ ...free, payment_status: "unpaid" })).stripe, free.id, accessToken), 409, /free checkout/);
+  assert.throws(() => purchasedIds(paidSession({ ...free, metadata: { ...params.metadata, referral_code_hash: "00".repeat(32) } })), /referral discount could not be verified/);
+  assert.throws(() => purchasedIds(paidSession({ ...free, amount_total: 1 })), /amount could not be verified/);
 });
 
 test("subagent add-on is one separate fixed-price item for the whole order", () => {

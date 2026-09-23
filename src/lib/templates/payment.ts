@@ -35,7 +35,7 @@ export function checkoutParameters(ids: TemplateId[], token: string, origin: str
       } },
     })), ...(subagents ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(SUBAGENT_ADDON_CENTS), product_data: { name: "Subagent build workflow add-on", description: "One add-on for every template in this order. Digital text download." } } }] : []), ...(skillTree ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(SKILL_TREE_ADDON_CENTS), product_data: { name: "Skill tree setup add-on", description: "Skill source links and installation prompt for every template in this order. Digital text download." } } }] : []), ...(appIcon ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(APP_ICON_ADDON_CENTS), product_data: { name: "Create app icon add-on", description: "One app icon plus 3 updates per order. Browse every version and download 1024 × 1024 PNGs from your private purchase page." } } }] : [])],
     metadata,
-    payment_intent_data: { metadata: { store: TEMPLATE_STORE, templates: ids.join(","), subagents: String(subagents), skill_tree: String(skillTree), app_icon: String(appIcon), currency, pricing_origin: origin, ...referralMetadata } },
+    ...(discountPercent === 100 ? {} : { payment_intent_data: { metadata: { store: TEMPLATE_STORE, templates: ids.join(","), subagents: String(subagents), skill_tree: String(skillTree), app_icon: String(appIcon), currency, pricing_origin: origin, ...referralMetadata } } }),
     custom_text: { submit: { message: "After payment, return to the website and save your unique purchase URL to access your prompts again. Includes free template overviews and 20 AI editing messages per purchase. Coding AI tools, hosting, and other service fees are separate." } },
   };
 }
@@ -87,7 +87,12 @@ export async function verifyOrder(stripe: Stripe, sessionId: string, token?: str
     const expected = session.metadata?.access_hash ?? "";
     if (!validAccessToken(token) || !/^[a-f0-9]{64}$/.test(expected) || !timingSafeEqual(Buffer.from(tokenHash(token), "hex"), Buffer.from(expected, "hex"))) throw new StoreError("Use the private access link saved with this order.", 403);
   }
-  if (session.status !== "complete" || session.payment_status !== "paid") throw new StoreError(session.status === "expired" ? "This checkout expired. Return to the store to try again." : "Your payment is not complete yet. If you have paid, wait a moment and check again.", 409);
+  if (session.status !== "complete") throw new StoreError(session.status === "expired" ? "This checkout expired. Return to the store to try again." : "Your payment is not complete yet. If you have paid, wait a moment and check again.", 409);
+  if (session.metadata?.referral_discount_percent === "100") {
+    if ((session.payment_status !== "no_payment_required" && session.payment_status !== "paid") || session.payment_intent) throw new StoreError("This free checkout could not be verified yet. Please check again.", 409);
+    return { session, ids, subagents, skillTree, appIcon };
+  }
+  if (session.payment_status !== "paid") throw new StoreError("Your payment is not complete yet. If you have paid, wait a moment and check again.", 409);
   const intent = session.payment_intent;
   const charge = typeof intent === "object" && intent ? intent.latest_charge : null;
   if (!charge || typeof charge === "string") throw new StoreError("The payment could not be verified yet. Please check again.", 409);

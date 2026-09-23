@@ -8,6 +8,7 @@ import { downloadText, loadDraft, loadReceipts, receiptLink, saveDraft, saveRece
 import { Personalize } from "../personalize";
 import { AiEditor } from "./ai-editor";
 import { AppIconGenerator } from "./app-icon-generator";
+import { ManagedLaunch, hasManagedLaunch } from "../managed-launch";
 import { sameBrief, type AppPlan } from "@/lib/templates/ai-contract";
 import styles from "../templates.module.css";
 
@@ -100,7 +101,7 @@ export function TemplateLibrary() {
     catch { setStatus("Copy isn’t available here. Use the download button, or select the text below and copy it."); }
   }
   return <>
-    <section className={styles.libraryHero}><p className={styles.eyebrow}>Your next project starts here</p><h1>Make it <em>yours.</em></h1><p className={styles.muted}>Open your order, tailor the brief, then copy the prompt into your AI tool. Both build modes are included.</p></section>
+    <section className={styles.libraryHero}><p className={styles.eyebrow}>Your next project starts here</p><h1>Make it <em>yours.</em></h1><p className={styles.muted}>Open your order, tailor the brief, then copy the prompt into your AI tool. Both build modes are included.</p>{selected && hasManagedLaunch(selected) && <button className={styles.launchShortcut} type="button" onClick={() => document.getElementById("managed-launch")?.scrollIntoView({ behavior: "smooth" })}>Want us to host or run it? Request a quote →</button>}</section>
     {receipts.length > 0 && <div className={styles.orderPicker}><label htmlFor="order">Saved orders on this browser</label><select id="order" value={active?.sessionId ?? ""} disabled={busy} onChange={(event) => { const receipt = receipts.find((r) => r.sessionId === event.target.value); if (receipt) void openOrder(receipt); }}><option value="" disabled>Choose an order</option>{receipts.map((r) => <option key={r.sessionId} value={r.sessionId}>{r.createdAt.slice(0, 10)} · {r.templates.length || "Your"} templates · …{r.sessionId.slice(-8)}</option>)}</select></div>}
     {busy && <p className={styles.notice} role="status">Verifying your payment and opening your templates…</p>}
     {error && <div className={styles.notice} role="alert"><p>{error}</p>{active && <button className={styles.secondary} disabled={busy} onClick={() => void openOrder(active)}>Check payment again</button>}<p className={styles.small}>If your bank is still processing the payment, come back to this saved order later. Need help? Email <a href={`mailto:${site.email}`}>{site.email}</a> with your Stripe receipt.</p></div>}
@@ -134,6 +135,7 @@ export function TemplateLibrary() {
       </section> : <p className={`${styles.small} ${styles.libraryAddon}`}>Skill tree setup was not included in this order.</p>}
       {appIconPurchased && active && current && <AppIconGenerator key={`${active.sessionId}:${active.accessToken}`} receipt={active} templateId={current.id} details={details} />}
       <section className={styles.promptOutput}><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Ready for your AI</p><h2>{title} prompt</h2></div><div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(prompt, `${selected}-prompt.txt`)}>Download .txt</button><button className={styles.primary} onClick={() => void copy(prompt, `${title} prompt copied. Paste it into your AI tool to begin.`)}>Copy full prompt ↗</button></div></div><label className={styles.small} htmlFor="full-prompt">Your brief + {mode === "computer" ? "computer control" : "manual"} instructions + complete foundation{includeSubagents && subagentInstructions ? " + subagent workflow" : ""}{includeSkillTree && skillTreeInstructions ? " + skill tree setup" : ""}</label><textarea id="full-prompt" readOnly value={prompt} rows={20} spellCheck={false} /><p className={styles.small}>Replace any bracketed placeholders before starting. You can return, change the brief or mode, and download again. Your AI is also instructed to create FOLLOW_UP_PROMPTS.md in your project with useful prompts to ask next.</p></section>
+      {selected && hasManagedLaunch(selected) && <ManagedLaunch templateId={selected} projectName={details.name} />}
     </>}
     <p className={styles.libraryBack}><Link href="/templates/">← Back to all templates</Link></p>
   </>;
