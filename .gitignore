@@ -37,6 +37,7 @@ next-env.d.ts
 
 # Neutronium local development data
 /.neutronium-dev/
+/.higgsfield/
 
 /deploy/neutronium/backups/
 

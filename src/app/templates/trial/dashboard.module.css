@@ -17,6 +17,9 @@
 .dashboard .subtitle { margin:0; color:var(--muted); font-size:.8rem; line-height:1.5; }
 .dashboard .toolbar { display:flex; flex-wrap:wrap; gap:8px; flex-shrink:0; }
 .dashboard .toolbar>button,.dashboard .access>summary,.dashboard .accessPopover button { display:flex; align-items:center; justify-content:center; gap:14px; min-height:42px; padding:10px 13px; border:1px solid #303a4b; border-radius:7px; background:#131a26; color:#e0e5ef; font-size:.73rem; list-style:none; }
+.dashboard button.downloadPlan { display:flex; align-items:center; justify-content:center; gap:14px; min-height:44px; padding:11px 16px; border:1px solid #d6f5a5; border-radius:7px; background:#c8f17f; color:#1b2915; font-size:.76rem; font-weight:600; }
+.dashboard button.downloadPlan:hover:not(:disabled) { background:#ddf7aa; }
+.dashboard .downloadFooter { display:flex; justify-content:flex-end; padding:24px 0 4px; }
 .dashboard .access>summary::-webkit-details-marker { display:none; }
 .dashboard .access { position:relative; }
 .dashboard .accessPopover { position:absolute; z-index:4; right:0; top:calc(100% + 10px); width:340px; max-width:calc(100vw - 48px); padding:20px; background:#17202e; border:1px solid #3b4658; border-radius:12px; box-shadow:0 16px 48px #0008; }
@@ -64,13 +67,13 @@
 .dashboard .buildNext p { font-size:.76rem; line-height:1.7; color:#a1b0c6; }
 .dashboard .buildNext a { display:flex; justify-content:space-between; align-items:center; border:1px solid #3c485d; padding:13px 15px; border-radius:7px; color:#d7e0ef; font-size:.77rem; text-decoration:none; }
 .dashboard .buildNext a:hover { background:#1c2636; }
-.dashboard .chatPane { position:sticky; top:20px; min-width:0; height:clamp(480px,calc(100dvh - 345px),720px); display:flex; flex-direction:column; border:1px solid #354158; border-radius:12px; background:linear-gradient(145deg,#172133,#101722 65%); overflow:hidden; }
+.dashboard .chatPane { min-width:0; display:flex; flex-direction:column; border:1px solid #354158; border-radius:12px; background:linear-gradient(145deg,#172133,#101722 65%); overflow:hidden; }
 .dashboard .chatHeader { display:flex; align-items:center; gap:11px; padding:20px; border-bottom:1px solid #2d384a; flex-shrink:0; }
 .dashboard .aiMark { display:grid; place-items:center; height:36px; width:36px; border-radius:10px; background:#b7c8f119; color:#c8d6ff; font-size:1.3rem; border:1px solid #879fcc35; }
 .dashboard .chatHeader h2 { margin:0 0 3px; font-size:.94rem; font-weight:500; }
 .dashboard .chatHeader p { margin:0; color:#9aacc5; font-size:.68rem; }
 .dashboard .messageCount { margin-left:auto; padding:5px 8px; border:1px solid #42516c; border-radius:5px; color:#c2cee6; font-size:.64rem; white-space:nowrap; }
-.dashboard .conversation { min-height:100px; flex:1; overflow:auto; overscroll-behavior:contain; padding:24px 20px 12px; scrollbar-width:thin; scrollbar-color:#41516b transparent; }
+.dashboard .conversation { min-height:100px; padding:24px 20px 12px; }
 .dashboard .welcome { margin-bottom:24px; }
 .dashboard .welcome .kicker { font-size:.58rem; color:#a8bce0; letter-spacing:.075em; }
 .dashboard .welcome h3 { font-size:1.22rem; font-weight:500; letter-spacing:-.025em; margin:12px 0 10px; }
@@ -80,13 +83,20 @@
 .dashboard .aiMessage p,.dashboard .userMessage p { margin:5px 0 0; color:#c3cfe0; white-space:pre-wrap; }
 .dashboard .userMessage { margin-left:24px; padding:12px 14px; border-radius:10px 10px 2px 10px; background:#253248; border:1px solid #35465f; }
 .dashboard .userMessage strong { color:#e2e8f6; }
+.dashboard .decisionPrompts { margin:22px 0 12px; padding:14px; border:1px solid #394862; border-radius:9px; background:#1b293b; }
+.dashboard .decisionPrompts h3 { display:flex; align-items:center; gap:7px; margin:0 0 10px; color:#d4def1; font-size:.75rem; font-weight:500; }
+.dashboard .decisionPrompts h3 span { color:#9fb1cf; font-size:.67rem; }
+.dashboard .decisionPrompts>div { display:grid; gap:7px; }
+.dashboard .decisionPrompts button { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:9px 10px; text-align:left; border:1px solid #3b4b65; border-radius:6px; background:#223249; color:#cedaf0; font-size:.7rem; line-height:1.5; }
+.dashboard .decisionPrompts button:hover:not(:disabled) { background:#2a3b55; }
+.dashboard .decisionPrompts button span:last-child { flex-shrink:0; color:#b9c9ff; }
 .dashboard .suggestions { display:grid; gap:7px; margin:20px 0 10px; }
 .dashboard .suggestions button { display:flex; justify-content:space-between; gap:10px; text-align:left; border:1px solid #34445e; background:#1c293b; color:#cbd8ee; border-radius:6px; padding:11px; font-size:.72rem; line-height:1.5; }
 .dashboard .suggestions button:hover { background:#283751; }
 .dashboard .composerArea { padding:16px; background:#101823; border-top:1px solid #2d384b; flex-shrink:0; }
 .dashboard .composerArea form { background:#0a111c; border:1px solid #46556f; border-radius:9px; overflow:hidden; }
 .dashboard .composerArea form:focus-within { border-color:#b2c4fb; box-shadow:0 0 0 1px #b2c4fb; }
-.dashboard .composerArea textarea { display:block; resize:vertical; width:100%; max-height:200px; min-height:80px; padding:14px; color:#edf2ff; background:transparent; border:0; border-radius:9px; outline:none!important; font:inherit; font-size:.81rem; line-height:1.65; }
+.dashboard .composerArea textarea { display:block; resize:none; width:100%; min-height:80px; padding:14px; color:#edf2ff; background:transparent; border:0; border-radius:9px; outline:none!important; font:inherit; font-size:.81rem; line-height:1.65; }
 .dashboard .composerArea textarea::placeholder { color:#98a9c0; }
 .dashboard .composerBottom { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 10px 10px; }
 .dashboard .composerBottom>span { color:#8ea1bd; font: .6rem monospace; }
@@ -134,6 +144,7 @@
   .dashboard .avatar { width:52px; height:52px; flex-basis:52px; border-radius:12px; }
   .dashboard .toolbar { flex-direction:row; width:100%; }
   .dashboard .toolbar>* { flex:1; }
+  .dashboard .downloadFooter button { width:100%; }
   .dashboard .accessPopover { left:0; right:auto; }
   .dashboard .projectMeta { gap:12px 18px; margin-bottom:18px; font-size:.65rem; }
   .dashboard .checkoutStatus { margin-left:0; }
@@ -148,7 +159,6 @@
   .dashboard .overview { font-size:.84rem; }
   .dashboard .features th:first-child { width:34%; }
   .dashboard .features tbody th { padding-right:12px; }
-  .dashboard .chatPane { position:static; height:clamp(550px,calc(100dvh - 150px),760px); }
   .dashboard .chatHeader { padding:16px; }
   .dashboard .workspaceFooter { flex-direction:column; gap:8px; }
   .dashboard .workspaceFooter summary { text-align:left; }

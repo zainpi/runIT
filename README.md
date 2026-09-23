@@ -110,3 +110,9 @@ Play the live game at [runsit.ca/local-lore/](https://runsit.ca/local-lore/).
 It is served from `public/local-lore/` through a Next.js rewrite. The existing
 site navigation links directly to the game. See [Local Lore deployment](docs/local-lore.md)
 for its live API, saved progress, image limits, and update workflow.
+
+## Higgsfield agent tool
+
+The local coding agent can create short AI-template video ads with Higgsfield.
+See [setup and commands](docs/higgsfield-agent.md). This tool is not exposed
+through the website and does not deploy with it.

@@ -10,13 +10,18 @@ async function mockConfiguration(page: Page, currency: "cad" | "usd" = "cad") {
   await page.route("**/api/templates/config/**", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify({ available: true, testMode: true, currency }),
+    body: JSON.stringify({ available: true, appIconAvailable: true, testMode: true, currency }),
   }));
 }
 
 async function waitForStore(page: Page) {
   await page.goto("/templates/");
   await expect(page.getByRole("button", { name: "Try test checkout" })).toBeVisible();
+}
+
+async function openExtras(page: Page) {
+  const extras = page.locator("#bundle > details");
+  if (await extras.getAttribute("open") === null) await extras.locator("summary").click();
 }
 
 test("cart prices every bundle exactly and reprices after add/remove", async ({ page }) => {
@@ -27,20 +32,31 @@ test("cart prices every bundle exactly and reprices after add/remove", async ({ 
   for (let index = 0; index < productNames.length; index += 1) {
     await page.getByRole("button", { name: `Add ${productNames[index]}`, exact: true }).click();
     await expect(page.getByText(totals[index], { exact: true }).last()).toBeVisible();
-    await expect(page.getByRole("heading", { name: `${index + 1} template${index ? "s" : ""}`, exact: true })).toBeVisible();
+    await expect(page.locator("#bundle").getByText(`${index + 1} selected`, { exact: true })).toBeVisible();
   }
 
-  await page.getByLabel("Add subagent workflow", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Add AI teamwork", { exact: true }).check();
   await expect(page.getByText("$39.99", { exact: true }).last()).toBeVisible();
-  await page.getByLabel("Add skill tree setup", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Add skills & tools setup", { exact: true }).check();
   await expect(page.getByText("$49.99", { exact: true }).last()).toBeVisible();
-  await page.getByLabel("Add subagent workflow", { exact: true }).uncheck();
+  await openExtras(page);
+  await page.getByLabel("Create app icon", { exact: true }).check();
+  await expect(page.getByText("$54.99", { exact: true }).last()).toBeVisible();
+  await openExtras(page);
+  await page.getByLabel("Create app icon", { exact: true }).uncheck();
+  await openExtras(page);
+  await page.getByLabel("Add AI teamwork", { exact: true }).uncheck();
   await expect(page.getByText("$44.99", { exact: true }).last()).toBeVisible();
-  await page.getByLabel("Add subagent workflow", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Add AI teamwork", { exact: true }).check();
   await expect(page.getByText("$49.99", { exact: true }).last()).toBeVisible();
-  await page.getByLabel("Add skill tree setup", { exact: true }).uncheck();
+  await openExtras(page);
+  await page.getByLabel("Add skills & tools setup", { exact: true }).uncheck();
   await expect(page.getByText("$39.99", { exact: true }).last()).toBeVisible();
-  await page.getByLabel("Add subagent workflow", { exact: true }).uncheck();
+  await openExtras(page);
+  await page.getByLabel("Add AI teamwork", { exact: true }).uncheck();
   await expect(page.getByText("$34.99", { exact: true }).last()).toBeVisible();
 
   await expect(page.getByLabel("Remove Discord bot from bundle", { exact: true })).toBeVisible();
@@ -52,72 +68,79 @@ test("cart prices every bundle exactly and reprices after add/remove", async ({ 
 
   for (const name of productNames.slice(1, 4)) await page.getByLabel(`Remove ${name} from bundle`, { exact: true }).click();
   await expect(page.getByText("$9.99", { exact: true }).last()).toBeVisible();
-  await page.getByLabel("Add subagent workflow", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Add AI teamwork", { exact: true }).check();
   await expect(page.getByText("$14.99", { exact: true }).last()).toBeVisible();
-  await page.getByLabel("Add skill tree setup", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Add skills & tools setup", { exact: true }).check();
   await expect(page.getByText("$24.99", { exact: true }).last()).toBeVisible();
-  await page.getByLabel("Add subagent workflow", { exact: true }).uncheck();
+  await openExtras(page);
+  await page.getByLabel("Add AI teamwork", { exact: true }).uncheck();
   await expect(page.getByText("$19.99", { exact: true }).last()).toBeVisible();
 });
 
 for (const currency of ["cad", "usd"] as const) {
-  test(`${currency.toUpperCase()} config labels hero, add-ons, FAQ, total, and mobile bundle consistently`, async ({ page }) => {
+  test(`${currency.toUpperCase()} pricing stays clear in the compact checkout and mobile order bar`, async ({ page }) => {
     await mockConfiguration(page, currency);
     await waitForStore(page);
     const label = currency.toUpperCase();
-
     await expect(page.getByText(`$9.99 ${label}`, { exact: true })).toBeVisible();
-    await expect(page.getByText(`+$5 for every extra one in your bundle. ${label}.`, { exact: true })).toBeVisible();
+    await expect(page.getByText("first template · $5.00 each extra", { exact: true })).toBeVisible();
     await page.getByLabel("Add Online store", { exact: true }).click();
-    await page.getByLabel("Add subagent workflow", { exact: true }).check();
-    await page.getByLabel("Add skill tree setup", { exact: true }).check();
-
+    await openExtras(page);
+    await openExtras(page);
+    await page.getByLabel("Add AI teamwork", { exact: true }).check();
+    await openExtras(page);
+    await page.getByLabel("Add skills & tools setup", { exact: true }).check();
+    await openExtras(page);
+    await page.getByLabel("Create app icon", { exact: true }).check();
     const bundle = page.locator("#bundle");
-    await expect(bundle.getByText(`One-time $5 ${label} for your entire bundle. Adds prompt instructions; AI usage is separate.`, { exact: true })).toBeVisible();
-    await expect(bundle.getByText(new RegExp(`^One-time \\$10 ${label} for your entire bundle\\.`))).toBeVisible();
-    await expect(bundle.getByText(label, { exact: true })).toBeVisible();
-    await expect(bundle.getByText("$24.99", { exact: true })).toBeVisible();
-
-    const subagentFaq = page.locator("details").filter({ hasText: "What does the subagent add-on do?" });
-    const skillFaq = page.locator("details").filter({ hasText: "What does the skill tree include?" });
-    await expect(subagentFaq).toContainText(`For $5 ${label} once per order`);
-    await expect(skillFaq).toContainText(`For $10 ${label} once per order`);
-
+    await expect(bundle.getByText(`One-time prices for this order, in ${label}.`, { exact: true })).toBeVisible();
+    await expect(bundle.getByText(`One-time payment · ${label}`, { exact: true })).toBeVisible();
+    await expect(bundle.getByText("$29.99", { exact: true })).toBeVisible();
+    await expect(bundle.getByText("1 icon + 3 updates. Download every version.", { exact: true })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByText(`$24.99 ${label}`, { exact: true })).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.getByText(`$29.99 ${label}`, { exact: true })).toBeVisible();
+    await expect(page.getByText("1 template + 3 extras", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Review order" }).click();
+    await expect(page.getByRole("button", { name: "Try test checkout" })).toBeInViewport();
+    await expect(page.getByRole("link", { name: "Review order" })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 }
 
-test("manual/computer modes personalize the preview and persist the brief and cart", async ({ page }) => {
+test("checkout only asks for a template and preserves existing personalization for after purchase", async ({ page }) => {
   await mockConfiguration(page);
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("runit-template-brief-v1")) localStorage.setItem("runit-template-brief-v1", JSON.stringify({ details: { name: "Moon Cart", idea: "A neighborhood marketplace.", features: "Saved shops", style: "Quiet", budget: "$25" }, mode: "computer", selected: [] }));
+  });
   await waitForStore(page);
+  await expect(page.getByLabel("App name")).toHaveCount(0);
+  await expect(page.getByLabel("What do you want to make?")).toHaveCount(0);
+  await expect(page.getByLabel("Make AI control my computer")).toHaveCount(0);
+  await expect(page.getByLabel("Create app icon", { exact: true })).toBeHidden();
+  await expect(page.getByLabel("Discount code", { exact: true })).toBeHidden();
   await page.getByLabel("Add Online store", { exact: true }).click();
-  await page.getByLabel("Add subagent workflow", { exact: true }).check();
-  await page.getByLabel("Add skill tree setup", { exact: true }).check();
-  await page.getByLabel("App name").fill("Moon Cart");
-  await page.getByLabel("What do you want to make?").fill("A neighborhood marketplace for night-shift workers.");
-  await page.getByLabel("Features & platforms").fill("Saved shops and accessible pickup scheduling.");
-  await page.getByLabel("Look & feel").fill("Quiet, high contrast, midnight blue.");
-  await page.getByLabel("Running budget").fill("$25 monthly");
-
-  await page.getByText("Read the manual instructions").click();
-  const manualPreview = page.locator("details").filter({ hasText: "Read the manual instructions" }).locator("pre").first();
-  await expect(manualPreview).toContainText("WORKING MODE: I DO IT MYSELF");
-  await expect(manualPreview).toContainText("one small numbered step at a time");
-
-  await page.getByLabel("Make AI control my computer").check();
-  await expect(page.getByText("Read the computer control instructions")).toBeVisible();
-  const computerPreview = page.locator("details").filter({ hasText: "Read the computer control instructions" }).locator("pre").first();
-  await expect(computerPreview).toContainText("WORKING MODE: AI CONTROLS MY COMPUTER");
-  await expect(computerPreview).toContainText("available coding, terminal, browser and computer-control tools");
+  await expect(page.getByRole("button", { name: "Try test checkout" })).toBeEnabled();
+  await openExtras(page);
+  await page.getByLabel("Create app icon", { exact: true }).check();
   await page.reload();
-  await expect(page.getByLabel("App name")).toHaveValue("Moon Cart");
-  await expect(page.getByLabel("What do you want to make?")).toHaveValue("A neighborhood marketplace for night-shift workers.");
-  await expect(page.getByLabel("Make AI control my computer")).toBeChecked();
   await expect(page.getByLabel("Remove Online store", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Add subagent workflow", { exact: true })).toBeChecked();
-  await expect(page.getByLabel("Add skill tree setup", { exact: true })).toBeChecked();
+  await expect(page.getByLabel("Create app icon", { exact: true })).toBeChecked();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("runit-template-brief-v1")!))).toMatchObject({ details: { name: "Moon Cart", idea: "A neighborhood marketplace.", features: "Saved shops", style: "Quiet", budget: "$25" }, mode: "computer", selected: ["storefront"], appIcon: true });
+  await page.getByRole("button", { name: "Have a free-trial code?" }).click();
+  await expect(page.getByLabel("What do you want to make?")).toHaveValue("A neighborhood marketplace.");
+  await expect(page.getByRole("button", { name: "Try test checkout" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Back to checkout" }).click();
+  await expect(page.locator("#bundle").getByText("$14.99", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Create app icon", { exact: true })).toBeChecked();
+  await page.goto("/templates/#free-trial");
+  await expect(page.getByLabel("What do you want to make?")).toHaveValue("A neighborhood marketplace.");
+  await page.getByRole("button", { name: "Back to checkout" }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Try test checkout" })).toBeEnabled();
+  await expect(page.getByRole("form", { name: "Free trial checkout" })).toHaveCount(0);
 });
 
 test("checkout sends canonical IDs, access token, and add-on flag, then saves its receipt", async ({ page }) => {
@@ -135,17 +158,21 @@ test("checkout sends canonical IDs, access token, and add-on flag, then saves it
   await waitForStore(page);
   await page.getByLabel("Add Browser game", { exact: true }).click();
   await page.getByLabel("Add Discord bot", { exact: true }).click();
-  await page.getByLabel("Add subagent workflow", { exact: true }).check();
-  await page.getByLabel("Add skill tree setup", { exact: true }).check();
-  await page.getByLabel("App name").fill("Must stay local");
+  await openExtras(page);
+  await page.getByLabel("Add AI teamwork", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Add skills & tools setup", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Create app icon", { exact: true }).check();
   await page.getByRole("button", { name: "Try test checkout" }).click();
   await page.waitForURL("https://checkout.stripe.com/**");
 
   expect(posted).toBeDefined();
-  expect(Object.keys(posted!).sort()).toEqual(["accessToken", "skillTree", "subagents", "templates"]);
+  expect(Object.keys(posted!).sort()).toEqual(["accessToken", "appIcon", "skillTree", "subagents", "templates"]);
   expect(posted!.templates).toEqual(["discord-bot", "browser-game"]);
   expect(posted!.subagents).toBe(true);
   expect(posted!.skillTree).toBe(true);
+  expect(posted!.appIcon).toBe(true);
   expect(posted).not.toHaveProperty("amount");
   expect(posted).not.toHaveProperty("currency");
   expect(posted).not.toHaveProperty("unitAmount");
@@ -157,9 +184,10 @@ test("checkout sends canonical IDs, access token, and add-on flag, then saves it
   await page.goto("http://127.0.0.1:3102/templates/");
   const receipt = await page.evaluate(() => JSON.parse(localStorage.getItem("runit-template-orders-v1") || "[]"));
   const pending = await page.evaluate(() => JSON.parse(sessionStorage.getItem("runit-template-checkout") || "null"));
-  expect(receipt[0]).toMatchObject({ sessionId, templates: ["discord-bot", "browser-game"], subagents: true, skillTree: true });
+  expect(receipt[0]).toMatchObject({ sessionId, templates: ["discord-bot", "browser-game"], subagents: true, skillTree: true, appIcon: true });
   expect(receipt[0].accessToken).toBe(posted!.accessToken);
   expect(pending.cart).toContain(":currency=cad:");
+  expect(pending.cart).toContain(":appIcon=true:");
   expect(pending.token).toBe(posted!.accessToken);
 });
 
@@ -178,13 +206,17 @@ test("founder referral code previews ten percent off and is sent to checkout", a
   await page.route("https://checkout.stripe.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Mock Stripe Checkout</title>" }));
   await waitForStore(page);
   await page.getByLabel("Add Mobile app", { exact: true }).click();
-  await page.getByLabel("Founder referral code", { exact: true }).fill("zain-runit-10");
+  await page.getByText("Add a discount code", { exact: true }).click();
+  await page.getByLabel("Discount code", { exact: true }).fill("zain-runit-10");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.getByText("10% off applied to this order", { exact: false })).toBeVisible();
   await expect(page.locator("#bundle").getByText("$8.99", { exact: true }).last()).toBeVisible();
+  await openExtras(page);
+  await page.getByLabel("Create app icon", { exact: true }).check();
+  await expect(page.locator("#bundle").getByText("$13.49", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Try test checkout" }).click();
   await page.waitForURL("https://checkout.stripe.com/**");
-  expect(posted).toMatchObject({ templates: ["mobile-app"], referralCode: "ZAIN-RUNIT-10" });
+  expect(posted).toMatchObject({ templates: ["mobile-app"], referralCode: "ZAIN-RUNIT-10", appIcon: true });
 });
 
 test("canceled checkout returns to the saved selection", async ({ page }) => {
@@ -195,13 +227,15 @@ test("canceled checkout returns to the saved selection", async ({ page }) => {
     selected: ["mobile-app"],
     subagents: true,
     skillTree: true,
+    appIcon: true,
   })));
   await page.goto("/templates/?canceled=1");
   await expect(page.getByRole("status")).toContainText("Checkout canceled");
   await expect(page.getByLabel("Remove Mobile app", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("App name")).toHaveValue("Saved idea");
-  await expect(page.getByLabel("Add subagent workflow", { exact: true })).toBeChecked();
-  await expect(page.getByLabel("Add skill tree setup", { exact: true })).toBeChecked();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("runit-template-brief-v1")!).details.name)).toBe("Saved idea");
+  await expect(page.getByLabel("Create app icon", { exact: true })).toBeChecked();
+  await expect(page.getByLabel("Add AI teamwork", { exact: true })).toBeChecked();
+  await expect(page.getByLabel("Add skills & tools setup", { exact: true })).toBeChecked();
 });
 
 test("keyboard controls have usable labels", async ({ page }) => {
@@ -212,9 +246,10 @@ test("keyboard controls have usable labels", async ({ page }) => {
   await expect(add).toBeFocused();
   await page.keyboard.press("Space");
   await expect(page.getByLabel("Remove Discord bot", { exact: true })).toHaveAttribute("aria-pressed", "true");
-  await page.getByLabel("Make AI control my computer").focus();
+  await openExtras(page);
+  await page.getByLabel("Create app icon", { exact: true }).focus();
   await page.keyboard.press("Space");
-  await expect(page.getByLabel("Make AI control my computer")).toBeChecked();
+  await expect(page.getByLabel("Create app icon", { exact: true })).toBeChecked();
   await expect(page.getByRole("navigation")).toBeVisible();
 });
 
@@ -223,13 +258,17 @@ test("desktop and mobile layouts have no horizontal overflow", async ({ page }) 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await waitForStore(page);
   await page.getByLabel("Add Online store", { exact: true }).click();
-  await page.getByLabel("Add subagent workflow", { exact: true }).check();
-  await page.getByLabel("Add skill tree setup", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Add AI teamwork", { exact: true }).check();
+  await openExtras(page);
+  await page.getByLabel("Add skills & tools setup", { exact: true }).check();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.locator("#bundle > details > summary").click();
   await page.screenshot({ path: "/tmp/runit-templates-desktop.png", fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "/tmp/runit-templates-mobile.png", fullPage: true });
 });
 

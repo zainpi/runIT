@@ -42,12 +42,12 @@ export function ReferralCode({ value, applied, disabled, onChange, onApplied }: 
   }
 
   return <div className={styles.referral}>
-    <label htmlFor="template-referral-code">Founder referral code <span>optional</span></label>
+    <label htmlFor="template-referral-code">Discount code</label>
     <div className={styles.codeRow}>
-      <input id="template-referral-code" aria-label="Founder referral code" value={value} disabled={disabled || busy} onChange={(event) => { onChange(event.target.value); setError(""); }} placeholder="Enter a founder code" autoComplete="off" autoCapitalize="characters" spellCheck={false} />
+      <input id="template-referral-code" aria-label="Discount code" value={value} disabled={disabled || busy} onChange={(event) => { onChange(event.target.value); setError(""); }} placeholder="Enter code" autoComplete="off" autoCapitalize="characters" spellCheck={false} />
       <button className={styles.secondary} type="button" disabled={disabled || busy || !normalized || alreadyApplied} onClick={() => void apply()}>{busy ? "Checking…" : alreadyApplied ? "Applied" : "Apply"}</button>
     </div>
-    {applied && alreadyApplied && <p className={styles.referralSuccess} role="status">{applied.discountPercent}% off applied · founder referral</p>}
+    {applied && alreadyApplied && <p className={styles.referralSuccess} role="status">{applied.discountPercent}% off applied</p>}
     {error && <p className={styles.error} role="alert">{error}</p>}
   </div>;
 }

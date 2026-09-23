@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       ...(order.subagents ? { subagentInstructions } : {}),
       skillTree: order.skillTree,
       ...(order.skillTree ? { skillTreeInstructions: buildSkillTreeInstructions(order.ids) } : {}),
+      appIcon: order.appIcon,
     });
   } catch (error) { return errorResponse(error); }
 }

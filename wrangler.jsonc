@@ -27,9 +27,11 @@
   "vars": {
     "LOCAL_LORE_IMAGE_DAILY_LIMIT": "250",
     "TEMPLATES_AI_ENABLED": "true",
-    "TEMPLATES_AI_MODEL": "gpt-5.6-luna",
+    "TEMPLATES_AI_MODEL": "gpt-6-luna",
     "TEMPLATES_AI_REASONING_EFFORT": "max",
-    "TEMPLATES_TRIAL_ENABLED": "true"
+    "TEMPLATES_TRIAL_ENABLED": "true",
+    "TEMPLATES_ICON_ENABLED": "true",
+    "TEMPLATES_ICON_MODEL": "gpt-image-2.5-flare-2026-09-08"
   },
   // Enable Next.js <Image> optimization on Cloudflare.
   "images": {

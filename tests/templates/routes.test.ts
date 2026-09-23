@@ -9,6 +9,7 @@ import * as referral from "../../src/app/api/templates/referral/route";
 import * as library from "../../src/app/api/templates/library/route";
 import * as webhook from "../../src/app/api/templates/webhook/route";
 import * as ai from "../../src/app/api/templates/ai/route";
+import * as icons from "../../src/app/api/templates/icon/route";
 
 process.env.TEMPLATES_STRIPE_KEY = "sk_test_synthetic_route_key";
 process.env.TEMPLATES_STRIPE_WEBHOOK_SECRET = "whsec_synthetic_route_secret";
@@ -21,13 +22,14 @@ const paidId = "cs_test_paidroute123456789";
 const unpaidId = "cs_test_unpaidroute123456789";
 const addOnId = "cs_test_addonroute123456789";
 const skillTreeId = "cs_test_skillroute123456789";
+const appIconId = "cs_test_iconroute123456789";
 const ids = ["discord-bot", "roblox-game"] satisfies TemplateId[];
 
 type StoredSession = Record<string, any>;
 const sessions = new Map<string, StoredSession>();
 const stripeCalls: Array<{ url: string; method: string; headers: Headers; body: string }> = [];
 
-function session(id: string, selected: TemplateId[], paid = true, subagents?: boolean, skillTree?: boolean): StoredSession {
+function session(id: string, selected: TemplateId[], paid = true, subagents?: boolean, skillTree?: boolean, appIcon?: boolean): StoredSession {
   return {
     id,
     object: "checkout.session",
@@ -35,8 +37,8 @@ function session(id: string, selected: TemplateId[], paid = true, subagents?: bo
     status: paid ? "complete" : "open",
     payment_status: paid ? "paid" : "unpaid",
     currency: "usd",
-    amount_subtotal: bundlePrice(selected.length, subagents === true, skillTree === true),
-    amount_total: bundlePrice(selected.length, subagents === true, skillTree === true),
+    amount_subtotal: bundlePrice(selected.length, subagents === true, skillTree === true, appIcon === true),
+    amount_total: bundlePrice(selected.length, subagents === true, skillTree === true, appIcon === true),
     metadata: {
       store: TEMPLATE_STORE,
       version: TEMPLATE_VERSION,
@@ -44,6 +46,7 @@ function session(id: string, selected: TemplateId[], paid = true, subagents?: bo
       access_hash: tokenHash(accessToken),
       ...(subagents === undefined ? {} : { subagents: String(subagents) }),
       ...(skillTree === undefined ? {} : { skill_tree: String(skillTree) }),
+      ...(appIcon === undefined ? {} : { app_icon: String(appIcon) }),
     },
     payment_intent: paid ? {
       id: `pi_${id}`,
@@ -54,12 +57,13 @@ function session(id: string, selected: TemplateId[], paid = true, subagents?: bo
 }
 
 function installStripeMock() {
-  Reflect.set(globalThis, Symbol.for("__cloudflare-context__"), { env: { TEMPLATES_AI_ENABLED: "true", TEMPLATES_AI_MODEL: "synthetic-model", TEMPLATES_OPENAI_API_KEY: "synthetic-key", TEMPLATES_AI_ORDERS: { getByName() { throw new Error("AI storage was not expected in a payment test"); } } } });
+  Reflect.set(globalThis, Symbol.for("__cloudflare-context__"), { env: { TEMPLATES_AI_ENABLED: "true", TEMPLATES_AI_MODEL: "synthetic-model", TEMPLATES_OPENAI_API_KEY: "synthetic-key", TEMPLATES_ICON_ENABLED: "true", TEMPLATES_ICON_MODEL: "gpt-image-2.5-flare-2026-09-08", TEMPLATES_AI_ORDERS: { getByName() { throw new Error("AI storage was not expected in a payment test"); } } } });
   sessions.clear();
   sessions.set(paidId, session(paidId, ids));
   sessions.set(unpaidId, session(unpaidId, ["discord-bot"], false));
   sessions.set(addOnId, session(addOnId, ids, true, true));
   sessions.set(skillTreeId, session(skillTreeId, ids, true, false, true));
+  sessions.set(appIconId, session(appIconId, ids, true, false, false, true));
   stripeCalls.length = 0;
   globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -77,7 +81,7 @@ function installStripeMock() {
         return Response.json({ error: { type: "invalid_request_error", message: "custom_text cannot be used with Managed Payments, which is enabled by default on your account." } }, { status: 400 });
       }
       const selected = (fields.get("metadata[templates]") || "").split(",") as TemplateId[];
-      const created = session("cs_test_createdroute123456", selected, false, fields.get("metadata[subagents]") === "true", fields.get("metadata[skill_tree]") === "true");
+      const created = session("cs_test_createdroute123456", selected, false, fields.get("metadata[subagents]") === "true", fields.get("metadata[skill_tree]") === "true", fields.get("metadata[app_icon]") === "true");
       created.currency = fields.get("metadata[currency]");
       created.metadata.currency = fields.get("metadata[currency]");
       created.metadata.pricing_origin = fields.get("metadata[pricing_origin]");
@@ -149,13 +153,13 @@ test("config exposes request-host currency only for validated storefront origins
     const response = await config.GET(new Request(`${requestOrigin}/api/templates/config`));
     assert.equal(response.status, 200);
     const text = await response.text();
-    assert.deepEqual(JSON.parse(text), { available: true, testMode: true, currency });
+    assert.deepEqual(JSON.parse(text), { available: true, appIconAvailable: true, testMode: true, currency });
     assert.doesNotMatch(text, /synthetic_route/);
   }
 
   const unsupported = await config.GET(new Request("https://evil.example/api/templates/config"));
   assert.equal(unsupported.status, 200);
-  assert.deepEqual(await body(unsupported), { available: false, testMode: true, currency: "cad" });
+  assert.deepEqual(await body(unsupported), { available: false, appIconAvailable: false, testMode: true, currency: "cad" });
 });
 
 test("checkout rejects malformed, oversized, foreign-origin, and duplicate carts", async () => {
@@ -198,7 +202,7 @@ test("checkout works with Managed Payments enabled by default and retries with a
   const firstKey = firstCall.headers.get("idempotency-key");
   assert.equal(retryCall.headers.get("idempotency-key"), firstKey);
   assert.equal(retryCall.body, firstCall.body);
-  const legacyKey = `templates-${tokenHash(`${accessToken}:${ids.join(",")}:${origin}:cad:false:false`)}`;
+  const legacyKey = `templates-standard-v1-${tokenHash(`${accessToken}:${ids.join(",")}:${origin}:cad:false:false:none`)}`;
   assert.notEqual(firstKey, legacyKey, "changed parameters must not reuse a previous Checkout request's key");
   const fields = new URLSearchParams(firstCall.body);
   assert.equal(fields.get("managed_payments[enabled]"), "false");
@@ -219,7 +223,7 @@ test("checkout ignores client price/currency and derives CAD metadata from its v
   assert.equal(stripeCalls.length, 1);
   const call = stripeCalls[0];
   assert.equal(call.method, "POST");
-  assert.match(call.headers.get("idempotency-key") || "", /^templates-standard-v1-[a-f0-9]{64}$/);
+  assert.match(call.headers.get("idempotency-key") || "", /^templates-standard-v2-[a-f0-9]{64}$/);
   const posted = new URLSearchParams(call.body);
   assert.equal(posted.get("line_items[0][price_data][unit_amount]"), "999");
   assert.equal(posted.get("line_items[1][price_data][unit_amount]"), "500");
@@ -334,7 +338,7 @@ test("library gates exact paid prompts by private token and paid state", async (
   const unpaidBody = await body(response);
   assert.equal(response.status, 409, JSON.stringify(unpaidBody));
 
-  response = await library.POST(jsonRequest("/api/templates/library", { sessionId: paidId, accessToken }));
+  response = await library.POST(jsonRequest("/api/templates/library", { sessionId: paidId, accessToken, appIcon: true }));
   assert.equal(response.status, 200);
   const result = await body(response);
   assert.deepEqual(result.templates.map((item: any) => item.id), ids);
@@ -343,6 +347,8 @@ test("library gates exact paid prompts by private token and paid state", async (
   assert.equal(result.subagentInstructions, undefined);
   assert.equal(result.skillTree, false);
   assert.equal(result.skillTreeInstructions, undefined);
+  assert.equal(result.appIcon, false);
+  assert.equal(result.appIconInstructions, undefined);
   assert.equal(sessions.get(paidId)?.metadata.delivery, "available");
 
   response = await library.POST(jsonRequest("/api/templates/library", { sessionId: addOnId, accessToken, subagents: false }));
@@ -358,6 +364,63 @@ test("library gates exact paid prompts by private token and paid state", async (
   assert.equal(skilled.subagentInstructions, undefined);
   assert.equal(skilled.skillTree, true);
   assert.ok(typeof skilled.skillTreeInstructions === "string" && skilled.skillTreeInstructions.length > 500);
+
+  response = await library.POST(jsonRequest("/api/templates/library", { sessionId: appIconId, accessToken, appIcon: false }));
+  assert.equal(response.status, 200);
+  const icon = await body(response);
+  assert.equal(icon.appIcon, true);
+  assert.equal(icon.appIconInstructions, undefined, "the purchased icon is generated on the site, not delivered as a prompt");
+  assert.equal(icon.subagentInstructions, undefined);
+  assert.equal(icon.skillTreeInstructions, undefined);
+});
+
+test("checkout validates app icon selection and separates changed carts while preserving retries", async () => {
+  for (const appIcon of ["true", 1, null, {}]) {
+    const response = await checkout.POST(jsonRequest("/api/templates/checkout", { templates: ids, accessToken, appIcon }));
+    assert.equal(response.status, 400);
+  }
+  assert.equal(stripeCalls.length, 0);
+  for (const appIcon of [false, true, true]) {
+    const response = await checkout.POST(jsonRequest("/api/templates/checkout", { templates: ids, accessToken, appIcon }));
+    assert.equal(response.status, 200);
+  }
+  const [without, withIcon, retry] = stripeCalls;
+  assert.notEqual(without.headers.get("idempotency-key"), withIcon.headers.get("idempotency-key"));
+  assert.equal(withIcon.headers.get("idempotency-key"), retry.headers.get("idempotency-key"));
+  assert.equal(withIcon.body, retry.body);
+  const posted = new URLSearchParams(withIcon.body);
+  assert.equal(posted.get("metadata[app_icon]"), "true");
+  assert.equal(posted.get("payment_intent_data[metadata][app_icon]"), "true");
+  assert.equal(posted.get("line_items[2][price_data][unit_amount]"), "500");
+  assert.equal(posted.get("line_items[2][quantity]"), "1");
+  assert.equal(posted.get("line_items[3][price_data][unit_amount]"), null);
+});
+
+test("icon generation and downloads require a valid paid add-on and private token", async () => {
+  for (const action of ["load", "generate", "download", "delete"]) {
+    for (const access of [
+      { sessionId: paidId, accessToken, appIcon: true },
+      { sessionId: unpaidId, accessToken, appIcon: true },
+      { sessionId: appIconId, accessToken: wrongToken },
+      { sessionId: `trial_${"a".repeat(64)}`, accessToken },
+    ]) {
+      assert.ok([403, 409].includes((await icons.POST(jsonRequest("/api/templates/icon", { action, ...access }))).status));
+    }
+  }
+  assert.equal((await icons.POST(jsonRequest("/api/templates/icon", { action: "load", sessionId: appIconId, accessToken }, { origin: "https://evil.example" }))).status, 403);
+  sessions.get(appIconId)!.payment_intent.latest_charge.refunded = true;
+  assert.equal((await icons.POST(jsonRequest("/api/templates/icon", { action: "download", sessionId: appIconId, accessToken }))).status, 403);
+});
+
+test("checkout refuses the icon add-on when image generation is disabled", async () => {
+  const context = Reflect.get(globalThis, Symbol.for("__cloudflare-context__"));
+  context.env.TEMPLATES_ICON_ENABLED = "false";
+  const availability = await body(await config.GET(new Request(`${origin}/api/templates/config`)));
+  assert.equal(availability.available, true);
+  assert.equal(availability.appIconAvailable, false);
+  assert.equal((await checkout.POST(jsonRequest("/api/templates/checkout", { templates: ids, accessToken, appIcon: true }))).status, 503);
+  assert.equal(stripeCalls.length, 0);
+  assert.equal((await checkout.POST(jsonRequest("/api/templates/checkout", { templates: ids, accessToken, appIcon: false }))).status, 200);
 });
 
 function signedWebhook(payload: string, valid = true): Request {

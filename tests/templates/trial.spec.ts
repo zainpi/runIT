@@ -48,22 +48,18 @@ test("free checkout requires a template and description, preserves the brief and
     return route.fulfill({ json: { sessionId, templateId: "mobile-app", messageLimit: 3 } });
   });
   await page.goto("/templates/");
+  await page.getByRole("button", { name: "Have a free-trial code?" }).click();
   await page.getByLabel("Free-trial code", { exact: true }).fill("sample-code");
-  const checkout = page.getByRole("button", { name: "Complete free checkout" });
-  await expect(page.getByLabel("1. Choose your template")).toHaveValue("");
+  const checkout = page.getByRole("button", { name: "Start free trial" });
+  await expect(page.getByLabel("Template", { exact: true })).toHaveValue("");
   await expect(checkout).toBeDisabled();
   await page.getByRole("button", { name: "Add Mobile app", exact: true }).click();
-  await expect(page.getByLabel("1. Choose your template")).toHaveValue("mobile-app");
-  await page.getByLabel("Use OpenAI to prepare my overview").check();
+  await expect(page.getByLabel("Template", { exact: true })).toHaveValue("mobile-app");
+  await page.getByLabel("Use OpenAI to create my plan").check();
   await expect(checkout).toBeDisabled();
-  await page.getByRole("link", { name: "Add description" }).click();
-  await expect(page.getByLabel("What do you want to make?")).toBeFocused();
   await page.getByLabel("What do you want to make?").fill(brief.idea);
-  await page.getByLabel("App name").fill(brief.name);
-  await page.getByLabel("Features & platforms").fill(brief.features);
-  await page.getByLabel("Look & feel").fill(brief.style);
   await expect(checkout).toBeEnabled();
-  await expect(page.locator("#free-trial")).toContainText("$0.00");
+  await expect(page.locator("#bundle")).toContainText("No card needed");
   await expect(page.getByRole("button", { name: "Try test checkout" })).toHaveCount(0);
   await page.locator("#free-trial").screenshot({ path: "/tmp/runit-dashboard-checkout.png" });
   await checkout.click();
@@ -72,7 +68,7 @@ test("free checkout requires a template and description, preserves the brief and
   await expect(page).toHaveURL(new RegExp(`/templates/trial/#session_id=${sessionId}&access=[a-f0-9]{64}`));
   expect(redemptions).toHaveLength(2);
   expect(redemptions[1].accessToken).toBe(redemptions[0].accessToken);
-  expect(redemptions[1]).toMatchObject({ code: "SAMPLE-CODE", templateId: "mobile-app", brief, consent: true });
+  expect(redemptions[1]).toMatchObject({ code: "SAMPLE-CODE", templateId: "mobile-app", brief: { name: "", idea: brief.idea, features: "", style: "", budget: "" }, consent: true });
   await expect(page.getByRole("heading", { name: "BoulderMe", exact: true })).toBeVisible();
   await expect(page.getByRole("table")).toContainText("Find climbers");
   expect(workspace.requests.filter((data) => data.action === "overview")).toHaveLength(1);
@@ -97,20 +93,32 @@ test("dashboard keeps the plan beside chat, updates it, restores on a clean brow
   await page.getByRole("button", { name: "Answer in chat" }).click();
   await expect(page.getByLabel("Ask for a change")).toBeFocused();
   await expect(page.getByLabel("Ask for a change")).toHaveValue(/Should climbers connect/);
+  const chat = page.getByRole("complementary", { name: "AI editing chat" });
+  await expect(chat.getByText("I’ve shaped your brief into a first plan.", { exact: false })).toBeVisible();
+  const decisions = chat.getByRole("region", { name: "Decisions to make" });
+  await expect(decisions).toContainText(plan.questions[0]);
+  await decisions.getByRole("button", { name: /Should climbers connect/ }).click();
+  await expect(page.getByLabel("Ask for a change")).toHaveValue(/Should climbers connect/);
   for (let i = 0; i < 3; i++) {
-    await page.getByLabel("Ask for a change").fill(`Add small group sessions ${i}`);
+    await page.getByLabel("Ask for a change").fill(i === 0 ? `About “${plan.questions[0]}”: Let people join small group sessions.` : `Add small group sessions ${i}`);
     await page.getByRole("button", { name: "Send change" }).click();
     await expect(page.getByText(`${2 - i} of 3 editing messages left`)).toBeVisible();
     await expect(page.getByRole("region", { name: "Your project plan" })).toContainText("Your revised climbing app includes small group sessions.");
   }
+  await expect(chat.getByText("I’ve shaped your brief into a first plan.", { exact: false })).toBeVisible();
+  await expect(chat.getByText(`About “${plan.questions[0]}”: Let people join small group sessions.`)).toBeVisible();
+  await expect(chat.getByText("I’ve added small group sessions and saved your updated plan.").first()).toBeVisible();
+  await expect(decisions).toContainText(plan.questions[0]);
   await expect(page.getByLabel("Ask for a change")).toHaveCount(0);
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
   await expect(page.getByRole("heading", { name: "BoulderMe", exact: true })).toBeVisible();
   await expect(page.getByText("0 of 3 editing messages left")).toBeVisible();
   expect(workspace.requests.filter((data) => data.action === "overview")).toHaveLength(1);
+  const downloadButtons = page.getByRole("button", { name: "Download plan", exact: false });
+  await expect(downloadButtons).toHaveCount(2);
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download plan", exact: false }).click();
+  await downloadButtons.last().click();
   expect((await download).suggestedFilename()).toBe("boulderme-plan.json");
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("table")).toBeVisible();
@@ -118,6 +126,9 @@ test("dashboard keeps the plan beside chat, updates it, restores on a clean brow
   await page.screenshot({ path: "/tmp/runit-dashboard-mobile-plan.png", fullPage: true });
   await page.getByRole("button", { name: "AI chat" }).click();
   await expect(page.getByRole("complementary", { name: "AI editing chat" })).toBeVisible();
+  await expect(decisions).toContainText(plan.questions[0]);
+  await expect(chat.getByText("I’ve shaped your brief into a first plan.", { exact: false })).toBeVisible();
+  expect(await chat.getByRole("log", { name: "Conversation" }).evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true);
   await expect(page.getByRole("table")).toBeHidden();
   await page.screenshot({ path: "/tmp/runit-dashboard-mobile-chat.png", fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -130,6 +141,23 @@ test("dashboard keeps the plan beside chat, updates it, restores on a clean brow
   await page.reload();
   await expect(page.getByRole("heading", { name: "BoulderMe", exact: true })).toHaveCount(0);
   expect(workspace.requests.filter((data) => data.action === "overview")).toHaveLength(1);
+});
+
+test("quick options keep their labels and fill detailed, fully visible drafts", async ({ page }) => {
+  await mockWorkspace(page);
+  await page.goto(trialUrl);
+  const composer = page.getByLabel("Ask for a change");
+  for (const [label, detail] of [
+    ["Keep only the essentials", "core user journey"],
+    ["Make the design feel warmer", "typography"],
+    ["Suggest a starting budget", "monthly operating costs"],
+  ]) {
+    await page.getByRole("button", { name: label }).click();
+    const draft = await composer.inputValue();
+    expect(draft.length).toBeGreaterThan(300);
+    expect(draft).toContain(detail);
+    await expect.poll(() => composer.evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true);
+  }
 });
 
 test("a failed overview offers a manual retry without an automatic request loop", async ({ page }) => {
@@ -173,11 +201,12 @@ test("exhausted code stays at checkout and does not create a dashboard", async (
   await page.route("**/api/templates/config/**", (route) => route.fulfill({ json: { available: false, testMode: false } }));
   await page.route("**/api/templates/trial/**", (route) => route.fulfill({ status: 410, json: { error: "This trial code has reached its 50-use limit." } }));
   await page.goto("/templates/");
+  await page.getByRole("button", { name: "Have a free-trial code?" }).click();
   await page.getByLabel("Free-trial code", { exact: true }).fill("USED-CODE");
-  await page.getByLabel("1. Choose your template").selectOption("mobile-app");
+  await page.getByLabel("Template", { exact: true }).selectOption("mobile-app");
   await page.getByLabel("What do you want to make?").fill(brief.idea);
-  await page.getByLabel("Use OpenAI to prepare my overview").check();
-  await page.getByRole("button", { name: "Complete free checkout" }).click();
+  await page.getByLabel("Use OpenAI to create my plan").check();
+  await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page.locator("#free-trial").getByRole("alert")).toContainText("50-use limit");
   await expect(page).toHaveURL(/\/templates\/$/);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -217,6 +246,8 @@ test("mobile overview failure remains visible on the plan tab", async ({ page })
   await expect(page.getByRole("table")).toBeVisible();
   await page.getByRole("button", { name: "AI chat" }).click();
   await expect(page.getByLabel("Ask for a change")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Make it yours" })).toBeInViewport();
+  await page.getByLabel("Ask for a change").scrollIntoViewIfNeeded();
   const composer = await page.getByLabel("Ask for a change").boundingBox();
   expect(composer!.y + composer!.height).toBeLessThanOrEqual(844);
   await page.screenshot({ path: "/tmp/runit-dashboard-mobile-composer.png", fullPage: true });

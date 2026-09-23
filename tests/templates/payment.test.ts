@@ -3,6 +3,7 @@ import test from "node:test";
 import Stripe from "stripe";
 import {
   bundlePrice,
+  APP_ICON_ADDON_CENTS,
   discountedBundlePrice,
   EXTRA_TEMPLATE_CENTS,
   FIRST_TEMPLATE_CENTS,
@@ -102,6 +103,9 @@ test("bundle pricing covers zero through every catalog item", () => {
     assert.equal(bundlePrice(count, true), count === 0 ? 0 : expected + SUBAGENT_ADDON_CENTS);
     assert.equal(bundlePrice(count, false, true), count === 0 ? 0 : expected + SKILL_TREE_ADDON_CENTS);
     assert.equal(bundlePrice(count, true, true), count === 0 ? 0 : expected + SUBAGENT_ADDON_CENTS + SKILL_TREE_ADDON_CENTS);
+    for (const subagents of [false, true]) for (const skillTree of [false, true]) {
+      assert.equal(bundlePrice(count, subagents, skillTree, true), count === 0 ? 0 : bundlePrice(count, subagents, skillTree) + APP_ICON_ADDON_CENTS);
+    }
   }
   for (const invalid of [-1, 0.5, templateCatalog.length + 1, Number.NaN]) {
     assert.throws(() => bundlePrice(invalid), /Invalid template count/);
@@ -148,6 +152,7 @@ test("checkout retry parameters derive canonical currency, prices, and metadata 
     ai_overviews: "one_per_template",
     subagents: "false",
     skill_tree: "false",
+    app_icon: "false",
     currency: "usd",
     pricing_origin: returnOrigin,
   });
@@ -155,6 +160,7 @@ test("checkout retry parameters derive canonical currency, prices, and metadata 
   assert.equal(params.payment_intent_data?.metadata?.templates, ids.join(","));
   assert.equal(params.payment_intent_data?.metadata?.subagents, "false");
   assert.equal(params.payment_intent_data?.metadata?.skill_tree, "false");
+  assert.equal(params.payment_intent_data?.metadata?.app_icon, "false");
   assert.equal(params.payment_intent_data?.metadata?.currency, "usd");
   assert.equal(params.payment_intent_data?.metadata?.pricing_origin, returnOrigin);
   assert.equal(params.adaptive_pricing?.enabled, false);
@@ -246,6 +252,30 @@ test("access and Checkout identifiers use strict formats", () => {
   assert.equal(validSessionId("pi_test_1234567890abcdef"), false);
 });
 
+test("app icon is charged once across currencies, bundle sizes, add-ons and referrals", () => {
+  for (const origin of ["https://runsit.ca", "https://runs-it.com"]) {
+    for (const count of [1, templateCatalog.length]) {
+      const selected = templateCatalog.slice(0, count).map((item) => item.id);
+      for (const subagents of [false, true]) for (const skillTree of [false, true]) {
+        for (const referral of [undefined, referralForCode("ZAIN-RUNIT-10")!]) {
+          const params = checkoutParameters(selected, accessToken, origin, subagents, skillTree, referral, true);
+          const lines = params.line_items as Stripe.Checkout.SessionCreateParams.LineItem[];
+          const iconLine = lines.at(-1)!;
+          assert.equal(lines.length, count + Number(subagents) + Number(skillTree) + 1);
+          assert.equal(iconLine.quantity, 1);
+          assert.equal(iconLine.price_data?.unit_amount, referral ? 450 : 500);
+          assert.equal(iconLine.price_data?.currency, templateCurrencyForHostname(new URL(origin).hostname));
+          assert.equal(params.metadata?.app_icon, "true");
+          assert.equal(params.payment_intent_data?.metadata?.app_icon, "true");
+          const total = lines.reduce((sum, line) => sum + (line.price_data?.unit_amount ?? 0), 0);
+          assert.equal(total, discountedBundlePrice(count, subagents, skillTree, referral?.discountPercent ?? 0, true));
+          assert.deepEqual(purchasedIds(paidSession({ currency: params.metadata!.currency, metadata: params.metadata, amount_subtotal: total, amount_total: total })), selected);
+        }
+      }
+    }
+  }
+});
+
 test("verification rejects checkout that is incomplete or unpaid", async () => {
   for (const session of [
     paidSession({ status: "open" }),
@@ -266,6 +296,7 @@ test("verification rejects foreign, obsolete, malformed, or forged pricing metad
     paidSession({ metadata: { ...paidSession().metadata, templates: "unknown" } }),
     paidSession({ metadata: { ...paidSession().metadata, subagents: "yes" } }),
     paidSession({ metadata: { ...paidSession().metadata, skill_tree: "yes" } }),
+    paidSession({ metadata: { ...paidSession().metadata, app_icon: "yes" } }),
     paidSession({ metadata: { ...paidSession().metadata, currency: "cad" } }),
     paidSession({ metadata: { ...paidSession().metadata, pricing_origin: "https://runsit.ca" } }),
     paidSession({ metadata: { ...paidSession().metadata, currency: undefined } }),
@@ -287,6 +318,7 @@ test("verification accepts USD-only legacy pricing and validates entitled totals
   const legacyOrder = await verifyOrder(fakeStripe(legacy).stripe, legacy.id, accessToken);
   assert.equal(legacyOrder.subagents, false);
   assert.equal(legacyOrder.skillTree, false);
+  assert.equal(legacyOrder.appIcon, false);
 
   const legacyCad = paidSession({
     metadata: { ...current.metadata, currency: undefined, pricing_origin: undefined },
@@ -323,6 +355,14 @@ test("verification accepts USD-only legacy pricing and validates entitled totals
   await rejectsStoreError(() => verifyOrder(fakeStripe(forged).stripe, forged.id, accessToken), 403, /amount could not be verified/);
   const forgedSkill = paidSession({ metadata: { ...paidSession().metadata, skill_tree: "true" } });
   await rejectsStoreError(() => verifyOrder(fakeStripe(forgedSkill).stripe, forgedSkill.id, accessToken), 403, /amount could not be verified/);
+  const forgedIcon = paidSession({ metadata: { ...paidSession().metadata, app_icon: "true" } });
+  await rejectsStoreError(() => verifyOrder(fakeStripe(forgedIcon).stripe, forgedIcon.id, accessToken), 403, /amount could not be verified/);
+  const icon = paidSession({
+    metadata: { ...paidSession().metadata, app_icon: "true" },
+    amount_subtotal: bundlePrice(ids.length, false, false, true),
+    amount_total: bundlePrice(ids.length, false, false, true),
+  });
+  assert.equal((await verifyOrder(fakeStripe(icon).stripe, icon.id, accessToken)).appIcon, true);
 });
 
 test("verification rejects missing or incorrect access token", async () => {

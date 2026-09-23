@@ -2,12 +2,14 @@
 .form label { display:flex; align-items:baseline; justify-content:space-between; gap:9px; font-size:.8rem; }
 .form label>span { color:var(--muted); font-size:.68rem; }
 .codeRow { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; }
-.form input,.form select { box-sizing:border-box; width:100%; min-width:0; min-height:46px; padding:12px 14px; font:inherit; font-size:.82rem; line-height:1.6; color:#f3f5fc; background:#111823; border:1px solid #394255; border-radius:6px; }
+.form input,.form select,.form textarea { box-sizing:border-box; width:100%; min-width:0; min-height:46px; padding:12px 14px; font:inherit; font-size:.82rem; line-height:1.6; color:#f3f5fc; background:#111823; border:1px solid #394255; border-radius:6px; }
+.form textarea { resize:vertical; }
 .form input::placeholder { color:#8c99ad; }
 .form button { min-width:80px; }
 .details { display:grid; gap:9px; }
 .details label { flex-direction:column; align-items:stretch; }
 .details { gap:18px; }
+.field { display:grid; gap:9px; }
 .brief { padding:14px; background:#0b111b; border:1px solid var(--line); border-radius:6px; }
 .brief>div { display:flex; justify-content:space-between; gap:12px; font-size:.8rem; }
 .brief a { color:var(--accent); }
@@ -17,3 +19,5 @@
 .details .consent { display:flex; flex-direction:row; align-items:flex-start; gap:10px; }
 .consent input { width:18px; height:18px; min-height:18px; flex-shrink:0; margin:3px 0; accent-color:#bec9ff; }
 .details .consent span { font-size:.78rem; line-height:1.6; }
+.form .back { min-height:44px; background:transparent; border:0; padding:0; color:#b9c8b1; font-size:.76rem; text-align:left; }
+@media(max-width:600px) { .form input,.form select,.form textarea { font-size:16px; } }

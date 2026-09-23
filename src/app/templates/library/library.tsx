@@ -7,6 +7,7 @@ import { site } from "@/lib/site";
 import { downloadText, loadDraft, loadReceipts, receiptLink, saveDraft, saveReceipt, type Receipt } from "../browser-storage";
 import { Personalize } from "../personalize";
 import { AiEditor } from "./ai-editor";
+import { AppIconGenerator } from "./app-icon-generator";
 import { sameBrief, type AppPlan } from "@/lib/templates/ai-contract";
 import styles from "../templates.module.css";
 
@@ -21,6 +22,7 @@ export function TemplateLibrary() {
   const [includeSubagents, setIncludeSubagents] = useState(false);
   const [skillTreeInstructions, setSkillTreeInstructions] = useState<string | undefined>();
   const [includeSkillTree, setIncludeSkillTree] = useState(false);
+  const [appIconPurchased, setAppIconPurchased] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -31,7 +33,7 @@ export function TemplateLibrary() {
   async function openOrder(receipt: Receipt) {
     setApplied({});
     const requestId = ++orderRequest.current.generation;
-    setBusy(true); setError(""); setStatus(""); setActive(receipt); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setIncludeSubagents(false); setSkillTreeInstructions(undefined); setIncludeSkillTree(false);
+    setBusy(true); setError(""); setStatus(""); setActive(receipt); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setIncludeSubagents(false); setSkillTreeInstructions(undefined); setIncludeSkillTree(false); setAppIconPurchased(false);
     // Keep bookmarks tied to the active order, including when browser storage is unavailable.
     // The private credential stays in the fragment, which is not sent in HTTP requests.
     history.replaceState(history.state, "", receiptLink(receipt));
@@ -45,7 +47,9 @@ export function TemplateLibrary() {
       setSubagentInstructions(purchasedAddon ? data.subagentInstructions : undefined); setIncludeSubagents(purchasedAddon);
       const purchasedSkillTree = data.skillTree === true && typeof data.skillTreeInstructions === "string" && data.skillTreeInstructions.trim().length > 0;
       setSkillTreeInstructions(purchasedSkillTree ? data.skillTreeInstructions : undefined); setIncludeSkillTree(purchasedSkillTree);
-      const updated = { ...receipt, templates: data.templates.map((t: { id: TemplateId }) => t.id), subagents: purchasedAddon, skillTree: purchasedSkillTree };
+      const purchasedAppIcon = data.appIcon === true;
+      setAppIconPurchased(purchasedAppIcon);
+      const updated = { ...receipt, templates: data.templates.map((t: { id: TemplateId }) => t.id), subagents: purchasedAddon, skillTree: purchasedSkillTree, appIcon: purchasedAppIcon };
       setActive(updated);
       try { saveReceipt(updated); setReceipts(loadReceipts()); } catch { setStatus("Browser storage is unavailable. Save your private access link below."); }
       try { sessionStorage.removeItem("runit-template-checkout"); } catch { /* The verified order is still usable. */ }
@@ -73,7 +77,7 @@ export function TemplateLibrary() {
       } else {
         setApplied({});
         ++orderRequest.current.generation;
-        setActive(null); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setIncludeSubagents(false); setSkillTreeInstructions(undefined); setIncludeSkillTree(false); setBusy(false); setStatus("");
+        setActive(null); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setIncludeSubagents(false); setSkillTreeInstructions(undefined); setIncludeSkillTree(false); setAppIconPurchased(false); setBusy(false); setStatus("");
         setError(location.hash ? "This purchase link is incomplete or invalid. Open the full URL from your saved access file, or choose one of your saved orders." : "");
       }
     }
@@ -89,8 +93,8 @@ export function TemplateLibrary() {
   const appPlan = savedPlan && sameBrief(savedPlan.brief, details) ? savedPlan.plan : undefined;
   const prompt = current ? composePrompt(title, current.foundation, details, mode, includeSubagents ? subagentInstructions : undefined, includeSkillTree ? skillTreeInstructions : undefined, appPlan) : "";
   const setupPrompt = skillTreeInstructions ? composeSkillSetupPrompt(skillTreeInstructions, details, mode) : "";
-  function updateDetails(value: Personalization) { setDetails(value); try { const draft = loadDraft(); saveDraft(value, mode, draft.selected, draft.subagents, draft.skillTree); } catch { /* Editing still works. */ } }
-  function updateMode(value: BuildMode) { setMode(value); try { const draft = loadDraft(); saveDraft(details, value, draft.selected, draft.subagents, draft.skillTree); } catch { /* Editing still works. */ } }
+  function updateDetails(value: Personalization) { setDetails(value); try { const draft = loadDraft(); saveDraft(value, mode, draft.selected, draft.subagents, draft.skillTree, draft.appIcon); } catch { /* Editing still works. */ } }
+  function updateMode(value: BuildMode) { setMode(value); try { const draft = loadDraft(); saveDraft(details, value, draft.selected, draft.subagents, draft.skillTree, draft.appIcon); } catch { /* Editing still works. */ } }
   async function copy(text: string, message: string) {
     try { await navigator.clipboard.writeText(text); setStatus(message); }
     catch { setStatus("Copy isn’t available here. Use the download button, or select the text below and copy it."); }
@@ -128,6 +132,7 @@ export function TemplateLibrary() {
         <div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(setupPrompt, "skill-tree-setup-prompt.txt")}>Download skill setup .txt</button><button className={styles.secondary} onClick={() => void copy(setupPrompt, "Skill setup prompt copied. Paste it into your AI tool to prepare your workspace.")}>Copy skill setup prompt</button></div>
         <details className={styles.sample}><summary>Preview skill setup prompt <span>↗</span></summary><pre>{setupPrompt}</pre></details>
       </section> : <p className={`${styles.small} ${styles.libraryAddon}`}>Skill tree setup was not included in this order.</p>}
+      {appIconPurchased && active && current && <AppIconGenerator key={`${active.sessionId}:${active.accessToken}`} receipt={active} templateId={current.id} details={details} />}
       <section className={styles.promptOutput}><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Ready for your AI</p><h2>{title} prompt</h2></div><div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(prompt, `${selected}-prompt.txt`)}>Download .txt</button><button className={styles.primary} onClick={() => void copy(prompt, `${title} prompt copied. Paste it into your AI tool to begin.`)}>Copy full prompt ↗</button></div></div><label className={styles.small} htmlFor="full-prompt">Your brief + {mode === "computer" ? "computer control" : "manual"} instructions + complete foundation{includeSubagents && subagentInstructions ? " + subagent workflow" : ""}{includeSkillTree && skillTreeInstructions ? " + skill tree setup" : ""}</label><textarea id="full-prompt" readOnly value={prompt} rows={20} spellCheck={false} /><p className={styles.small}>Replace any bracketed placeholders before starting. You can return, change the brief or mode, and download again. Your AI is also instructed to create FOLLOW_UP_PROMPTS.md in your project with useful prompts to ask next.</p></section>
     </>}
     <p className={styles.libraryBack}><Link href="/templates/">← Back to all templates</Link></p>

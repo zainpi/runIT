@@ -8,6 +8,21 @@ import { downloadText, loadDraft, saveDraft } from "../browser-storage";
 import { useTrialProject } from "./use-trial-project";
 import styles from "./dashboard.module.css";
 
+const quickPrompts = [
+  {
+    label: "Keep only the essentials",
+    message: "Please turn this plan into a focused first release. Identify the one core user journey that proves the idea works, keep only the features required for that journey, and move everything else into a later phase. For each retained feature, explain the minimum behavior users need and any privacy or safety requirement that cannot be deferred. Update the overview and feature table, then list what you postponed and why.",
+  },
+  {
+    label: "Make the design feel warmer",
+    message: "Please revise the app's look and feel so it feels warmer, more welcoming, and easier to trust. Suggest a coherent direction for colors, typography, spacing, imagery, buttons, empty states, onboarding, and microcopy, tailored to the audience in my brief. Keep contrast and readability accessible. Update the plan to show where these design choices would appear in the first release.",
+  },
+  {
+    label: "Suggest a starting budget",
+    message: "Please recommend a practical starting budget for this app's first release. Separate one-time build work from monthly operating costs, identify the services this feature plan actually needs, and describe low-usage and growing-usage scenarios. State your usage assumptions, the largest cost drivers, and ways to keep costs down. Treat prices as estimates and flag anything that needs current provider pricing before I commit.",
+  },
+] as const;
+
 export function TrialDashboard({ access, templateId, url }: { access: TrialAccess; templateId: TemplateId; url: string }) {
   const ai = useTrialProject(access, templateId);
   const [view, setView] = useState<"plan" | "chat">("plan");
@@ -17,7 +32,6 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
   const [legacyBrief, setLegacyBrief] = useState<Personalization>(emptyPersonalization);
   const [setup, setSetup] = useState<Personalization>(emptyPersonalization);
   const composer = useRef<HTMLTextAreaElement>(null);
-  const conversation = useRef<HTMLDivElement>(null);
   const workspace = useRef<HTMLDivElement>(null);
   const template = templateCatalog.find((item) => item.id === templateId)!;
   const project = ai.state?.projects[templateId];
@@ -29,9 +43,9 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
   const overviewUsed = ai.state?.overviewUsed.includes(templateId);
   const canSend = !!ai.state && ai.available && canUseAi && !!brief.idea.trim() && !pending && remaining > 0;
   useEffect(() => {
-    const node = conversation.current;
-    if (node) node.scrollTop = node.scrollHeight;
-  }, [project?.history.length, pending, view]);
+    const node = composer.current;
+    if (node) { node.style.height = "auto"; node.style.height = `${node.scrollHeight}px`; }
+  }, [ai.message, view]);
 
   function suggest(text: string) { ai.setMessage(text); setView("chat"); requestAnimationFrame(() => composer.current?.focus()); }
   function switchView(next: "plan" | "chat") {
@@ -44,7 +58,7 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
     downloadText(JSON.stringify({ template: templateId, brief: project.brief, plan: project.plan, conversation: project.history }, null, 2), `${name}-plan.json`);
   }
   function preparePurchase() {
-    try { const draft = loadDraft(); saveDraft(brief, draft.mode, [templateId], draft.subagents, draft.skillTree); } catch { /* Purchase works without a local draft. */ }
+    try { const draft = loadDraft(); saveDraft(brief, draft.mode, [templateId], draft.subagents, draft.skillTree, draft.appIcon); } catch { /* Purchase works without a local draft. */ }
   }
 
   return <div className={styles.dashboard}>
@@ -59,7 +73,7 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
           <button onClick={() => downloadText(`YOUR PRIVATE TRIAL LINK\n\n${url}\n\nKeep this link private. It opens your saved AI plan and chat.`, "template-trial-access.txt")}>Download access file</button>
           <p role="status">{linkStatus}</p>
         </div></details>
-        <button disabled={!project} onClick={exportPlan}>Download plan <span aria-hidden="true">↓</span></button>
+        <button className={styles.downloadPlan} disabled={!project} onClick={exportPlan}>Download plan <span aria-hidden="true">↓</span></button>
       </div>
     </header>
     <div className={styles.projectMeta}><span><i aria-hidden="true" />{pending ? "Preparing your plan" : project ? "Plan saved" : "Workspace ready"}</span><span>{plan ? `${plan.features.length} features` : "Personalized feature plan"}</span><span>{project ? `Version ${project.revision}` : "Free overview included"}</span><span className={styles.checkoutStatus}>$0 · No payment required</span></div>
@@ -90,11 +104,15 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
       </section>
       <aside className={`${styles.chatPane} ${view !== "chat" ? styles.mobileHidden : ""}`} aria-label="AI editing chat">
         <div className={styles.chatHeader}><div className={styles.aiMark} aria-hidden="true">✦</div><div><h2>Make it yours</h2><p>Chat with your AI editor</p></div><span className={styles.messageCount}>{remaining} left</span></div>
-        <div ref={conversation} className={styles.conversation} role="log" aria-label="Conversation" aria-live="polite" tabIndex={0}>
+        <div className={styles.conversation} role="log" aria-label="Conversation" aria-live="polite" tabIndex={0}>
           <div className={styles.welcome}><span className={styles.kicker}>A little help, a lot of possibility</span><h3>What would you change?</h3><p>Add a feature, simplify the scope, or change the direction. Your plan updates here as you chat.</p></div>
           {project?.history.map((item, index) => <div key={index} className={item.role === "user" ? styles.userMessage : styles.aiMessage}><strong>{item.role === "user" ? "You" : "AI editor"}</strong><p>{item.text}</p></div>)}
+          {!!plan?.questions.length && <section className={styles.decisionPrompts} aria-label="Decisions to make">
+            <h3>Decisions to make <span>{plan.questions.length}</span></h3>
+            <div>{plan.questions.map((question, index) => <button key={index} disabled={pending || remaining <= 0} onClick={() => suggest(`About “${question}”: `)}><span>{question}</span><span aria-hidden="true">Answer ↗</span></button>)}</div>
+          </section>}
           {pending && <div className={styles.thinking} role="status"><span aria-hidden="true">✦</span> {project ? "Updating your plan…" : "Preparing your free overview…"}</div>}
-          {!pending && !project?.history.some((item) => item.role === "user") && <div className={styles.suggestions}>{["Keep only the essentials", "Make the design feel warmer", "Suggest a starting budget"].map((text) => <button key={text} disabled={!canSend} onClick={() => suggest(text)}>{text}<span aria-hidden="true">↗</span></button>)}</div>}
+          {!pending && !project?.history.some((item) => item.role === "user") && <div className={styles.suggestions}>{quickPrompts.map(({ label, message }) => <button key={label} disabled={!canSend} onClick={() => suggest(message)}>{label}<span aria-hidden="true">↗</span></button>)}</div>}
         </div>
         <div className={styles.composerArea}>
           {ai.error && <div className={styles.chatError}><p role="alert">{ai.error}</p><button disabled={ai.busy} onClick={() => void ai.refresh()}>Refresh conversation</button></div>}
@@ -109,6 +127,7 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
         </div>
       </aside>
     </div>}
+    <div className={styles.downloadFooter}><button className={styles.downloadPlan} disabled={!project} onClick={exportPlan}>Download plan <span aria-hidden="true">↓</span></button></div>
     <footer className={styles.workspaceFooter}><p>AI helps shape your plan. Building the app happens in your coding tool.</p><details><summary>Manage saved content</summary><p>Delete the saved brief, plan, and conversation. This does not reset your message allowance.</p>{confirmDelete ? <div><button disabled={pending} onClick={async () => { await ai.clear(); setLegacyBrief(emptyPersonalization); setSetup(emptyPersonalization); setConsent(false); setConfirmDelete(false); }}>Confirm delete</button><button onClick={() => setConfirmDelete(false)}>Cancel</button></div> : <button disabled={pending || !ai.state} onClick={() => setConfirmDelete(true)}>Delete saved content</button>}</details></footer>
   </div>;
 }
