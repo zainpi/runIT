@@ -5,6 +5,7 @@ import { bundlePrice, TEMPLATE_VERSION, type TemplateCurrency, type TemplateId }
 import { TEMPLATE_STORE, tokenHash } from "../../src/lib/templates/payment";
 import * as checkout from "../../src/app/api/templates/checkout/route";
 import * as config from "../../src/app/api/templates/config/route";
+import * as referral from "../../src/app/api/templates/referral/route";
 import * as library from "../../src/app/api/templates/library/route";
 import * as webhook from "../../src/app/api/templates/webhook/route";
 import * as ai from "../../src/app/api/templates/ai/route";
@@ -229,6 +230,24 @@ test("checkout ignores client price/currency and derives CAD metadata from its v
   assert.equal(posted.get("payment_intent_data[metadata][pricing_origin]"), origin);
   assert.equal(posted.get("adaptive_pricing[enabled]"), "false");
   assert.doesNotMatch(call.body, /private.client.text|currency=xxx|unit_amount=1/);
+});
+
+test("founder referrals validate independently and checkout applies ten percent", async () => {
+  let response = await referral.POST(jsonRequest("/api/templates/referral", { code: "zain-runit-10" }));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await body(response), { discountPercent: 10, founder: "Zain Piyarali" });
+  response = await referral.POST(jsonRequest("/api/templates/referral", { code: "not-real" }));
+  assert.equal(response.status, 400);
+  response = await referral.POST(jsonRequest("/api/templates/referral", { code: "ZAIN-RUNIT-10" }, { origin: "https://evil.example" }));
+  assert.equal(response.status, 403);
+
+  response = await checkout.POST(jsonRequest("/api/templates/checkout", { templates: ids, accessToken, referralCode: "ZAIN-RUNIT-10" }));
+  assert.equal(response.status, 200);
+  const posted = new URLSearchParams(stripeCalls.at(-1)!.body);
+  assert.deepEqual([0, 1].map((index) => Number(posted.get(`line_items[${index}][price_data][unit_amount]`))), [899, 450]);
+  assert.equal(posted.get("metadata[referral_founder]"), "zainpi");
+  assert.equal(posted.get("metadata[referral_discount_percent]"), "10");
+  assert.equal(posted.get("payment_intent_data[metadata][referral_founder]"), "zainpi");
 });
 
 test("checkout prices dot-ca in CAD and dot-com in USD with currency-specific idempotency", async () => {

@@ -163,6 +163,30 @@ test("checkout sends canonical IDs, access token, and add-on flag, then saves it
   expect(pending.token).toBe(posted!.accessToken);
 });
 
+test("founder referral code previews ten percent off and is sent to checkout", async ({ page }) => {
+  await mockConfiguration(page);
+  let posted: Record<string, unknown> | undefined;
+  await page.route("**/api/templates/referral/**", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ founder: "Zain Piyarali", discountPercent: 10 }),
+  }));
+  await page.route("**/api/templates/checkout/**", async (route) => {
+    posted = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ url: "https://checkout.stripe.com/c/pay/referral", sessionId }) });
+  });
+  await page.route("https://checkout.stripe.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Mock Stripe Checkout</title>" }));
+  await waitForStore(page);
+  await page.getByLabel("Add Mobile app", { exact: true }).click();
+  await page.getByLabel("Founder referral code", { exact: true }).fill("zain-runit-10");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(page.getByText("10% off applied to this order", { exact: false })).toBeVisible();
+  await expect(page.locator("#bundle").getByText("$8.99", { exact: true }).last()).toBeVisible();
+  await page.getByRole("button", { name: "Try test checkout" }).click();
+  await page.waitForURL("https://checkout.stripe.com/**");
+  expect(posted).toMatchObject({ templates: ["mobile-app"], referralCode: "ZAIN-RUNIT-10" });
+});
+
 test("canceled checkout returns to the saved selection", async ({ page }) => {
   await mockConfiguration(page);
   await page.addInitScript(() => localStorage.setItem("runit-template-brief-v1", JSON.stringify({

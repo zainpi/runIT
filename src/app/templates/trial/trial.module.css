@@ -7,3 +7,13 @@
 .form button { min-width:80px; }
 .details { display:grid; gap:9px; }
 .details label { flex-direction:column; align-items:stretch; }
+.details { gap:18px; }
+.brief { padding:14px; background:#0b111b; border:1px solid var(--line); border-radius:6px; }
+.brief>div { display:flex; justify-content:space-between; gap:12px; font-size:.8rem; }
+.brief a { color:var(--accent); }
+.brief p { margin:8px 0 0; color:var(--muted); font-size:.82rem; line-height:1.6; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.included { display:grid; gap:7px; font-size:.8rem; }
+.included span,.included small { color:var(--muted); line-height:1.6; }
+.details .consent { display:flex; flex-direction:row; align-items:flex-start; gap:10px; }
+.consent input { width:18px; height:18px; min-height:18px; flex-shrink:0; margin:3px 0; accent-color:#bec9ff; }
+.details .consent span { font-size:.78rem; line-height:1.6; }

@@ -1,8 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import type { DurableObjectState } from "@cloudflare/workers-types";
 import { AiError, type AiGeneration, type AiReply, type AiResult } from "./ai-contract";
-import { applyPlan, clearContent, completeGeneration, emptyAiState, expirePending, failGeneration, reserveGeneration, snapshot, type OrderAiState } from "./ai-state";
-import { TRIAL_MESSAGE_LIMIT } from "./trial-contract";
+import { applyPlan, clearContent, completeGeneration, emptyAiState, expirePending, failGeneration, initializeTrial, reserveGeneration, snapshot, type OrderAiState } from "./ai-state";
+import type { Personalization } from "./compose";
 import type { TemplateId } from "./catalog";
 
 // One private object per verified Stripe order or redeemed trial. Only the server holds this binding.
@@ -26,7 +26,7 @@ export class TemplateAiOrder extends DurableObject<unknown> {
       return result;
     });
   }
-  initializeTrial() { return this.#change((state) => { state.limit = TRIAL_MESSAGE_LIMIT; return snapshot(state); }); }
+  initializeTrial(brief?: Personalization) { return this.#change((state) => initializeTrial(state, brief)); }
   read() { return this.#change(snapshot); }
   reserve(request: AiGeneration, fingerprint: string) {
     return this.#change((state) => ({ status: reserveGeneration(state, request, fingerprint, Date.now()), context: state.projects[request.templateId] ?? null, snapshot: snapshot(state) }));

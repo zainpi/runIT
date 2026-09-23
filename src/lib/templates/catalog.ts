@@ -13,6 +13,7 @@ export const FIRST_TEMPLATE_CENTS = 999;
 export const EXTRA_TEMPLATE_CENTS = 500;
 export const SUBAGENT_ADDON_CENTS = 500;
 export const SKILL_TREE_ADDON_CENTS = 1000;
+export const TEMPLATE_REFERRAL_DISCOUNT_PERCENT = 10;
 export type TemplateCurrency = "cad" | "usd";
 export const DEFAULT_TEMPLATE_CURRENCY: TemplateCurrency = "cad";
 export const TEMPLATE_VERSION = "2026-09-16";
@@ -24,6 +25,15 @@ export function templateCurrencyForHostname(hostname: string): TemplateCurrency 
 export function bundlePrice(count: number, subagents = false, skillTree = false): number {
   if (!Number.isInteger(count) || count < 0 || count > templateCatalog.length) throw new Error("Invalid template count.");
   return count === 0 ? 0 : FIRST_TEMPLATE_CENTS + (count - 1) * EXTRA_TEMPLATE_CENTS + (subagents ? SUBAGENT_ADDON_CENTS : 0) + (skillTree ? SKILL_TREE_ADDON_CENTS : 0);
+}
+
+export function discountedCents(cents: number, discountPercent = 0): number {
+  if (!Number.isInteger(cents) || cents < 0 || !Number.isInteger(discountPercent) || discountPercent < 0 || discountPercent > 100) throw new Error("Invalid discount.");
+  return Math.round(cents * (100 - discountPercent) / 100);
+}
+
+export function discountedBundlePrice(count: number, subagents = false, skillTree = false, discountPercent = 0): number {
+  return discountedCents(bundlePrice(count, subagents, skillTree), discountPercent);
 }
 
 export function formatPrice(cents: number, currency: TemplateCurrency = DEFAULT_TEMPLATE_CURRENCY): string {

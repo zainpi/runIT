@@ -3,6 +3,7 @@ import test from "node:test";
 import Stripe from "stripe";
 import {
   bundlePrice,
+  discountedBundlePrice,
   EXTRA_TEMPLATE_CENTS,
   FIRST_TEMPLATE_CENTS,
   SKILL_TREE_ADDON_CENTS,
@@ -18,6 +19,7 @@ import {
 import {
   checkoutParameters,
   fulfillOrder,
+  purchasedIds,
   StoreError,
   TEMPLATE_STORE,
   tokenHash,
@@ -25,6 +27,7 @@ import {
   validSessionId,
   verifyOrder,
 } from "../../src/lib/templates/payment";
+import { referralForCode } from "../../src/lib/templates/referrals";
 
 const accessToken = "ab".repeat(32);
 const ids = ["discord-bot", "storefront"] satisfies TemplateId[];
@@ -169,6 +172,46 @@ test("checkout retry parameters derive canonical currency, prices, and metadata 
     params.metadata?.access_hash,
     checkoutParameters(ids, "cd".repeat(32), returnOrigin).metadata?.access_hash,
   );
+});
+
+test("three founder referral codes apply a server-side ten percent discount", () => {
+  const codes = [
+    ["ZAIN-RUNIT-10", "zainpi"],
+    ["RAI-RUNIT-10", "raishaikh"],
+    ["MIKAEL-RUNIT-10", "mikaelsid"],
+  ] as const;
+  for (const [code, founder] of codes) {
+    const referral = referralForCode(code);
+    assert.ok(referral);
+    assert.equal(referral.founderSlug, founder);
+    assert.equal(referral.discountPercent, 10);
+    const params = checkoutParameters(ids, accessToken, "https://runsit.ca", true, true, referral);
+    const lines = params.line_items as Stripe.Checkout.SessionCreateParams.LineItem[];
+    assert.deepEqual(lines.map((line) => line.price_data?.unit_amount), [899, 450, 450, 900]);
+    assert.equal(params.metadata?.referral_founder, founder);
+    assert.equal(params.metadata?.referral_discount_percent, "10");
+    assert.equal(params.payment_intent_data?.metadata?.referral_founder, founder);
+    assert.equal(params.metadata?.referral_code_hash, referral.codeDigest);
+  }
+  assert.equal(referralForCode("zain-runit-10")?.founderSlug, "zainpi");
+  assert.equal(referralForCode("not-a-founder-code"), null);
+  assert.equal(discountedBundlePrice(ids.length, true, true, 10), 2_699);
+});
+
+test("paid-order verification accepts the discounted founder total and rejects forged referral metadata", () => {
+  const referral = referralForCode("ZAIN-RUNIT-10")!;
+  const discounted = paidSession({
+    amount_subtotal: discountedBundlePrice(ids.length, false, false, referral.discountPercent),
+    amount_total: discountedBundlePrice(ids.length, false, false, referral.discountPercent),
+    metadata: { ...paidSession().metadata, referral_founder: referral.founderSlug, referral_code_hash: referral.codeDigest, referral_discount_percent: "10" },
+  });
+  assert.deepEqual(purchasedIds(discounted), ids);
+  const forged = paidSession({
+    amount_subtotal: discounted.amount_subtotal,
+    amount_total: discounted.amount_total,
+    metadata: { ...discounted.metadata, referral_code_hash: "00".repeat(32) },
+  });
+  assert.throws(() => purchasedIds(forged), /referral discount could not be verified/);
 });
 
 test("subagent add-on is one separate fixed-price item for the whole order", () => {

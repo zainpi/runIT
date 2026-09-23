@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { bundlePrice, DEFAULT_TEMPLATE_CURRENCY, EXTRA_TEMPLATE_CENTS, FIRST_TEMPLATE_CENTS, formatPrice, parseTemplateIds, SKILL_TREE_ADDON_CENTS, SUBAGENT_ADDON_CENTS, templateCatalog, type BuildMode, type TemplateCurrency, type TemplateId } from "@/lib/templates/catalog";
+import { bundlePrice, discountedCents, discountedBundlePrice, DEFAULT_TEMPLATE_CURRENCY, EXTRA_TEMPLATE_CENTS, FIRST_TEMPLATE_CENTS, formatPrice, parseTemplateIds, SKILL_TREE_ADDON_CENTS, SUBAGENT_ADDON_CENTS, templateCatalog, type BuildMode, type TemplateCurrency, type TemplateId } from "@/lib/templates/catalog";
 import { emptyPersonalization, type Personalization } from "@/lib/templates/compose";
 import { templateDemos } from "@/lib/templates/demos";
 import { site } from "@/lib/site";
 import { TrialCode } from "./trial-code";
+import { ReferralCode, type AppliedReferral } from "./referral-code";
 import { Personalize } from "./personalize";
 import { PromptBuilderOffer } from "./prompt-builder-offer";
 import { loadDraft, saveDraft, saveReceipt } from "./browser-storage";
@@ -34,12 +35,17 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [canceled, setCanceled] = useState(false);
+  const [trialCheckout, setTrialCheckout] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [referral, setReferral] = useState<AppliedReferral | null>(null);
   const currency = checkout?.currency ?? initialCurrency;
   const currencyLabel = currency.toUpperCase();
   const price = (cents: number) => formatPrice(cents, currency);
   useEffect(() => {
     const draft = loadDraft(); setSelected(draft.selected); setDetails(draft.details); setMode(draft.mode); setSubagents(draft.subagents); setSkillTree(draft.skillTree); setLoaded(true);
     setCanceled(new URLSearchParams(location.search).has("canceled"));
+    const referralFromUrl = new URLSearchParams(location.search).get("ref");
+    if (referralFromUrl) setReferralCode(referralFromUrl);
     fetch("/api/templates/config/", { cache: "no-store" }).then((r) => r.json()).then(setCheckout).catch(() => setCheckout({ available: false, testMode: false }));
   }, []);
   useEffect(() => { if (loaded) { try { saveDraft(details, mode, selected, subagents, skillTree); } catch { /* Editing remains available without browser persistence. */ } } }, [details, mode, selected, subagents, skillTree, loaded]);
@@ -49,12 +55,12 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     try {
       const ids = parseTemplateIds(selected);
       // Persist before creating a payment so a closed tab never loses the access key.
-      const cartKey = `${ids.join(",")}:currency=${currency}:subagents=${subagents}:skillTree=${skillTree}`;
+      const cartKey = `${ids.join(",")}:currency=${currency}:subagents=${subagents}:skillTree=${skillTree}:referral=${referral?.code ?? "none"}`;
       const pending = JSON.parse(sessionStorage.getItem("runit-template-checkout") || "null");
       const token = pending?.cart === cartKey && /^[a-f0-9]{64}$/.test(pending.token) ? pending.token : Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join("");
       sessionStorage.setItem("runit-template-checkout", JSON.stringify({ cart: cartKey, token }));
       localStorage.setItem("runit-template-storage-check", "ok"); localStorage.removeItem("runit-template-storage-check");
-      const response = await fetch("/api/templates/checkout/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ templates: ids, accessToken: token, subagents, skillTree }) });
+      const response = await fetch("/api/templates/checkout/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ templates: ids, accessToken: token, subagents, skillTree, referralCode: referral?.code }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       saveReceipt({ sessionId: result.sessionId, accessToken: token, templates: ids, createdAt: new Date().toISOString(), subagents, skillTree });
@@ -64,6 +70,9 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     } catch (cause) { setError(cause instanceof Error && cause.name !== "SecurityError" ? cause.message : "Allow browser storage so we can save your purchase access before checkout."); setBusy(false); }
   }
   const selectedTemplates = templateCatalog.filter((template) => selected.includes(template.id));
+  const fullTotal = bundlePrice(selected.length, subagents, skillTree);
+  const total = referral ? discountedBundlePrice(selected.length, subagents, skillTree, referral.discountPercent) : fullTotal;
+  const cartPrice = (cents: number) => formatPrice(referral ? discountedCents(cents, referral.discountPercent) : cents, currency);
   return <>
     <section className={styles.hero}>
       <p className={styles.eyebrow}><span className={styles.dot} /> AI build templates</p>
@@ -99,18 +108,20 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
           <span><strong>Add skill tree setup <b>+{price(SKILL_TREE_ADDON_CENTS)}</b></strong><span>A setup prompt with source links for skills and tools, organized around your business and selected apps.</span><small>One-time $10 {currencyLabel} for your entire bundle. Includes Cloudflare, Stripe, Roblox tooling, design and more. Third-party access and fees are separate.</small></span>
         </label>
       </div><div className={styles.cartSummary} role="region" aria-labelledby="checkout-summary-heading">
-        <h3 id="checkout-summary-heading">Order summary</h3>
-        {selected.length > 0 ? <ul className={styles.orderItems} aria-label="Selected items">
-          {selectedTemplates.map((template, index) => <li key={template.id}><span>{template.title}</span><span>{price(index === 0 ? FIRST_TEMPLATE_CENTS : EXTRA_TEMPLATE_CENTS)}</span></li>)}
-          {subagents && <li className={styles.addonLine}><span>Subagent workflow × 1</span><span>{price(SUBAGENT_ADDON_CENTS)}</span></li>}
-          {skillTree && <li className={styles.addonLine}><span>Skill tree setup × 1</span><span>{price(SKILL_TREE_ADDON_CENTS)}</span></li>}
+        <h3 id="checkout-summary-heading">{trialCheckout ? "Free trial checkout" : "Order summary"}</h3>
+        {!trialCheckout && <>{selected.length > 0 ? <ul className={styles.orderItems} aria-label="Selected items">
+          {selectedTemplates.map((template, index) => <li key={template.id}><span>{template.title}</span><span>{cartPrice(index === 0 ? FIRST_TEMPLATE_CENTS : EXTRA_TEMPLATE_CENTS)}</span></li>)}
+          {subagents && <li className={styles.addonLine}><span>Subagent workflow × 1</span><span>{cartPrice(SUBAGENT_ADDON_CENTS)}</span></li>}
+          {skillTree && <li className={styles.addonLine}><span>Skill tree setup × 1</span><span>{cartPrice(SKILL_TREE_ADDON_CENTS)}</span></li>}
         </ul> : <p className={styles.small}>Select a template to see your order here.</p>}
-        <div className={styles.total}><span>One-time total <small>{currencyLabel}</small></span><strong>{price(bundlePrice(selected.length, subagents, skillTree))}</strong></div>
-        <TrialCode selected={selected} />
-        <button className={styles.primary} disabled={!selected.length || busy || !checkout?.available} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Checking availability…" : !checkout.available ? "Checkout coming soon" : checkout.testMode ? "Try test checkout ↗" : "Continue to checkout ↗"}</button>
+        <ReferralCode value={referralCode} applied={referral} disabled={busy} onChange={(value) => { setReferralCode(value); setReferral(null); }} onApplied={setReferral} />
+        {referral && <p className={`${styles.small} ${styles.discountLine}`}>{referral.discountPercent}% off applied to this order · founder referral</p>}
+        <div className={styles.total}><span>One-time total <small>{currencyLabel}{referral ? ` · ${referral.discountPercent}% off` : ""}</small></span><strong>{price(total)}</strong></div></>}
+        <TrialCode selected={selected} details={details} onActiveChange={setTrialCheckout} />
+        {!trialCheckout && <><button className={styles.primary} disabled={!selected.length || busy || !checkout?.available} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Checking availability…" : !checkout.available ? "Checkout coming soon" : checkout.testMode ? "Try test checkout ↗" : "Continue to checkout ↗"}</button>
         <p className={styles.small}>{checkout?.testMode ? "Test mode. No real payment is collected." : "Secure payment with Stripe. Copy and download after payment."}</p>
         <p className={styles.small}>After checkout, save your unique purchase URL. It brings you back to your prompts and saved AI conversations on any device.</p>
-        {error && <p className={styles.error} role="alert">{error}</p>}
+        {error && <p className={styles.error} role="alert">{error}</p>}</>}
       </div>
       <div className={styles.cartFooter}>
         <div className={styles.cartNotes}><p>✓ Complete architecture & service setup</p><p>✓ Guidance for complete beginners</p><p>✓ Both build modes included</p><p>✓ Copyable prompt & .txt download</p><p>✓ Follow-up prompt guide for your app</p><p>✓ Free AI overviews + 20 editing messages</p></div>

@@ -5,7 +5,7 @@ import styles from "./templates.module.css";
 
 export function Personalize({ details, mode, onDetails, onMode, previewOnly = false, previewPurchaseHref = "#bundle" }: { details: Personalization; mode: BuildMode; onDetails: (value: Personalization) => void; onMode: (value: BuildMode) => void; previewOnly?: boolean; previewPurchaseHref?: string }) {
   return <div className={styles.personalize}>
-    <div><p className={styles.eyebrow}>02 / Make it yours</p><h2>Same foundation.<br />Your own idea.</h2><p className={styles.muted}>Describe your idea in your own words. No technical plan needed. Fill this in now or after buying, and change it whenever you like. Your brief stays in this browser.</p>
+    <div><p className={styles.eyebrow}>02 / Make it yours</p><h2>Same foundation.<br />Your own idea.</h2><p className={styles.muted}>Describe your idea in your own words. No technical plan needed. Fill this in now or after buying, and change it whenever you like. Your draft is saved in this browser. Using AI also saves your brief and chat to your private link.</p>
       <fieldset className={styles.mode}><legend>How do you want to build?</legend>
         <label data-selected={mode === "computer"}><input type="radio" name="mode" value="computer" checked={mode === "computer"} onChange={() => onMode("computer")} /><strong>Make AI control my computer</strong><span>Your AI uses its available tools to write the code and explains what it is doing. You approve sensitive steps.</span></label>
         <label data-selected={mode === "manual"}><input type="radio" name="mode" value="manual" checked={mode === "manual"} onChange={() => onMode("manual")} /><strong>Do it myself</strong><span>Follow simple steps with links, ready-to-copy code and checks. You don’t need to write code from scratch.</span></label>
@@ -30,7 +30,7 @@ export function Personalize({ details, mode, onDetails, onMode, previewOnly = fa
     </div>
     <div className={styles.fields}>
       <label>App name <span>optional</span><input maxLength={100} value={details.name} onChange={(e) => onDetails({ ...details, name: e.target.value })} placeholder="Give your idea a name" /></label>
-      <label className={styles.longField}>What do you want to make?<textarea maxLength={3000} rows={4} value={details.idea} onChange={(e) => onDetails({ ...details, idea: e.target.value })} placeholder="Who is it for? What should it help them do?" /></label>
+      <label className={styles.longField}>What do you want to make?<textarea id="template-idea" maxLength={3000} rows={4} value={details.idea} onChange={(e) => onDetails({ ...details, idea: e.target.value })} placeholder="Who is it for? What should it help them do?" /></label>
       <label className={styles.longField}>Features & platforms<textarea maxLength={3000} rows={3} value={details.features} onChange={(e) => onDetails({ ...details, features: e.target.value })} placeholder="Must-haves, changes, iOS or Android, optional services…" /></label>
       <div className={styles.fieldPair}>
         <label>Look & feel<input maxLength={500} value={details.style} onChange={(e) => onDetails({ ...details, style: e.target.value })} placeholder="Minimal, playful, cozy…" /></label>

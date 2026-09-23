@@ -2,10 +2,14 @@ import { AI_MESSAGE_LIMIT, AiError, type AiGeneration, type AiProject, type AiRe
 import { TRIAL_MESSAGE_LIMIT } from "./trial-contract";
 import { AI_RESERVATION_TTL_MS } from "./ai-settings";
 import type { TemplateId } from "./catalog";
+import type { Personalization } from "./compose";
 
 type RequestRecord = { fingerprint: string; status: "pending" | "complete" | "failed" };
 export type OrderAiState = {
   limit?: number;
+  initialBrief?: Personalization;
+  overviewConsent?: boolean;
+  checkoutCaptured?: boolean;
   used: number;
   attempts: number;
   lastAttempt: number;
@@ -20,7 +24,20 @@ export function expirePending(state: OrderAiState, now: number) {
 }
 export function snapshot(state: OrderAiState): AiSnapshot {
   const limit = state.limit ?? AI_MESSAGE_LIMIT;
-  return { used: state.used, remaining: limit - state.used, limit, pending: !!state.pending, projects: state.projects, overviewUsed: state.overviewUsed };
+  return { used: state.used, remaining: limit - state.used, limit, pending: !!state.pending, projects: state.projects, overviewUsed: state.overviewUsed,
+    ...(state.checkoutCaptured ? { initialBrief: state.initialBrief, overviewConsent: state.overviewConsent === true, canStartOverview: !!state.initialBrief && state.overviewConsent === true && state.attempts === 0 } : {}) };
+}
+export function initializeTrial(state: OrderAiState, brief?: Personalization) {
+  state.limit = TRIAL_MESSAGE_LIMIT;
+  // A retried checkout must neither replace a newer brief nor resurrect deleted content.
+  if (brief && !state.checkoutCaptured) {
+    state.checkoutCaptured = true;
+    if (!state.attempts && !Object.keys(state.projects).length) {
+      state.initialBrief = brief;
+      state.overviewConsent = true;
+    }
+  }
+  return snapshot(state);
 }
 export function reserveGeneration(state: OrderAiState, request: AiGeneration, fingerprint: string, now: number): "reserved" | "replay" {
   expirePending(state, now);
@@ -75,5 +92,7 @@ export function applyPlan(state: OrderAiState, templateId: TemplateId, revision:
 export function clearContent(state: OrderAiState) {
   if (state.pending) throw new AiError("Wait for the current response before deleting saved chats.", 409);
   state.projects = {};
+  delete state.initialBrief;
+  delete state.overviewConsent;
   // Keep the quota and fingerprints so deleting content cannot reset purchased usage.
 }

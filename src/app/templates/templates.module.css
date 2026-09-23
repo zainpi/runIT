@@ -79,6 +79,16 @@
 .total>span { font-size:.8rem; }
 .total small { display:block; color:var(--muted); font-size:.65rem; margin-top:5px; }
 .total strong { font-size:1.7rem; font-weight:500; letter-spacing:-.04em; }
+.referral { display:grid; gap:9px; margin-top:18px; padding-top:18px; border-top:1px solid #394660; }
+.referral label { display:flex; align-items:baseline; justify-content:space-between; gap:9px; font-size:.8rem; }
+.referral label>span { color:var(--muted); font-size:.68rem; }
+.referral .codeRow { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; }
+.referral input { box-sizing:border-box; width:100%; min-width:0; min-height:46px; padding:12px 14px; font:inherit; font-size:.82rem; line-height:1.6; color:#f3f5fc; background:#111823; border:1px solid #394255; border-radius:6px; }
+.referral input::placeholder { color:#8c99ad; }
+.referral button { min-width:78px; }
+.referralSuccess { color:#91e4c6; font-size:.74rem; line-height:1.6; margin:0; }
+.discountLine { color:#91e4c6; }
+.discountLine del { color:var(--muted); margin-left:5px; }
 .primary,.secondary { display:inline-flex; min-height:46px; align-items:center; justify-content:center; gap:12px; padding:12px 17px; border:1px solid var(--accent); border-radius:6px; background:var(--accent); color:#101727; font-size:.82rem!important; font-weight:600; text-align:center; }
 .primary:hover:not(:disabled) { background:#d5dcff; }
 .secondary { color:var(--accent); background:transparent; border-color:#45516a; }

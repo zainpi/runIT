@@ -25,6 +25,9 @@ export type AiSnapshot = {
   pending: boolean;
   projects: Partial<Record<TemplateId, AiProject>>;
   overviewUsed: TemplateId[];
+  initialBrief?: Personalization;
+  overviewConsent?: boolean;
+  canStartOverview?: boolean;
 };
 export type AiGeneration = {
   requestId: string;

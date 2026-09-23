@@ -1,7 +1,8 @@
 import "server-only";
 import Stripe from "stripe";
 import { createHash, timingSafeEqual } from "node:crypto";
-import { bundlePrice, parseTemplateIds, SKILL_TREE_ADDON_CENTS, SUBAGENT_ADDON_CENTS, templateCatalog, templateCurrencyForHostname, TEMPLATE_VERSION, type TemplateCurrency, type TemplateId } from "./catalog";
+import { discountedCents, discountedBundlePrice, parseTemplateIds, SKILL_TREE_ADDON_CENTS, SUBAGENT_ADDON_CENTS, templateCatalog, templateCurrencyForHostname, TEMPLATE_VERSION, type TemplateCurrency, type TemplateId } from "./catalog";
+import { referralForMetadata, type TemplateReferral } from "./referrals";
 
 export const TEMPLATE_STORE = "runit-ai-templates";
 export class StoreError extends Error {
@@ -11,9 +12,12 @@ export function tokenHash(token: string): string { return createHash("sha256").u
 export function validAccessToken(value: unknown): value is string { return typeof value === "string" && /^[a-f0-9]{64}$/.test(value); }
 export function validSessionId(value: unknown): value is string { return typeof value === "string" && /^cs_(test_|live_)?[A-Za-z0-9]{16,240}$/.test(value); }
 
-export function checkoutParameters(ids: TemplateId[], token: string, origin: string, subagents = false, skillTree = false): Stripe.Checkout.SessionCreateParams {
+export function checkoutParameters(ids: TemplateId[], token: string, origin: string, subagents = false, skillTree = false, referral?: TemplateReferral): Stripe.Checkout.SessionCreateParams {
   const currency = templateCurrencyForHostname(new URL(origin).hostname);
-  const metadata = { store: TEMPLATE_STORE, version: TEMPLATE_VERSION, templates: ids.join(","), access_hash: tokenHash(token), subagents: String(subagents), skill_tree: String(skillTree), currency, pricing_origin: origin, ai_messages: "20", ai_overviews: "one_per_template" };
+  const discountPercent = referral?.discountPercent ?? 0;
+  const discounted = (cents: number) => discountedCents(cents, discountPercent);
+  const referralMetadata: Record<string, string> = referral ? { referral_founder: referral.founderSlug, referral_code_hash: referral.codeDigest, referral_discount_percent: String(referral.discountPercent) } : {};
+  const metadata = { store: TEMPLATE_STORE, version: TEMPLATE_VERSION, templates: ids.join(","), access_hash: tokenHash(token), subagents: String(subagents), skill_tree: String(skillTree), currency, pricing_origin: origin, ai_messages: "20", ai_overviews: "one_per_template", ...referralMetadata };
   return {
     mode: "payment",
     // This store uses standard Checkout, including custom text and fixed totals.
@@ -25,13 +29,13 @@ export function checkoutParameters(ids: TemplateId[], token: string, origin: str
     cancel_url: `${origin}/templates/?canceled=1`,
     line_items: [...ids.map((id, index) => ({
       quantity: 1,
-      price_data: { currency, unit_amount: index === 0 ? 999 : 500, product_data: {
+      price_data: { currency, unit_amount: discounted(index === 0 ? 999 : 500), product_data: {
         name: `${templateCatalog.find((item) => item.id === id)!.title} — AI build prompt`,
         description: index === 0 ? "First template in this order. Digital text download." : "Additional template in this order. Digital text download.",
       } },
-    })), ...(subagents ? [{ quantity: 1, price_data: { currency, unit_amount: SUBAGENT_ADDON_CENTS, product_data: { name: "Subagent build workflow add-on", description: "One add-on for every template in this order. Digital text download." } } }] : []), ...(skillTree ? [{ quantity: 1, price_data: { currency, unit_amount: SKILL_TREE_ADDON_CENTS, product_data: { name: "Skill tree setup add-on", description: "Skill source links and installation prompt for every template in this order. Digital text download." } } }] : [])],
+    })), ...(subagents ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(SUBAGENT_ADDON_CENTS), product_data: { name: "Subagent build workflow add-on", description: "One add-on for every template in this order. Digital text download." } } }] : []), ...(skillTree ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(SKILL_TREE_ADDON_CENTS), product_data: { name: "Skill tree setup add-on", description: "Skill source links and installation prompt for every template in this order. Digital text download." } } }] : [])],
     metadata,
-    payment_intent_data: { metadata: { store: TEMPLATE_STORE, templates: ids.join(","), subagents: String(subagents), skill_tree: String(skillTree), currency, pricing_origin: origin } },
+    payment_intent_data: { metadata: { store: TEMPLATE_STORE, templates: ids.join(","), subagents: String(subagents), skill_tree: String(skillTree), currency, pricing_origin: origin, ...referralMetadata } },
     custom_text: { submit: { message: "After payment, return to the website and save your unique purchase URL to access your prompts again. Includes free template overviews and 20 AI editing messages per purchase. Coding AI tools, hosting, and other service fees are separate." } },
   };
 }
@@ -48,6 +52,11 @@ export function purchasedIds(session: Stripe.Checkout.Session): TemplateId[] {
   const rawSkillTree = session.metadata?.skill_tree;
   if (rawSkillTree !== undefined && rawSkillTree !== "true" && rawSkillTree !== "false") throw new StoreError("This order could not be verified. Contact support with your receipt.", 403);
   const skillTree = rawSkillTree === "true";
+  const hasReferralMetadata = metadata.referral_founder !== undefined || metadata.referral_code_hash !== undefined || metadata.referral_discount_percent !== undefined;
+  const referral = hasReferralMetadata
+    ? referralForMetadata(metadata.referral_founder, metadata.referral_code_hash, metadata.referral_discount_percent)
+    : undefined;
+  if (hasReferralMetadata && !referral) throw new StoreError("This referral discount could not be verified. Contact support with your receipt.", 403);
   // Orders issued before domain pricing were USD. Verify saved order terms,
   // not the domain a buyer happens to use when reopening their private link.
   let currency: TemplateCurrency = "usd";
@@ -60,7 +69,8 @@ export function purchasedIds(session: Stripe.Checkout.Session): TemplateId[] {
       if (metadata.currency !== currency) throw new Error();
     } catch { throw new StoreError("The payment amount could not be verified. Contact support.", 403); }
   }
-  if (session.currency !== currency || session.amount_subtotal !== bundlePrice(ids.length, subagents, skillTree) || session.amount_total !== bundlePrice(ids.length, subagents, skillTree)) throw new StoreError("The payment amount could not be verified. Contact support.", 403);
+  const expectedTotal = discountedBundlePrice(ids.length, subagents, skillTree, referral?.discountPercent ?? 0);
+  if (session.currency !== currency || session.amount_subtotal !== expectedTotal || session.amount_total !== expectedTotal) throw new StoreError("The payment amount could not be verified. Contact support.", 403);
   return ids;
 }
 
