@@ -37,7 +37,7 @@ export async function generateAppPlan(config: { key: string; model: string; reas
         instructions: tailoringInstructions,
         // The model never receives a paid foundation or either add-on. Only the
         // public catalog description is needed to choose the type of app.
-        input: [{ role: "user", content: JSON.stringify({ template: templateCatalog.find((t) => t.id === request.templateId), brief: request.brief, currentPlan: context?.plan ?? null, recentConversation: context?.history.slice(-6) ?? [], request: request.kind === "overview" ? "Create my initial overview and feature table." : request.message }) }],
+        input: [{ role: "user", content: JSON.stringify({ template: templateCatalog.find((t) => t.id === request.templateId), brief: request.brief, currentPlan: context?.plan ?? null, recentConversation: context?.history.slice(-6) ?? [], request: request.kind === "overview" ? "Create my initial overview and feature table." : request.kind === "choices" ? "Add two selectable example answers for each question in the existing plan. Keep every existing question exactly as written and in the same order. Keep the rest of the plan unchanged." : request.message }) }],
         moderation: { model: "omni-moderation-latest" },
         text: { format: { type: "json_schema", name: "app_plan", strict: true, schema: replySchema } },
       }),

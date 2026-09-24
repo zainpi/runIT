@@ -42,7 +42,7 @@ export type AiSnapshot = {
 export type AiGeneration = {
   requestId: string;
   templateId: TemplateId;
-  kind: "overview" | "message" | "guide";
+  kind: "overview" | "message" | "guide" | "choices";
   brief: Personalization;
   message: string;
   revision: number;

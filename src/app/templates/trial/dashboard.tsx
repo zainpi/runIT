@@ -58,6 +58,7 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
   const brief = project?.brief ?? ai.state?.initialBrief ?? legacyBrief;
   const plan = project?.plan;
   const pending = ai.busy || !!ai.state?.pending;
+  const preparingChoices = ai.generatingChoices || ai.state?.pendingKind === "choices";
   const canUseAi = consent || ai.state?.overviewConsent === true;
   const remaining = ai.state?.remaining ?? TRIAL_MESSAGE_LIMIT;
   const overviewUsed = ai.state?.overviewUsed.includes(templateId);
@@ -164,12 +165,13 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
             <div role="list" aria-label="Decision questions">{visibleDecisions.map(({ question, options, key }) => <article role="listitem" className={`${styles.decisionCard} ${exitingDecisions.includes(key) ? styles.decisionExiting : ""}`} key={key}>
               <p id={`decision-question-${key}`}>{question}</p>
               <div className={styles.decisionActions} data-has-choices={!!options} role="group" aria-labelledby={`decision-question-${key}`}>
-                {options ? options.map((answer) => <button key={answer} type="button" disabled={pending || remaining <= 0 || exitingDecisions.includes(key) || !canAddToDraft(`About “${question}”: ${answer}`)} onClick={() => answerDecision(question, key, answer)}>{answer}</button>) : <button type="button" disabled={pending || remaining <= 0 || exitingDecisions.includes(key)} onClick={() => { setCustomDecision(key); setCustomAnswer(""); }}>Write my answer</button>}
+                {options ? options.map((answer) => <button key={answer} type="button" disabled={pending || remaining <= 0 || exitingDecisions.includes(key) || !canAddToDraft(`About “${question}”: ${answer}`)} onClick={() => answerDecision(question, key, answer)}>{answer}</button>) : <button type="button" disabled={pending || remaining <= 0 || exitingDecisions.includes(key)} onClick={() => { setCustomDecision(key); setCustomAnswer(""); }}>{preparingChoices ? "Generating example answers…" : "Write my answer"}</button>}
                 <button className={styles.decideForMe} type="button" aria-label="Decide for me" title="Decide for me" disabled={pending || remaining <= 0 || exitingDecisions.includes(key) || !canAddToDraft(`About “${question}”: ${decideForMe}`)} onClick={() => answerDecision(question, key, decideForMe)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 3 2.5 6.5L18 12l-6.5 2.5L9 21l-2.5-6.5L0 12l6.5-2.5L9 3Z" transform="translate(2 0) scale(.9 1)" /><path d="m19 2 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" /></svg>
                 </button>
               </div>
               {options && <button className={styles.writeAnswer} type="button" disabled={pending || remaining <= 0 || exitingDecisions.includes(key)} onClick={() => { setCustomDecision(key); setCustomAnswer(""); }}>Write my own answer</button>}
+              {!options && ai.available && !pending && ai.error && <button className={styles.writeAnswer} type="button" onClick={() => void ai.generate("choices", brief)}>Retry example answers</button>}
               {customDecision === key && <form className={styles.customAnswer} onSubmit={(event) => { event.preventDefault(); answerDecision(question, key, customAnswer); }}>
                 <label htmlFor={`decision-answer-${key}`}>Your answer</label>
                 <textarea id={`decision-answer-${key}`} maxLength={300} rows={2} disabled={pending || remaining <= 0} value={customAnswer} onChange={(event) => setCustomAnswer(event.target.value)} placeholder="Type a short answer…" autoFocus />
@@ -177,7 +179,7 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
               </form>}
             </article>)}</div>
           </section>}
-          {pending && <div className={styles.thinking} role="status"><span aria-hidden="true">✦</span> {project ? "Updating your plan…" : "Preparing your free overview…"}</div>}
+          {pending && <div className={styles.thinking} role="status"><span aria-hidden="true">✦</span> {preparingChoices ? "Preparing example answers…" : project ? "Updating your plan…" : "Preparing your free overview…"}</div>}
           {!pending && !project?.history.some((item) => item.role === "user") && <div className={styles.suggestions}>{quickPrompts.map(({ label, message }) => <button key={label} disabled={!canSend || !canAddToDraft(message)} onClick={() => addToDraft(message)}>{label}<span aria-hidden="true">{ai.message.includes(message) ? "Added ✓" : "Add +"}</span></button>)}</div>}
         </div>
         </div>

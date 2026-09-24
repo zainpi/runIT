@@ -23,9 +23,7 @@ export function TemplateLibrary() {
   const [details, setDetails] = useState<Personalization>(emptyPersonalization);
   const [mode, setMode] = useState<BuildMode>("manual");
   const [subagentInstructions, setSubagentInstructions] = useState<string | undefined>();
-  const [includeSubagents, setIncludeSubagents] = useState(false);
   const [skillTreeInstructions, setSkillTreeInstructions] = useState<string | undefined>();
-  const [includeSkillTree, setIncludeSkillTree] = useState(false);
   const [appIconPurchased, setAppIconPurchased] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("plan");
   const [loaded, setLoaded] = useState(false);
@@ -46,7 +44,7 @@ export function TemplateLibrary() {
     setApplied({});
     setProjects({});
     const requestId = ++orderRequest.current.generation;
-    setBusy(true); setError(""); setStatus(""); setActive(receipt); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setIncludeSubagents(false); setSkillTreeInstructions(undefined); setIncludeSkillTree(false); setAppIconPurchased(false);
+    setBusy(true); setError(""); setStatus(""); setActive(receipt); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setSkillTreeInstructions(undefined); setAppIconPurchased(false);
     // Keep bookmarks tied to the active order, including when browser storage is unavailable.
     // The private credential stays in the fragment, which is not sent in HTTP requests.
     history.replaceState(history.state, "", receiptLink(receipt));
@@ -57,9 +55,9 @@ export function TemplateLibrary() {
       if (!response.ok) throw new Error(data.error);
       setTemplates(data.templates); setSelected(data.templates[0].id);
       const purchasedAddon = data.subagents === true && typeof data.subagentInstructions === "string" && data.subagentInstructions.trim().length > 0;
-      setSubagentInstructions(purchasedAddon ? data.subagentInstructions : undefined); setIncludeSubagents(purchasedAddon);
+      setSubagentInstructions(purchasedAddon ? data.subagentInstructions : undefined);
       const purchasedSkillTree = data.skillTree === true && typeof data.skillTreeInstructions === "string" && data.skillTreeInstructions.trim().length > 0;
-      setSkillTreeInstructions(purchasedSkillTree ? data.skillTreeInstructions : undefined); setIncludeSkillTree(purchasedSkillTree);
+      setSkillTreeInstructions(purchasedSkillTree ? data.skillTreeInstructions : undefined);
       const purchasedAppIcon = data.appIcon === true;
       setAppIconPurchased(purchasedAppIcon);
       const updated = { ...receipt, templates: data.templates.map((t: { id: TemplateId }) => t.id), subagents: purchasedAddon, skillTree: purchasedSkillTree, appIcon: purchasedAppIcon };
@@ -91,7 +89,7 @@ export function TemplateLibrary() {
         setApplied({});
         setProjects({});
         ++orderRequest.current.generation;
-        setActive(null); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setIncludeSubagents(false); setSkillTreeInstructions(undefined); setIncludeSkillTree(false); setAppIconPurchased(false); setBusy(false); setStatus("");
+        setActive(null); setTemplates([]); setSelected(""); setSubagentInstructions(undefined); setSkillTreeInstructions(undefined); setAppIconPurchased(false); setBusy(false); setStatus("");
         setError(location.hash ? "This purchase link is incomplete or invalid. Open the full URL from your saved access file, or choose one of your saved orders." : "");
       }
     }
@@ -132,7 +130,7 @@ export function TemplateLibrary() {
   const appPlan = savedPlan && sameBrief(savedPlan.brief, details) ? savedPlan.plan : undefined;
   const project = selected ? projects[selected] : undefined;
   const currentGuide = project?.guide && project.guide.sourceRevision === project.revision && project.appliedRevision === project.revision && sameBrief(project.guide.brief, details) ? project.guide : undefined;
-  const prompt = current ? composePrompt(title, current.foundation, details, mode, includeSubagents ? subagentInstructions : undefined, includeSkillTree ? skillTreeInstructions : undefined, appPlan, currentGuide) : "";
+  const prompt = current ? composePrompt(title, current.foundation, details, mode, subagentInstructions, skillTreeInstructions, appPlan, currentGuide) : "";
   const setupPrompt = skillTreeInstructions ? composeSkillSetupPrompt(skillTreeInstructions, details, mode) : "";
   function updateDetails(value: Personalization) {
     setDetails(value);
@@ -145,29 +143,32 @@ export function TemplateLibrary() {
     catch { setStatus("Copy isn’t available here. Use the download button, or select the text below and copy it."); }
   }
   const buildFiles = <>
-      {savedPlan && !appPlan && <p className={styles.notice}>You changed the brief after applying an AI plan. The download currently uses your new brief without the older plan. Update and apply the plan to include it again.</p>}
-      {project?.guide && current && <BuildGuide key={`${active?.sessionId}:${current.id}`} project={project} details={details} title={title} foundation={current.foundation} mode={mode} subagents={includeSubagents ? subagentInstructions : undefined} skillTree={includeSkillTree ? skillTreeInstructions : undefined} />}
-      <section className={`${styles.promptOutput} ${library.promptOutput}`}><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Ready for your AI</p><h2>{title} prompt</h2></div><div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(prompt, `${selected}-prompt.txt`)}>Download .txt</button><button className={styles.primary} onClick={() => void copy(prompt, `${title} prompt copied. Paste it into your AI tool to begin.`)}>Copy full prompt ↗</button></div></div><label className={styles.small} htmlFor="full-prompt">Your brief + {mode === "computer" ? "computer control" : "manual"} instructions + complete foundation{includeSubagents && subagentInstructions ? " + subagent workflow" : ""}{includeSkillTree && skillTreeInstructions ? " + skill tree setup" : ""}</label><textarea id="full-prompt" readOnly value={prompt} rows={20} spellCheck={false} /><p className={styles.small}>Replace any bracketed placeholders before starting. You can return, change the brief or mode, and download again. Your AI is also instructed to create FOLLOW_UP_PROMPTS.md in your project with useful prompts to ask next.</p></section>
+      {savedPlan && !appPlan && <p className={styles.notice}>You changed the app details after applying an AI plan. The download uses your new details without the older plan. Update and apply the plan to include it again.</p>}
+      {project?.guide && current && <BuildGuide key={`${active?.sessionId}:${current.id}`} project={project} details={details} title={title} foundation={current.foundation} mode={mode} subagents={subagentInstructions} skillTree={skillTreeInstructions} />}
+      <section className={`${styles.promptOutput} ${library.promptOutput}`}><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Ready for your AI</p><h2>{title} prompt</h2></div><div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(prompt, `${selected}-prompt.txt`)}>Download .txt</button><button className={styles.primary} onClick={() => void copy(prompt, `${title} prompt copied. Paste it into your AI tool to begin.`)}>Copy full prompt ↗</button></div></div><label className={styles.small} htmlFor="full-prompt">Your app details + {mode === "computer" ? "computer control" : "manual"} instructions + complete foundation{subagentInstructions ? " + subagent workflow" : ""}{skillTreeInstructions ? " + skill tree setup" : ""}</label><textarea id="full-prompt" readOnly value={prompt} rows={20} spellCheck={false} /><p className={styles.small}>Replace any bracketed placeholders before starting. You can return, change the app details or mode, and download again. Your AI is also instructed to create FOLLOW_UP_PROMPTS.md in your project with useful prompts to ask next.</p></section>
   </>;
   const addons = <>
-      <section className={library.extras} aria-label="Your purchased extras"><div className={dashboard.paneHeading}><div><p className={dashboard.kicker}>Make it your own</p><h2>Your extras</h2></div></div>
-      {subagentInstructions ? <label className={`${styles.addon} ${styles.libraryAddon}`} data-selected={includeSubagents}>
-        <input type="checkbox" aria-label="Include subagent workflow" checked={includeSubagents} onChange={(event) => setIncludeSubagents(event.target.checked)} />
-        <span><strong>Include subagent workflow <b>Purchased</b></strong><span>Let a lead AI such as Astra oversee cheaper coding agents. Included for every template in this order; you can turn it off for any download.</span><small>Uses the models and agent tools available to you. Manual mode keeps you in charge of applying changes. AI usage is billed by your provider.</small></span>
-      </label> : <p className={`${styles.small} ${styles.libraryAddon}`}>Subagent workflow was not included in this order.</p>}
-      {skillTreeInstructions ? <section className={styles.skillSetup} aria-label="Purchased skill tree setup">
-        <label className={`${styles.addon} ${styles.libraryAddon}`} data-selected={includeSkillTree}>
-          <input type="checkbox" aria-label="Include skill tree setup" checked={includeSkillTree} onChange={(event) => setIncludeSkillTree(event.target.checked)} />
-          <span><strong>Include skill tree setup <b>Purchased</b></strong><span>Your skill directory and installation workflow, matched to the templates in this order. Include it in your app prompt or run the setup prompt first.</span><small>Source links, supported installation steps, connection checks and upkeep. Third-party skills keep their own licenses; account access and service fees are separate.</small></span>
-        </label>
-        <div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(setupPrompt, "skill-tree-setup-prompt.txt")}>Download skill setup .txt</button><button className={styles.secondary} onClick={() => void copy(setupPrompt, "Skill setup prompt copied. Paste it into your AI tool to prepare your workspace.")}>Copy skill setup prompt</button></div>
-        <details className={styles.sample}><summary>Preview skill setup prompt <span>↗</span></summary><pre>{setupPrompt}</pre></details>
-      </section> : <p className={`${styles.small} ${styles.libraryAddon}`}>Skill tree setup was not included in this order.</p>}
-      </section>
+      {(subagentInstructions || skillTreeInstructions) && <section className={library.extras} aria-label="Your purchased extras">
+        <div className={dashboard.paneHeading}><div><p className={dashboard.kicker}>Ready to use</p><h2>Your add-ons</h2></div></div>
+        <p className={library.extrasIntro}>Purchased workflows are already included in your full build prompt. Use the actions here to copy or download them separately.</p>
+        {subagentInstructions && <article className={library.addonCard} aria-labelledby="subagent-addon-heading">
+          <div className={library.addonHeading}><h3 id="subagent-addon-heading">Subagent workflow</h3><span>Purchased</span></div>
+          <p>Your build prompt tells a lead AI how to delegate bounded coding tasks and verify the results. Copy it into your coding AI to start building.</p>
+          <div className={library.addonActions}><button className={styles.primary} type="button" onClick={() => void copy(prompt, "Full build prompt copied with your subagent workflow. Paste it into your coding AI to begin.")}>Copy build prompt</button><button className={styles.secondary} type="button" onClick={() => void copy(subagentInstructions, "Subagent workflow copied. Paste it into your coding AI alongside your app prompt.")}>Copy workflow only</button><button className={styles.secondary} type="button" onClick={() => downloadText(subagentInstructions, "subagent-workflow.txt")}>Download workflow .txt</button></div>
+          <details className={library.addonPreview}><summary>Preview workflow instructions <span aria-hidden="true">↗</span></summary><pre>{subagentInstructions}</pre></details>
+        </article>}
+        {skillTreeInstructions && <article className={library.addonCard} aria-labelledby="skill-tree-addon-heading">
+          <div className={library.addonHeading}><h3 id="skill-tree-addon-heading">Skill tree setup</h3><span>Purchased</span></div>
+          <p>Paste the setup prompt into your AI tool to prepare your workspace first. The full build prompt also includes your skill tree instructions.</p>
+          <div className={library.addonActions}><button className={styles.primary} type="button" onClick={() => void copy(setupPrompt, "Skill setup prompt copied. Paste it into your AI tool to prepare your workspace.")}>Copy setup prompt</button><button className={styles.secondary} type="button" onClick={() => downloadText(setupPrompt, "skill-tree-setup-prompt.txt")}>Download setup .txt</button><button className={styles.secondary} type="button" onClick={() => void copy(prompt, "Full build prompt copied with your skill tree setup. Paste it into your coding AI to begin.")}>Copy build prompt</button></div>
+          <details className={library.addonPreview}><summary>Preview setup prompt <span aria-hidden="true">↗</span></summary><pre>{setupPrompt}</pre></details>
+        </article>}
+      </section>}
+      {!subagentInstructions && !skillTreeInstructions && !appIconPurchased && <section className={library.extras} aria-label="Your purchased extras"><div className={dashboard.paneHeading}><div><p className={dashboard.kicker}>Add-ons</p><h2>Your add-ons</h2></div></div><p className={library.extrasIntro}>This purchase includes the full template. No add-ons were included.</p></section>}
       {appIconPurchased && active && current && <AppIconGenerator key={`${active.sessionId}:${active.accessToken}`} receipt={active} templateId={current.id} details={details} />}
       {selected && hasManagedLaunch(selected) && <ManagedLaunch templateId={selected} projectName={details.name} />}
   </>;
-  return <div className={`${dashboard.dashboard} ${library.library}`}>
+  return <div className={`${dashboard.dashboard} ${library.library}`} data-paid-dashboard>
     <div className={dashboard.breadcrumb}><Link href="/templates/">Templates</Link><span aria-hidden="true">/</span><span>Project dashboard</span>{!!templates.length && <span className={dashboard.trialBadge}>Purchased</span>}</div>
     <header className={dashboard.projectHeader}>
       <div className={dashboard.projectIdentity}><div className={dashboard.avatar} aria-hidden="true">{(details.name || title).slice(0, 1).toUpperCase()}<span>↗</span></div><div><p className={dashboard.kicker}>{current ? `${title} · Your workspace` : "Your template workspace"}</p><h1>{current ? details.name || "Your new project" : "Your templates"}</h1><p className={dashboard.subtitle}>Shape your idea. Make it yours.</p></div></div>
@@ -190,7 +191,7 @@ export function TemplateLibrary() {
     <p className={`${styles.status} ${library.status}`} role="status" aria-label="Template library status" aria-live="polite">{status}</p>
     {templates.length > 0 && <>
       {templates.length > 1 && <section className={styles.libraryTemplates}><p className={styles.eyebrow}>Your purchased foundations</p><div className={styles.libraryTabs} role="group" aria-label="Choose a purchased template">{templates.map((t) => <button key={t.id} aria-pressed={selected === t.id} onClick={() => { setSelected(t.id); setWorkspaceTab("plan"); }}>{templateCatalog.find((item) => item.id === t.id)?.title}</button>)}</div></section>}
-      {active && current && <AiEditor key={`${active.sessionId}:${active.accessToken}:${current.id}`} receipt={active} templateId={current.id} details={details} activeTab={workspaceTab} onTabChange={setWorkspaceTab} buildFiles={buildFiles} addons={addons} briefEditor={<Personalize compact details={details} mode={mode} onDetails={updateDetails} onMode={updateMode} />} onRestoreBrief={updateDetails} onCleared={() => { setApplied({}); setProjects({}); }} onProject={(value) => setProjects((previous) => ({ ...previous, [current.id]: value ?? undefined }))} onApplied={(plan, brief) => setApplied((previous) => ({ ...previous, [current.id]: plan && brief ? { plan, brief } : undefined }))} />}
+      {active && current && <AiEditor key={`${active.sessionId}:${active.accessToken}:${current.id}`} receipt={active} templateId={current.id} details={details} activeTab={workspaceTab} onTabChange={setWorkspaceTab} buildFiles={buildFiles} addons={addons} purchasedAddons={{ subagents: !!subagentInstructions, skillTree: !!skillTreeInstructions, appIcon: appIconPurchased }} briefEditor={<Personalize compact details={details} mode={mode} onDetails={updateDetails} onMode={updateMode} />} onRestoreBrief={updateDetails} onCleared={() => { setApplied({}); setProjects({}); }} onProject={(value) => setProjects((previous) => ({ ...previous, [current.id]: value ?? undefined }))} onApplied={(plan, brief) => setApplied((previous) => ({ ...previous, [current.id]: plan && brief ? { plan, brief } : undefined }))} />}
 
     </>}
     <p className={styles.libraryBack}><Link href="/templates/">← Back to all templates</Link></p>

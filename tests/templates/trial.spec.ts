@@ -23,6 +23,10 @@ async function mockWorkspace(page: Page, initial = fresh(), failOverview = false
   await page.route("**/api/templates/ai/**", async (route) => {
     const data = route.request().postDataJSON();
     requests.push(data);
+    if (data.action === "choices") {
+      const project = state.projects["mobile-app"]!;
+      project.plan.questionChoices = plan.questionChoices;
+    }
     if (data.action === "overview" || data.action === "message") {
       state.canStartOverview = false;
       if (failOverview) { failOverview = false; return route.fulfill({ status: 502, json: { error: "The AI response could not be completed. No message was deducted. Try again." } }); }
@@ -299,9 +303,13 @@ for (const mode of ["legacy", "pending", "exhausted"] as const) {
       for (const button of await decisions.getByRole("button").all()) await expect(button).toBeDisabled();
       return;
     }
+    await expect(decisions.getByRole("button", { name: "One-to-one sessions", exact: true })).toBeVisible();
+    await expect(decisions.getByRole("button", { name: "Start with my gym", exact: true })).toBeVisible();
+    expect(workspace.requests.filter((request) => request.action === "choices")).toHaveLength(1);
+    expect(workspace.state().remaining).toBe(3);
     await expect(decisions.getByRole("button", { name: /^(Yes|No)$/ })).toHaveCount(0);
     const first = decisions.getByRole("listitem").filter({ hasText: plan.questions[0] });
-    await first.getByRole("button", { name: "Write my answer", exact: true }).click();
+    await first.getByRole("button", { name: "Write my own answer", exact: true }).click();
     await first.getByLabel("Your answer").fill("Start with groups of four.");
     await first.getByRole("button", { name: "Add answer", exact: true }).click();
     await expect(first).toHaveCount(0);

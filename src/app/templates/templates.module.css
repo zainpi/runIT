@@ -7,6 +7,7 @@
 .page button:disabled { opacity:.52; cursor:not-allowed; }
 .page button:not(:disabled):active { transform:translateY(1px); }
 .container { width:min(1184px,calc(100% - 6rem)); margin-inline:auto; }
+.container:has([data-paid-dashboard]) { width:min(1680px,calc(100% - 3rem)); }
 .header { border-bottom:1px solid var(--line); }
 .header>.container { display:flex; align-items:center; gap:2rem; justify-content:space-between; min-height:100px; }
 .wordmark { font-family:var(--font-display),sans-serif; font-size:1.85rem; font-weight:600; letter-spacing:-.09em; white-space:nowrap; }
@@ -110,9 +111,6 @@
 .addon span>span { color:#c2ccdf; font-size:.74rem; line-height:1.7; }
 .addon small { color:var(--muted); font-size:.68rem; line-height:1.7; }
 .orderItems .addonLine { color:var(--accent); }
-.skillSetup>.actions { margin:18px 0; flex-wrap:wrap; }
-.skillSetup>.sample { margin-top:16px; }
-.libraryAddon { margin-top:30px!important; max-width:760px; }
 .textLink { display:inline-flex; align-items:center; min-height:44px; margin-top:14px; color:var(--accent); font-size:.75rem; }
 .customCard { display:flex; justify-content:space-between; align-items:center; gap:24px; border:1px dashed #465168; padding:25px; border-radius:10px; margin-top:20px; }
 .customCard h3 { font-size:1.2rem; font-weight:500; letter-spacing:-.03em; margin-top:10px; }

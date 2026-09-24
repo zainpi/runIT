@@ -102,6 +102,27 @@ test("question choices match every question with two distinct contextual answers
   assert.deepEqual(parseReply(resolved), resolved);
 });
 
+test("older saved questions receive AI answers without changing the plan or message allowance", () => {
+  const state = emptyAiState();
+  const initial = generation();
+  reserveGeneration(state, initial, "initial", now);
+  completeGeneration(state, initial.requestId, { ...reply, plan: { ...reply.plan, questionChoices: undefined } }, now + 1);
+  const before = structuredClone(state.projects["mobile-app"]!);
+  const request = { ...generation("message", 1), kind: "choices" as const, message: "" };
+  reserveGeneration(state, request, "choices", now + 4000);
+  assert.equal(state.used, 0);
+  assert.throws(() => completeGeneration(state, request.requestId, { ...reply, plan: { ...reply.plan, questions: ["A different question?"], questionChoices: [{ question: "A different question?", options: ["One option", "Another option"] }] } }, now + 4001), /could not match/);
+  failGeneration(state, request.requestId);
+  const retry = { ...request, requestId: randomUUID() };
+  reserveGeneration(state, retry, "retry", now + 8000);
+  completeGeneration(state, retry.requestId, reply, now + 8001);
+  assert.deepEqual(state.projects["mobile-app"]?.plan.questionChoices, reply.plan.questionChoices);
+  assert.equal(state.projects["mobile-app"]?.revision, before.revision);
+  assert.deepEqual(state.projects["mobile-app"]?.history, before.history);
+  assert.equal(state.used, 0);
+  assert.throws(() => reserveGeneration(state, { ...retry, requestId: randomUUID() }, "again", now + 12_000), /already available/);
+});
+
 test("saved plans without technical notes get useful template starting points", () => {
   const oldPlan = { ...reply.plan, technicalDetails: undefined };
   const fallback = planTechnicalDetails(oldPlan, "mobile-app");
@@ -157,6 +178,21 @@ test("API verifies order, consent and purchased template; saved state is isolate
   assert.deepEqual(second.state.projects, {});
   h.revoke();
   assert.equal((await h.send({ action: "load" })).status, 403);
+});
+
+test("API backfills choices on an older saved plan without using a message", async () => {
+  const h = harness();
+  const first = { action: "overview", templateId: "mobile-app", revision: 0, requestId: randomUUID(), brief, consent: true };
+  assert.equal((await h.send(first)).status, 200);
+  const state = [...h.states.values()][0];
+  state.projects["mobile-app"]!.plan = { ...state.projects["mobile-app"]!.plan, questionChoices: undefined };
+  const response = await h.send({ ...first, action: "choices", revision: 1, requestId: randomUUID() });
+  assert.equal(response.status, 200);
+  const saved = (await response.json()).state;
+  assert.deepEqual(saved.projects["mobile-app"].plan.questionChoices, reply.plan.questionChoices);
+  assert.equal(saved.projects["mobile-app"].revision, 1);
+  assert.equal(saved.projects["mobile-app"].history.length, 1);
+  assert.equal(saved.remaining, 20);
 });
 
 test("provider failure refunds a message and disabling generation still permits reads", async () => {

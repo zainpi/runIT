@@ -44,7 +44,7 @@ test("icon supports three updates, browsing earlier versions, return visits and 
   const section = page.getByRole("region", { name: "Create app icon", exact: true });
   const generate = section.getByRole("button", { name: "Generate app icon", exact: true });
   await expect(generate).toBeDisabled();
-  await page.getByRole("tab", { name: "Brief", exact: true }).click();
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
   await page.getByLabel("App name").fill("Climb");
   await page.getByLabel("What do you want to make?").fill(brief.idea);
   await page.getByRole("tab", { name: "Add-ons", exact: true }).click();

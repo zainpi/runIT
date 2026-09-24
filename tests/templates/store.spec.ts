@@ -350,7 +350,7 @@ test("paid library composes personalized prompt and supports copy and download",
     selected: ["storefront", "browser-game"],
   })));
   await page.goto(`/templates/library/#session_id=${sessionId}&access=${token}`);
-  const prompt = page.getByLabel(/Your brief .* complete foundation/);
+  const prompt = page.getByLabel(/Your app details .* complete foundation/);
   await expect(prompt).toContainText("Library Idea");
   await expect(prompt).toContainText("FOUNDATION_MARKER");
   expect(libraryRequest).toEqual({ sessionId, accessToken: token });
@@ -406,7 +406,7 @@ test("private purchase URL is prominent, bookmarkable, and matches copy and acce
   await page.reload();
   await expect(page).toHaveURL(purchaseUrl);
   await expect(privateUrl).toHaveValue(purchaseUrl);
-  await expect(page.getByLabel(/Your brief .* complete foundation/)).toContainText("PURCHASE_URL_FOUNDATION");
+  await expect(page.getByLabel(/Your app details .* complete foundation/)).toContainText("PURCHASE_URL_FOUNDATION");
 });
 
 test("copied purchase URL restores the paid order in a clean browser with no receipt storage", async ({ browser }) => {
@@ -421,7 +421,7 @@ test("copied purchase URL restores the paid order in a clean browser with no rec
 
   await cleanPage.goto(purchaseUrl);
   await expect(cleanPage.getByText("Browser game · Your workspace", { exact: true })).toBeVisible();
-  await expect(cleanPage.getByLabel(/Your brief .* complete foundation/)).toContainText("CROSS_DEVICE_FOUNDATION");
+  await expect(cleanPage.getByLabel(/Your app details .* complete foundation/)).toContainText("CROSS_DEVICE_FOUNDATION");
   await expect(cleanPage.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(purchaseUrl);
   await expect(cleanPage).toHaveURL(purchaseUrl);
   await cleanContext.close();
@@ -441,7 +441,7 @@ test("incoming purchase URL remains usable when browser storage is blocked", asy
   const purchaseUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
 
   await page.goto(purchaseUrl);
-  await expect(page.getByLabel(/Your brief .* complete foundation/)).toContainText("NO_STORAGE_FOUNDATION");
+  await expect(page.getByLabel(/Your app details .* complete foundation/)).toContainText("NO_STORAGE_FOUNDATION");
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(purchaseUrl);
   await expect(page).toHaveURL(purchaseUrl);
   await expect(page.getByRole("status", { name: "Template library status" })).toContainText("Browser storage is unavailable");
@@ -474,19 +474,21 @@ test("same-tab private-link navigation loads the new order and ignores a late pr
   await page.evaluate(({ newerSession, newerToken }) => {
     location.hash = `session_id=${newerSession}&access=${newerToken}`;
   }, { newerSession, newerToken });
-  await expect(page.getByLabel(/Your brief .* complete foundation/)).toContainText("CURRENT_SECOND_ORDER");
+  await expect(page.getByLabel(/Your app details .* complete foundation/)).toContainText("CURRENT_SECOND_ORDER");
   await expect(page.getByText("Browser game · Your workspace", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(secondUrl);
   await expect(page).toHaveURL(secondUrl);
 
   await page.waitForTimeout(600);
-  await expect(page.getByLabel(/Your brief .* complete foundation/)).toContainText("CURRENT_SECOND_ORDER");
-  await expect(page.getByLabel(/Your brief .* complete foundation/)).not.toContainText("STALE_FIRST_ORDER");
-  await expect(page.getByLabel("Include skill tree setup", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel(/Your app details .* complete foundation/)).toContainText("CURRENT_SECOND_ORDER");
+  await expect(page.getByLabel(/Your app details .* complete foundation/)).not.toContainText("STALE_FIRST_ORDER");
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
+  await expect(page.getByRole("article", { name: "Skill tree setup" })).toHaveCount(0);
   await expect(page).toHaveURL(secondUrl);
 });
 
-test("paid subagent add-on is enabled by default, survives mode changes, and is included in downloads", async ({ page }) => {
+test("paid subagent workflow is ready to use, survives mode changes, and is included in downloads", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:3102" });
   await page.route("**/api/templates/library/**", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
@@ -497,19 +499,21 @@ test("paid subagent add-on is enabled by default, survives mode changes, and is 
     }),
   }));
   await page.goto(`/templates/library/#session_id=${sessionId}&access=${token}`);
-  const prompt = page.getByLabel(/Your brief .* complete foundation/);
-  const addon = page.getByLabel("Include subagent workflow", { exact: true });
-  await expect(addon).toBeChecked();
+  const prompt = page.getByLabel(/Your app details .* complete foundation/);
+  const addon = page.getByRole("article", { name: "Subagent workflow" });
   await expect(prompt).toContainText("SUBAGENT_ADDON_MARKER");
 
-  await page.getByRole("tab", { name: "Brief", exact: true }).click();
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
   await page.getByLabel("Make AI control my computer").check();
-  await expect(addon).toBeChecked();
   await expect(prompt).toContainText("SUBAGENT_ADDON_MARKER");
   await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
-  await addon.uncheck();
-  await expect(prompt).not.toContainText("SUBAGENT_ADDON_MARKER");
-  await addon.check();
+  await expect(addon).toBeVisible();
+  await expect(addon.getByRole("checkbox")).toHaveCount(0);
+  await addon.getByText("Preview workflow instructions").click();
+  await expect(addon).toContainText("SUBAGENT_ADDON_MARKER");
+  await addon.getByRole("button", { name: "Copy build prompt" }).click();
+  await expect(page.getByRole("status", { name: "Template library status" })).toContainText("subagent workflow");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("SUBAGENT_ADDON_MARKER");
 
   const downloadEvent = page.waitForEvent("download");
   await page.getByRole("tab", { name: "Build files", exact: true }).click();
@@ -527,20 +531,25 @@ test("paid skill-tree add-on exposes a separate manual setup artifact with copy 
     contentType: "application/json",
     body: JSON.stringify({
       templates: [{ id: "roblox-game", foundation: "ROBLOX_FOUNDATION_MARKER" }],
-      subagents: false,
-      subagentInstructions: null,
+      subagents: true,
+      subagentInstructions: "TEAMWORK_MARKER: delegate independent tasks and review the results.",
       skillTree: true,
       skillTreeInstructions: "SKILL_TREE_MARKER: classify Roblox Studio, Rokit, Rojo, Lune, StyLua and Blender accurately; verify sources before installation.",
     }),
   }));
   await page.goto(`/templates/library/#session_id=${sessionId}&access=${token}`);
-  const include = page.getByLabel("Include skill tree setup", { exact: true });
-  await expect(include).toBeChecked();
-  await page.getByRole("tab", { name: "Brief", exact: true }).click();
+  const addon = page.getByRole("article", { name: "Skill tree setup" });
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
   await page.getByLabel("Do it myself").check();
   await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
+  await expect(addon).toBeVisible();
+  await expect(page.getByRole("article", { name: "Subagent workflow" })).toBeVisible();
+  await page.screenshot({ path: "/tmp/runit-paid-addons-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: "/tmp/runit-paid-addons-mobile.png", fullPage: true });
 
-  await page.getByRole("button", { name: "Copy skill setup prompt", exact: true }).click();
+  await addon.getByRole("button", { name: "Copy setup prompt", exact: true }).click();
   await expect(page.getByRole("status", { name: "Template library status" })).toContainText(/skill setup.*copied/i);
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toContain("SKILL_TREE_MARKER");
@@ -548,7 +557,7 @@ test("paid skill-tree add-on exposes a separate manual setup artifact with copy 
   expect(copied).toContain("Roblox Studio");
 
   const downloadEvent = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download skill setup .txt", exact: true }).click();
+  await addon.getByRole("button", { name: "Download setup .txt", exact: true }).click();
   const download = await downloadEvent;
   expect(download.suggestedFilename()).toMatch(/skill.*setup.*\.txt/i);
   const path = await download.path();
@@ -591,17 +600,18 @@ test("forged skill-tree flags cannot expose instructions and switching orders cl
   const firstUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
   await expect(page).toHaveURL(firstUrl);
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(firstUrl);
-  await expect(page.getByLabel("Include skill tree setup", { exact: true })).toBeChecked();
   await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Copy skill setup prompt", exact: true })).toBeVisible();
+  await expect(page.getByRole("article", { name: "Skill tree setup" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy setup prompt", exact: true })).toBeVisible();
 
   await page.getByLabel("Saved orders on this browser").selectOption(secondSession);
   const secondUrl = `http://127.0.0.1:3102/templates/library/#session_id=${secondSession}&access=${secondToken}`;
   await expect(page).toHaveURL(secondUrl);
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(secondUrl);
-  await expect(page.getByLabel(/Your brief .* complete foundation/)).toContainText("BASE_ORDER");
-  await expect(page.getByLabel("Include skill tree setup", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Copy skill setup prompt", exact: true })).toHaveCount(0);
+  await expect(page.getByLabel(/Your app details .* complete foundation/)).toContainText("BASE_ORDER");
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
+  await expect(page.getByRole("article", { name: "Skill tree setup" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Copy setup prompt", exact: true })).toHaveCount(0);
   await expect(page.getByText("ORDER_SPECIFIC_SKILL_MARKER", { exact: false })).toHaveCount(0);
 });
 
@@ -635,11 +645,12 @@ test("local forged add-on flags cannot reveal an unpurchased subagent workflow",
     }));
   }, { sessionId, token });
   await page.goto("/templates/library/");
-  const prompt = page.getByLabel(/Your brief .* complete foundation/);
+  const prompt = page.getByLabel(/Your app details .* complete foundation/);
   await expect(prompt).toContainText("BASE_ONLY_MARKER");
-  await expect(page.getByLabel("Include subagent workflow", { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel("Include skill tree setup", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Copy skill setup prompt", exact: true })).toHaveCount(0);
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
+  await expect(page.getByRole("article", { name: "Subagent workflow" })).toHaveCount(0);
+  await expect(page.getByRole("article", { name: "Skill tree setup" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Copy setup prompt", exact: true })).toHaveCount(0);
   await expect(prompt).not.toContainText("SUBAGENT");
 });
 
@@ -652,7 +663,7 @@ test("pending library order shows a retryable payment error without a prompt", a
   await page.goto(`/templates/library/#session_id=${sessionId}&access=${token}`);
   await expect(page.getByRole("alert").filter({ hasText: "payment is not complete yet" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check payment again" })).toBeVisible();
-  await expect(page.getByLabel(/Your brief .* complete foundation/)).toHaveCount(0);
+  await expect(page.getByLabel(/Your app details .* complete foundation/)).toHaveCount(0);
 });
 
 test("saved orders show their app names, restore older names and keep renames tied to the right order", async ({ page }) => {
@@ -681,7 +692,8 @@ test("saved orders show their app names, restore older names and keep renames ti
   await expect(picker).not.toContainText("2026-09-24");
   await expect(picker).not.toContainText("templates");
   expect(await picker.locator("option:not([disabled])").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value))).toEqual([sessionId, second, unnamed]);
-  await page.getByRole("tab", { name: "Brief", exact: true }).click();
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
+  await page.getByText("App details & build mode", { exact: false }).click();
   await page.getByLabel("App name").fill("Boulder Club");
   await expect(picker.locator(`option[value="${sessionId}"]`)).toHaveText("Boulder Club");
   await expect(picker.locator(`option[value="${second}"]`)).toHaveText("Pulse Deals");

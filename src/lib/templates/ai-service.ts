@@ -58,7 +58,7 @@ export async function handleAiRequest(request: Request, dependencies: Dependenci
     const revision = data.revision as number;
     if (trial && (data.action === "apply" || data.action === "guide")) throw new AiError("Purchase a template to create its full build guide and prompt.", 403);
     if (data.action === "apply") return jsonResponse({ available, state: unwrap(await order.apply(templateId, revision)) });
-    if (data.action !== "overview" && data.action !== "message" && data.action !== "guide") throw new AiError("Choose an overview, message or guide.");
+    if (data.action !== "overview" && data.action !== "message" && data.action !== "guide" && data.action !== "choices") throw new AiError("Choose an overview, message or guide.");
     if (!available) throw new AiError("AI editing is temporarily unavailable. Your saved conversation and templates are still accessible.", 503);
     if (data.consent !== true) throw new AiError("Confirm that your brief and messages may be sent to OpenAI to tailor your prompt.");
     if (typeof data.requestId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(data.requestId)) throw new AiError("Reload this page before sending.");

@@ -10,12 +10,14 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [generatingChoices, setGeneratingChoices] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
   const sending = useRef(false);
   const mounted = useRef(false);
   const autoStarted = useRef(false);
+  const choicesTried = useRef<string | null>(null);
   const attempt = useRef<{ fingerprint: string; generation: AiGeneration } | null>(null);
 
   const request = useCallback(async (payload: Record<string, unknown>) => {
@@ -30,10 +32,11 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
     setState(result.state); setAvailable(result.available);
     const pending = attempt.current?.generation, project = result.state?.projects[templateId];
     // Recover a committed reply even if its HTTP response was lost.
-    if (pending && project && project.revision > pending.revision && sameBrief(project.brief, pending.brief)
-      && (pending.kind === "overview" || project.history.filter((item) => item.role === "user").at(-1)?.text === pending.message)) {
+    if (pending && project && sameBrief(project.brief, pending.brief)
+      && ((pending.kind === "choices" && project.revision === pending.revision && project.plan.questionChoices?.length === project.plan.questions.length)
+        || (project.revision > pending.revision && (pending.kind === "overview" || project.history.filter((item) => item.role === "user").at(-1)?.text === pending.message)))) {
       if (pending.kind === "message") setMessage((current) => current.trim() === pending.message ? "" : current);
-      attempt.current = null; setError(""); setStatus("Plan updated and saved.");
+      attempt.current = null; setError(""); setStatus(pending.kind === "choices" ? "Answer examples added." : "Plan updated and saved.");
     }
   }, [templateId]);
 
@@ -59,9 +62,10 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
     return () => clearTimeout(timer);
   }, [state, busy, refresh]);
 
-  const generate = useCallback(async (kind: "overview" | "message", brief: Personalization, text = "", automatic = false) => {
+  const generate = useCallback(async (kind: "overview" | "message" | "choices", brief: Personalization, text = "", automatic = false) => {
     if (sending.current || !state || state.pending) return;
     sending.current = true; setBusy(true); setError(""); setStatus("");
+    if (kind === "choices") setGeneratingChoices(true);
     const revision = state.projects[templateId]?.revision ?? 0;
     const payload = { kind, templateId, brief, message: text.trim(), revision };
     const fingerprint = JSON.stringify(payload);
@@ -73,6 +77,7 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
     try {
       const result = await request({ ...generation, action: kind, consent: true });
       accept(result);
+      if (kind === "choices") attempt.current = null;
     } catch (cause) {
       if (!mounted.current) return;
       setError(cause instanceof Error ? cause.message : "The response didn’t arrive. Your message is still here.");
@@ -80,7 +85,7 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
       if (result && !result.state.pending) attempt.current = null;
     } finally {
       sending.current = false;
-      if (mounted.current) setBusy(false);
+      if (mounted.current) { setBusy(false); setGeneratingChoices(false); }
     }
   }, [state, templateId, access.sessionId, request, accept, refresh]);
 
@@ -91,14 +96,24 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
     }
   }, [available, state, generate]);
 
+  useEffect(() => {
+    const project = state?.projects[templateId];
+    if (!available || busy || !project || !project.plan.questions.length || project.plan.questionChoices?.length === project.plan.questions.length || state?.pending) return;
+    const key = `${templateId}:${project.revision}`;
+    if (choicesTried.current === key) return;
+    choicesTried.current = key;
+    void generate("choices", project.brief);
+  }, [available, busy, state, templateId, generate]);
+
   async function clear() {
     if (sending.current || state?.pending) return;
     sending.current = true; setBusy(true); setError("");
     try {
       const result = await request({ action: "clear" });
       attempt.current = null; accept(result); setMessage(""); setStatus("Saved brief, plan, and chat deleted. Your message allowance is unchanged.");
+      choicesTried.current = null;
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete your saved content. Try again."); }
     finally { sending.current = false; if (mounted.current) setBusy(false); }
   }
-  return { state, available, loading, busy, error, status, message, setMessage, generate, refresh, clear };
+  return { state, available, loading, busy, generatingChoices, error, status, message, setMessage, generate, refresh, clear };
 }

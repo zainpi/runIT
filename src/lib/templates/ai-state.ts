@@ -56,6 +56,9 @@ export function reserveGeneration(state: OrderAiState, request: AiGeneration, fi
   if (state.pending) throw new AiError("Another message for this purchase is being prepared. Refresh the conversation shortly.", 409);
   const project = state.projects[request.templateId];
   if ((project?.revision ?? 0) !== request.revision) throw new AiError("This conversation changed on another device. Refresh it before sending.", 409);
+  if (request.kind === "choices") {
+    if (!project || !sameBrief(project.brief, request.brief) || !project.plan.questions.length || project.plan.questionChoices?.length === project.plan.questions.length) throw new AiError("These answer examples are already available. Refresh the plan.", 409);
+  }
   if (request.kind === "guide" && state.limit === TRIAL_MESSAGE_LIMIT) throw new AiError("Build guides require a purchased template.", 403);
   if (request.kind === "guide" && (!project || !sameBrief(project.brief, request.brief))) throw new AiError("Update and review your saved plan before creating its guide.", 409);
   if (request.kind === "overview" && state.overviewUsed.includes(request.templateId)) throw new AiError("The free overview for this template has already been used. Send a message to revise it.", 409);
@@ -77,6 +80,15 @@ export function completeGeneration(state: OrderAiState, requestId: string, reply
   if (state.pending?.request.requestId !== requestId) throw new AiError("This attempt expired. Refresh the conversation before retrying.", 409);
   const request = state.pending.request, prior = state.projects[request.templateId];
   if (request.kind === "guide") throw new AiError("Use the guide completion operation.", 409);
+  if (request.kind === "choices") {
+    const questions = prior?.plan.questions ?? [];
+    const choices = reply.plan.questionChoices ?? [];
+    if (!prior || choices.length !== questions.length || choices.some((choice, index) => choice.question !== questions[index])) throw new AiError("The AI could not match answer examples to this plan. Please retry.", 502);
+    prior.plan.questionChoices = choices;
+    state.requests[requestId].status = "complete";
+    state.pending = null;
+    return;
+  }
   state.projects[request.templateId] = {
     ...(prior?.guide ? { guide: prior.guide } : {}),
     brief: request.brief, plan: reply.plan, revision: (prior?.revision ?? 0) + 1,
