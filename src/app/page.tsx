@@ -11,8 +11,6 @@ import { site } from "@/lib/site";
 import os from "@/components/runsos/os.module.css";
 import styles from "./home.module.css";
 
-export const viewport = { themeColor: "#ede4d3" };
-
 export default function HomePage() {
   return (
     <div className={os.root} data-os>

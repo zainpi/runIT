@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { site } from "@/lib/site";
+import { BrandMark } from "./BrandMark";
+import { MenuLinks } from "./MenuLinks";
 import os from "./os.module.css";
 
-export type MenuLink = { label: string; href: string; current?: boolean };
+export type MenuLink = { label: string; href: string };
 
 export const homeMenu: MenuLink[] = [
   { label: "Products", href: "/#products" },
@@ -17,17 +19,11 @@ export function MenuBar({ links = homeMenu, label = "Primary" }: { links?: MenuL
     <header className={os.menubar}>
       <div className={os.menubarInner}>
         <Link href="/" className={os.brand} aria-label="runsIT home">
-          <span className={os.brandMark} aria-hidden="true">r</span>
+          <BrandMark className={os.brandMark} />
           <span className={os.brandName}>runsIT</span>
         </Link>
         <nav className={os.menuNav} aria-label={label}>
-          {links.map((link) =>
-            link.href.startsWith("/") && !link.href.includes("#") ? (
-              <Link key={link.href} href={link.href} aria-current={link.current ? "page" : undefined}>{link.label}</Link>
-            ) : (
-              <a key={link.href} href={link.href} aria-current={link.current ? "page" : undefined}>{link.label}</a>
-            ),
-          )}
+          <MenuLinks links={links} />
         </nav>
         <div className={os.menuRight}>
           <span className={os.menuPill}>Built in Canada</span>
@@ -44,7 +40,7 @@ export function Taskbar({ note, backHref = "#main", backLabel = "Back to top ↑
     <footer className={os.taskbar}>
       <div className={os.taskbarInner}>
         <Link href="/" className={os.brand} aria-label="runsIT home">
-          <span className={os.brandMark} aria-hidden="true">r</span>
+          <BrandMark className={os.brandMark} />
           runsIT
         </Link>
         <span>{note ?? `© ${new Date().getFullYear()} runsIT · Built with care in Canada`}</span>

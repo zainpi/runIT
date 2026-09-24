@@ -41,7 +41,8 @@
 .menubar { position: sticky; top: 0; z-index: 50; background: var(--os-paper); border-bottom: 2.5px solid var(--os-ink); }
 .menubarInner { display: flex; align-items: center; gap: 26px; min-height: 48px; padding: 0 18px; font-family: var(--font-os-pixel), ui-monospace, monospace; font-size: 1.0625rem; }
 .brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; text-decoration: none; white-space: nowrap; }
-.brandMark { display: grid; place-items: center; width: 26px; height: 26px; border: 2px solid var(--os-ink); border-radius: 7px; background: var(--os-tomato); font-size: .9rem; line-height: 1; }
+.brandMark { display: block; width: 28px; height: 28px; flex-shrink: 0; transition: transform 160ms ease; }
+.brand:hover .brandMark { transform: rotate(-8deg); }
 .menuNav { display: flex; gap: 22px; min-width: 0; }
 .menuNav a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; white-space: nowrap; }
 .menuNav a:hover, .menuNav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
@@ -97,6 +98,7 @@
   .menubar .brandName { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .button { transition: none; }
+  .button, .brandMark { transition: none; }
+  .brand:hover .brandMark { transform: none; }
   .button:hover, .button:active { transform: none; }
 }

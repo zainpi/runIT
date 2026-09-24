@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Figtree, Gochi_Hand, Inter, Pixelify_Sans, Sora } from "next/font/google";
 import "./globals.css";
 import { SiteFrame } from "@/components/layout/SiteFrame";
-import { site } from "@/lib/site";
+import { site, siteOpenGraph } from "@/lib/site";
 import { founders } from "@/lib/company";
 
 const inter = Inter({
@@ -61,12 +61,10 @@ export const metadata: Metadata = {
   publisher: site.legalName,
   alternates: { canonical: "/" },
   openGraph: {
-    type: "website",
+    ...siteOpenGraph,
     url: site.url,
-    siteName: site.name,
     title: `${site.name} — ${site.tagline}`,
     description: site.description,
-    locale: "en_CA",
   },
   twitter: {
     card: "summary_large_image",
@@ -82,7 +80,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#05060a",
+  themeColor: "#ede4d3",
   width: "device-width",
   initialScale: 1,
 };
@@ -92,6 +90,7 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: site.legalName,
   url: site.url,
+  logo: `${site.url}/icon.svg`,
   description: site.description,
   email: site.email,
   founder: founders.map((founder) => ({
@@ -113,7 +112,7 @@ export default function RootLayout({
       <body className="min-h-screen font-sans" suppressHydrationWarning>
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-[10px] focus:border-2 focus:border-[#1b1a17] focus:bg-[#ffd23f] focus:px-4 focus:py-2 focus:font-bold focus:text-[#1b1a17] focus:shadow-[4px_4px_0_#1b1a17] focus-visible:ring-0 focus-visible:ring-offset-0"
         >
           Skip to content
         </a>

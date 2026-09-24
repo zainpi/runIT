@@ -23,6 +23,13 @@ export const site = {
   },
 } as const;
 
+// Shared Open Graph fields; pages add their own title, description and URL.
+export const siteOpenGraph = {
+  type: "website" as const,
+  siteName: site.name,
+  locale: "en_CA",
+};
+
 export type NavLink = { label: string; href: string; external?: boolean };
 
 export const mainNav: NavLink[] = [

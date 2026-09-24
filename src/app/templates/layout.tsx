@@ -3,8 +3,6 @@ import os from "@/components/runsos/os.module.css";
 import { site } from "@/lib/site";
 import styles from "./templates.module.css";
 
-export const viewport = { themeColor: "#ede4d3" };
-
 export default function TemplatesLayout({ children }: { children: React.ReactNode }) {
   return <div className={os.root} data-os>
     <MenuBar links={[

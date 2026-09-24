@@ -7,7 +7,7 @@ import { Window } from "@/components/runsos/Window";
 import { desktopApps, founderCards } from "@/components/runsos/apps";
 import { ArrowIcon } from "@/components/runsos/icons";
 import { founders } from "@/lib/company";
-import { site } from "@/lib/site";
+import { site, siteOpenGraph } from "@/lib/site";
 import os from "@/components/runsos/os.module.css";
 import styles from "../home.module.css";
 
@@ -29,12 +29,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description,
     alternates: { canonical: founder.portfolioUrl },
-    openGraph: { title, description, url: founder.portfolioUrl },
-    twitter: { title, description },
+    openGraph: { ...siteOpenGraph, type: "profile", title: `${title} | runsIT`, description, url: founder.portfolioUrl },
+    twitter: { card: "summary_large_image", title: `${title} | runsIT`, description },
   };
 }
-
-export const viewport = { themeColor: "#ede4d3" };
 
 export default async function FounderPortfolio({ params }: PageProps) {
   const { founder: slug } = await params;

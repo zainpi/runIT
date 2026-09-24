@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { MenuBar, Taskbar } from "@/components/runsos/MenuBar";
 import { Window } from "@/components/runsos/Window";
 import { ArrowIcon } from "@/components/runsos/icons";
 import os from "@/components/runsos/os.module.css";
 import styles from "./home.module.css";
+
+export const metadata: Metadata = { title: "Page not found" };
 
 export default function NotFound() {
   return (
