@@ -14,7 +14,8 @@
     "render:no-music": "remotion render src/index.ts NotesAppIdeas out/notes-app-ideas-no-music.mp4 --props='{\"music\":false}'",
     "typecheck": "tsc --noEmit",
     "test": "node --test lib/*.test.mjs",
-    "stills": "remotion still src/index.ts NotesAppIdeas out/poster.png --frame=12"
+    "stills": "remotion still src/index.ts NotesAppIdeas out/poster.png --frame=170",
+    "render:all": "npm run render && npm run render:no-music && npm run stills"
   },
   "dependencies": {
     "@remotion/cli": "4.0.528",

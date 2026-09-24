@@ -68,8 +68,10 @@ async function smoothScroll(page: Page, target: number | string, ms: number, off
     const to = element ? element.getBoundingClientRect().top + scrollY - offset : (target as number);
     const from = scrollY, start = performance.now();
     await new Promise<void>((done) => {
-      const step = (now: number) => {
-        const p = Math.min(1, (now - start) / ms);
+      // Use performance.now(): rAF timestamps follow the slowed animation clock
+      // and can precede `start`, which scrolled the page backwards.
+      const step = () => {
+        const p = Math.min(1, Math.max(0, (performance.now() - start) / ms));
         const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
         scrollTo(0, from + (to - from) * eased);
         if (p < 1) requestAnimationFrame(step); else done();
