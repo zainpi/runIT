@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Usage: npm run clips:check  -- [--campaign notes-app-ideas] [--fallback hook,payoff]
-//        npm run clips:generate -- [--campaign notes-app-ideas] [--fallback id,...] [--regenerate id,...]
+// Usage: npm run clips:check  -- [--campaign notes-app-ideas] [--only id,...] [--fallback hook,payoff]
+//        npm run clips:generate -- [--campaign notes-app-ideas] [--only id,...] [--fallback id,...] [--regenerate id,...]
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { check, generate } from "../lib/higgsfield-jobs.mjs";
@@ -25,13 +25,13 @@ for (const file of [join(repoRoot, ".env.higgsfield.local"), join(adsRoot, ".env
 
 try {
   if (command === "check") {
-    const result = await check(campaignDir, { fallback: list(flags.fallback) });
+    const result = await check(campaignDir, { fallback: list(flags.fallback), only: list(flags.only) });
     process.exitCode = result.ok ? 0 : 1;
   } else if (command === "generate") {
-    await generate(campaignDir, outputDir, { fallback: list(flags.fallback), regenerate: list(flags.regenerate) });
+    await generate(campaignDir, outputDir, { fallback: list(flags.fallback), regenerate: list(flags.regenerate), only: list(flags.only) });
     console.log(`Commit ads/campaigns/${campaign}/manifest.json and ads/public/campaigns/${campaign}/ so paid takes are kept.`);
   } else {
-    console.error("Use: clips.mjs <check|generate> [--campaign name] [--fallback id,...] [--regenerate id,...]");
+    console.error("Use: clips.mjs <check|generate> [--campaign name] [--only id,...] [--fallback id,...] [--regenerate id,...]");
     process.exitCode = 1;
   }
 } catch (error) {

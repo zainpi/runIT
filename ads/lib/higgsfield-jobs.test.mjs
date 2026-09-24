@@ -114,3 +114,17 @@ test("refuses to start when the plan exceeds the budget", async () => {
     assert.equal(api.calls.filter((call) => call.method === "POST" && !call.path.startsWith("/estimate/")).length, 0);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test("--only runs just the selected jobs", async () => {
+  const dir = await campaign();
+  try {
+    const api = fakeApi();
+    const options = { env, fetchImpl: api.fetchImpl, sleep: async () => {}, log: () => {} };
+    await generate(join(dir, "campaign"), join(dir, "out"), { ...options, only: ["hero"] });
+    const submits = api.calls.filter((call) => call.method === "POST" && !call.path.startsWith("/estimate/"));
+    assert.deepEqual(submits.map((call) => call.path), ["/marketing-studio/image"]);
+    const manifest = JSON.parse(await readFile(join(dir, "campaign", "manifest.json"), "utf8"));
+    assert.deepEqual(Object.keys(manifest.jobs), ["hero"]);
+    await assert.rejects(generate(join(dir, "campaign"), join(dir, "out"), { ...options, only: ["nope"] }), /Unknown job id/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});

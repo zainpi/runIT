@@ -127,6 +127,13 @@ export function resolveRequest(job, { useFallback = false, imageUrl } = {}) {
   return { model: modelPath(model), payload };
 }
 
+// Restrict a run to the listed job ids (all jobs when the list is empty).
+export function selectJobs(jobs, only = []) {
+  const unknown = only.filter((id) => !jobs.some((job) => job.id === id));
+  if (unknown.length) throw new JobError(`Unknown job id: ${unknown.join(", ")}`);
+  return only.length ? jobs.filter((job) => only.includes(job.id)) : jobs;
+}
+
 function spent(manifest) {
   return Object.values(manifest.jobs).filter((entry) => entry.request_id && !released.has(entry.status)).reduce((sum, entry) => sum + (entry.estimated_usd ?? 0), 0);
 }
@@ -139,10 +146,10 @@ function mediaUrl(data, kind) {
 }
 
 /** Free: validate every request against /estimate and report the planned spend. */
-export async function check(campaignDir, { env, fetchImpl, fallback = [], log = console.log } = {}) {
+export async function check(campaignDir, { env, fetchImpl, fallback = [], only = [], log = console.log } = {}) {
   const { shots, manifest } = await loadCampaign(campaignDir);
   const rows = [];
-  for (const job of shots.jobs) {
+  for (const job of selectJobs(shots.jobs, only)) {
     const done = manifest.jobs[job.id];
     const useFallback = fallback.includes(job.id);
     const imageUrl = job.fromImage ? manifest.jobs[job.fromImage]?.media_url ?? ESTIMATE_IMAGE_URL : undefined;
@@ -190,11 +197,12 @@ async function exists(path) {
  * Submit each job at most once, wait, and download. Stops at the first
  * uncertain submission, failure, or budget overrun; rerun to resume.
  */
-export async function generate(campaignDir, outputDir, { env, fetchImpl = fetch, fallback = [], regenerate = [], sleep = (ms) => new Promise((r) => setTimeout(r, ms)), timeoutMs = 20 * 60_000, log = console.log } = {}) {
+export async function generate(campaignDir, outputDir, { env, fetchImpl = fetch, fallback = [], regenerate = [], only = [], sleep = (ms) => new Promise((r) => setTimeout(r, ms)), timeoutMs = 20 * 60_000, log = console.log } = {}) {
   const { shots, manifest } = await loadCampaign(campaignDir);
-  const preflight = await check(campaignDir, { env, fetchImpl, fallback, log: () => {} });
+  const selected = selectJobs(shots.jobs, only);
+  const preflight = await check(campaignDir, { env, fetchImpl, fallback, only, log: () => {} });
   if (!preflight.ok) throw new JobError(`Preflight failed or over budget ($${(preflight.already + preflight.planned).toFixed(2)} of $${shots.budgetUsd}). Run the check command for details.`);
-  for (const job of shots.jobs) {
+  for (const job of selected) {
     const destination = join(outputDir, job.output);
     let entry = manifest.jobs[job.id];
     if (entry && regenerate.includes(job.id) && terminal.has(entry.status)) {
