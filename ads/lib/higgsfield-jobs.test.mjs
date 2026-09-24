@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { check, generate, priceFromEstimate, ratePer1kTokens, videoDimensions, videoTokens } from "./higgsfield-jobs.mjs";
+import { authHeaders, check, generate, priceFromEstimate, ratePer1kTokens, videoDimensions, videoTokens } from "./higgsfield-jobs.mjs";
 
 const env = { HF_API_KEY_ID: "test-id", HF_API_KEY_SECRET: "test-secret" };
 const description = "Token-metered pricing. Billable video tokens = ceil((input video seconds + generated video seconds) × output width × output height × 24 fps / 1024) ... each 1,000 video tokens cost $0.0214 ...";
@@ -51,6 +51,12 @@ test("prices token-metered video from the vendor rate", () => {
   assert.equal(videoTokens({ duration: 5, resolution: "720p", aspect_ratio: "9:16" }), 108000);
   assert.equal(priceFromEstimate({ pricing_description: description }, shots().jobs[2]).usd, 2.3112);
   assert.throws(() => priceFromEstimate({ type: "description", pricing_description: "call sales" }, { id: "x", kind: "image" }), /maxUsd/);
+});
+
+test("uses env keys when present, or leaves auth to the environment proxy", () => {
+  assert.deepEqual(authHeaders(env), { Authorization: "Key test-id:test-secret" });
+  assert.deepEqual(authHeaders({}), {});
+  assert.throws(() => authHeaders({ HF_API_KEY_ID: "only-id" }), /both/);
 });
 
 test("check is free and reports the planned spend", async () => {

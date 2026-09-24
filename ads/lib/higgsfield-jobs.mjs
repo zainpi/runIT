@@ -20,10 +20,13 @@ export class JobError extends Error {
   constructor(message, { status, retryable = false } = {}) { super(message); this.status = status; this.retryable = retryable; }
 }
 
-export function authHeader(env = process.env) {
+// With neither variable set, requests go without Authorization so a cloud
+// environment's API credential (added by its proxy) can authenticate them.
+export function authHeaders(env = process.env) {
   const id = env.HF_API_KEY_ID, secret = env.HF_API_KEY_SECRET;
-  if (!id || !secret || /[:\r\n]/.test(id) || /[\r\n]/.test(secret)) throw new JobError("Set HF_API_KEY_ID and HF_API_KEY_SECRET (repo-root .env.higgsfield.local or the environment).");
-  return `Key ${id}:${secret}`;
+  if (!id && !secret) return {};
+  if (!id || !secret || /[:\r\n]/.test(id) || /[\r\n]/.test(secret)) throw new JobError("Set both HF_API_KEY_ID and HF_API_KEY_SECRET (repo-root .env.higgsfield.local or the environment).");
+  return { Authorization: `Key ${id}:${secret}` };
 }
 
 function modelPath(model) {
@@ -36,7 +39,7 @@ export async function hf(path, { method = "GET", body, env = process.env, fetchI
   try {
     response = await fetchImpl(`${BASE}${path}`, {
       method,
-      headers: { Authorization: authHeader(env), "Content-Type": "application/json" },
+      headers: { ...authHeaders(env), "Content-Type": "application/json" },
       ...(body ? { body: JSON.stringify(body) } : {}),
       signal: AbortSignal.timeout(30_000),
       redirect: "error",
@@ -50,7 +53,7 @@ export async function hf(path, { method = "GET", body, env = process.env, fetchI
   if (!response.ok) {
     const status = response.status;
     const detail = typeof data?.detail === "string" ? `: ${data.detail.slice(0, 300)}` : Array.isArray(data?.detail) ? `: ${JSON.stringify(data.detail).slice(0, 300)}` : "";
-    const hint = { 401: "check credentials", 403: "check credits and model access", 404: "model or request not found", 422: "request fields rejected", 400: "request rejected" }[status] ?? "error";
+    const hint = { 401: "check credentials: HF_API_KEY_ID/HF_API_KEY_SECRET, or an environment API credential for api.higgsfield.ai with header Authorization and prefix Key", 403: "check credits and model access", 404: "model or request not found", 422: "request fields rejected", 400: "request rejected" }[status] ?? "error";
     throw new JobError(`Higgsfield HTTP ${status} (${hint})${detail}`, { status, retryable: status >= 500 || status === 429 || status === 423 });
   }
   if (!data || typeof data !== "object") throw new JobError("Higgsfield returned invalid JSON");

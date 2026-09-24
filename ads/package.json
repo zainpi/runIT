@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "clips:check": "node scripts/clips.mjs check",
-    "clips:generate": "node scripts/clips.mjs generate",
+    "clips:check": "NODE_USE_ENV_PROXY=1 node scripts/clips.mjs check",
+    "clips:generate": "NODE_USE_ENV_PROXY=1 node scripts/clips.mjs generate",
     "footage": "node scripts/record-product.mjs",
     "music": "python3 scripts/make-music.py public/music/idea-pulse.wav",
     "render": "remotion render src/index.ts NotesAppIdeas out/notes-app-ideas.mp4",
