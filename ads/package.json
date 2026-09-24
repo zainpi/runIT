@@ -8,7 +8,7 @@
     "studio": "remotion studio src/index.ts",
     "clips:check": "NODE_USE_ENV_PROXY=1 node scripts/clips.mjs check",
     "clips:generate": "NODE_USE_ENV_PROXY=1 node scripts/clips.mjs generate",
-    "footage": "node scripts/record-product.mjs",
+    "footage": "cd .. && npx tsx ads/scripts/record-product.mts",
     "music": "python3 scripts/make-music.py public/music/idea-pulse.wav",
     "render": "remotion render src/index.ts NotesAppIdeas out/notes-app-ideas.mp4",
     "render:no-music": "remotion render src/index.ts NotesAppIdeas out/notes-app-ideas-no-music.mp4 --props='{\"music\":false}'",
