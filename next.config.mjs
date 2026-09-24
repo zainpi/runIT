@@ -75,11 +75,6 @@ const nextConfig = {
       { source: "/services", destination: "/#products", permanent: true },
       { source: "/case-studies", destination: "/#products", permanent: true },
       {
-        source: "/about",
-        destination: "/#company",
-        permanent: true,
-      },
-      {
         source: "/contact",
         destination: "/#contact",
         permanent: true,

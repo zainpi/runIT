@@ -24,7 +24,7 @@ export default function HomePage() {
           <nav className={styles.nav} aria-label="Primary">
             <a href="#products">Products</a>
             <Link href="/templates/">AI templates</Link>
-            <a href="#founders">About us</a>
+            <Link href="/about/">About us</Link>
           </nav>
           <a className={styles.headerContact} href={`mailto:${site.email}`}>
             Say hello <ArrowRightIcon />

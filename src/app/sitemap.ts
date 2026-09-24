@@ -1,11 +1,12 @@
 import type { MetadataRoute } from "next";
 import { site } from "@/lib/site";
-import { founders } from "@/lib/company";
+import { company, founders } from "@/lib/company";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = [
     { path: "/templates/", priority: 0.9, frequency: "monthly" as const, modified: "2026-09-16" },
     { path: "/", priority: 1, frequency: "monthly" as const, modified: "2026-09-16" },
+    { path: "/about/", priority: 0.8, frequency: "monthly" as const, modified: company.factsReviewed },
     ...founders.map((founder) => ({ path: founder.portfolioUrl, priority: 0.7, frequency: "monthly" as const, modified: "2026-09-10" })),
     { path: "/pulsedeals/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
     { path: "/local-lore/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },

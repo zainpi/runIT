@@ -50,6 +50,17 @@ export const products = [
   },
 ] as const;
 
+export type ProductId = (typeof products)[number]["id"];
+
+// Verified public company facts. Add a fact here only once it has a public source.
+export const company = {
+  type: "Independent software company",
+  country: "Canada",
+  countryCode: "CA",
+  // Date the About page's key facts were last checked against current sources.
+  factsReviewed: "2026-09-24",
+} as const;
+
 export type Founder = {
   id: string;
   slug: string;

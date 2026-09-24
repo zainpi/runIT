@@ -28,7 +28,7 @@ export type NavLink = { label: string; href: string; external?: boolean };
 export const mainNav: NavLink[] = [
   { label: "Products", href: "/#products" },
   { label: "AI Templates", href: "/templates/" },
-  { label: "About us", href: "/#founders" },
+  { label: "About us", href: "/about/" },
   { label: "Contact", href: "/#contact" },
 ];
 
@@ -57,7 +57,7 @@ export const footerNav: { title: string; links: NavLink[] }[] = [
   {
     title: "Company",
     links: [
-      { label: "About us", href: "/#founders" },
+      { label: "About us", href: "/about/" },
       { label: "Contact", href: "/#contact" },
       { label: "My templates", href: "/templates/library/" },
     ],

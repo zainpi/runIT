@@ -3,7 +3,7 @@ import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import { SiteFrame } from "@/components/layout/SiteFrame";
 import { site } from "@/lib/site";
-import { founders } from "@/lib/company";
+import { organizationJsonLd } from "@/lib/structured-data";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,20 +64,6 @@ export const viewport = {
   themeColor: "#05060a",
   width: "device-width",
   initialScale: 1,
-};
-
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: site.legalName,
-  url: site.url,
-  description: site.description,
-  email: site.email,
-  founder: founders.map((founder) => ({
-    "@type": "Person",
-    name: founder.name,
-    url: `${site.url}${founder.portfolioUrl}`,
-  })),
 };
 
 export default function RootLayout({
