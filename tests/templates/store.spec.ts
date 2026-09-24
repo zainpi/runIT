@@ -6,22 +6,17 @@ const sessionId = "cs_test_1234567890abcdef";
 const productNames = ["Discord bot", "Roblox game", "Mobile game", "Mobile app", "Online store", "Browser game"];
 const productIds = ["discord-bot", "roblox-game", "mobile-game", "mobile-app", "storefront", "browser-game"];
 
-async function mockConfiguration(page: Page, currency: "cad" | "usd" = "cad") {
+async function mockConfiguration(page: Page, currency: "cad" | "usd" = "cad", appIconAvailable = true) {
   await page.route("**/api/templates/config/**", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify({ available: true, appIconAvailable: true, testMode: true, currency }),
+    body: JSON.stringify({ available: true, appIconAvailable, testMode: true, currency }),
   }));
 }
 
 async function waitForStore(page: Page) {
   await page.goto("/templates/");
   await expect(page.getByRole("button", { name: "Try test checkout" })).toBeVisible();
-}
-
-async function openExtras(page: Page) {
-  const extras = page.locator("#bundle > details");
-  if (await extras.getAttribute("open") === null) await extras.locator("summary").click();
 }
 
 test("cart prices every bundle exactly and reprices after add/remove", async ({ page }) => {
@@ -31,31 +26,29 @@ test("cart prices every bundle exactly and reprices after add/remove", async ({ 
   const totals = ["$9.99", "$14.99", "$19.99", "$24.99", "$29.99", "$34.99"];
   for (let index = 0; index < productNames.length; index += 1) {
     await page.getByRole("button", { name: `Add ${productNames[index]}`, exact: true }).click();
+    if (index === 0) {
+      // The first template pre-checks its recommended extra; clearing it stops later pre-selection.
+      await expect(page.getByLabel("Add skills & tools setup", { exact: true })).toBeChecked();
+      await expect(page.getByText("$19.99", { exact: true }).last()).toBeVisible();
+      await page.getByLabel("Add skills & tools setup", { exact: true }).uncheck();
+    }
     await expect(page.getByText(totals[index], { exact: true }).last()).toBeVisible();
     await expect(page.locator("#bundle").getByText(`${index + 1} selected`, { exact: true })).toBeVisible();
   }
 
-  await openExtras(page);
   await page.getByLabel("Add AI teamwork", { exact: true }).check();
   await expect(page.getByText("$39.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Add skills & tools setup", { exact: true }).check();
   await expect(page.getByText("$49.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Create app icon", { exact: true }).check();
   await expect(page.getByText("$54.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Create app icon", { exact: true }).uncheck();
-  await openExtras(page);
   await page.getByLabel("Add AI teamwork", { exact: true }).uncheck();
   await expect(page.getByText("$44.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Add AI teamwork", { exact: true }).check();
   await expect(page.getByText("$49.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Add skills & tools setup", { exact: true }).uncheck();
   await expect(page.getByText("$39.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Add AI teamwork", { exact: true }).uncheck();
   await expect(page.getByText("$34.99", { exact: true }).last()).toBeVisible();
 
@@ -68,15 +61,46 @@ test("cart prices every bundle exactly and reprices after add/remove", async ({ 
 
   for (const name of productNames.slice(1, 4)) await page.getByLabel(`Remove ${name} from bundle`, { exact: true }).click();
   await expect(page.getByText("$9.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Add AI teamwork", { exact: true }).check();
   await expect(page.getByText("$14.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Add skills & tools setup", { exact: true }).check();
   await expect(page.getByText("$24.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Add AI teamwork", { exact: true }).uncheck();
   await expect(page.getByText("$19.99", { exact: true }).last()).toBeVisible();
+});
+
+test("extras stay visible and a template pre-checks its recommended extra", async ({ page }) => {
+  await mockConfiguration(page);
+  await waitForStore(page);
+  const icon = page.getByLabel("Create app icon", { exact: true });
+  const teamwork = page.getByLabel("Add AI teamwork", { exact: true });
+  const skills = page.getByLabel("Add skills & tools setup", { exact: true });
+  await expect(page.locator("#bundle summary", { hasText: "Optional extras" })).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Optional extras" })).toBeVisible();
+  for (const option of [icon, teamwork, skills]) await expect(option).toBeVisible();
+
+  await page.getByLabel("Add Mobile app", { exact: true }).click();
+  await expect(icon).toBeChecked();
+  await expect(teamwork).not.toBeChecked();
+  await expect(skills).not.toBeChecked();
+  await page.getByLabel("Add Browser game", { exact: true }).click();
+  await expect(skills).toBeChecked();
+  await expect(page.locator("#bundle").getByText("$29.99", { exact: true })).toBeVisible();
+
+  // Once the buyer changes an extra, adding templates leaves the extras alone.
+  await skills.uncheck();
+  await page.getByLabel("Remove Browser game from bundle", { exact: true }).click();
+  await page.getByLabel("Add Discord bot", { exact: true }).click();
+  await expect(skills).not.toBeChecked();
+  await expect(page.locator("#bundle").getByText("$19.99", { exact: true })).toBeVisible();
+});
+
+test("an unavailable app icon is never pre-checked", async ({ page }) => {
+  await mockConfiguration(page, "cad", false);
+  await waitForStore(page);
+  await page.getByLabel("Add Mobile game", { exact: true }).click();
+  await expect(page.getByLabel("Create app icon", { exact: true })).not.toBeChecked();
+  await expect(page.getByRole("button", { name: "Try test checkout" })).toBeEnabled();
 });
 
 for (const currency of ["cad", "usd"] as const) {
@@ -87,15 +111,10 @@ for (const currency of ["cad", "usd"] as const) {
     await expect(page.getByText(`$9.99 ${label}`, { exact: true })).toBeVisible();
     await expect(page.getByText("first template · $5.00 each extra", { exact: true })).toBeVisible();
     await page.getByLabel("Add Online store", { exact: true }).click();
-    await openExtras(page);
-    await openExtras(page);
-    await page.getByLabel("Add AI teamwork", { exact: true }).check();
-    await openExtras(page);
-    await page.getByLabel("Add skills & tools setup", { exact: true }).check();
-    await openExtras(page);
-    await page.getByLabel("Create app icon", { exact: true }).check();
+        await page.getByLabel("Add AI teamwork", { exact: true }).check();
+      await page.getByLabel("Add skills & tools setup", { exact: true }).check();
+      await page.getByLabel("Create app icon", { exact: true }).check();
     const bundle = page.locator("#bundle");
-    await expect(bundle.getByText(`One-time prices for this order, in ${label}.`, { exact: true })).toBeVisible();
     await expect(bundle.getByText(`One-time payment · ${label}`, { exact: true })).toBeVisible();
     await expect(bundle.getByText("$29.99", { exact: true })).toBeVisible();
     await expect(bundle.getByText("1 icon + 3 updates. Download every version.", { exact: true })).toBeVisible();
@@ -119,21 +138,22 @@ test("checkout only asks for a template and preserves existing personalization f
   await expect(page.getByLabel("App name")).toHaveCount(0);
   await expect(page.getByLabel("What do you want to make?")).toHaveCount(0);
   await expect(page.getByLabel("Make AI control my computer")).toHaveCount(0);
-  await expect(page.getByLabel("Create app icon", { exact: true })).toBeHidden();
+  await expect(page.getByLabel("Create app icon", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Discount code", { exact: true })).toBeHidden();
   await page.getByLabel("Add Online store", { exact: true }).click();
   await expect(page.getByRole("button", { name: "Try test checkout" })).toBeEnabled();
-  await openExtras(page);
+  await expect(page.getByLabel("Add skills & tools setup", { exact: true })).toBeChecked();
   await page.getByLabel("Create app icon", { exact: true }).check();
   await page.reload();
   await expect(page.getByLabel("Remove Online store", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Create app icon", { exact: true })).toBeChecked();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("runit-template-brief-v1")!))).toMatchObject({ details: { name: "Moon Cart", idea: "A neighborhood marketplace.", features: "Saved shops", style: "Quiet", budget: "$25" }, mode: "computer", selected: ["storefront"], appIcon: true });
+  await expect(page.getByLabel("Add skills & tools setup", { exact: true })).toBeChecked();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("runit-template-brief-v1")!))).toMatchObject({ details: { name: "Moon Cart", idea: "A neighborhood marketplace.", features: "Saved shops", style: "Quiet", budget: "$25" }, mode: "computer", selected: ["storefront"], appIcon: true, skillTree: true });
   await page.getByRole("button", { name: "Have a free-trial code?" }).click();
   await expect(page.getByLabel("What do you want to make?")).toHaveValue("A neighborhood marketplace.");
   await expect(page.getByRole("button", { name: "Try test checkout" })).toHaveCount(0);
   await page.getByRole("button", { name: "Back to checkout" }).click();
-  await expect(page.locator("#bundle").getByText("$14.99", { exact: true })).toBeVisible();
+  await expect(page.locator("#bundle").getByText("$24.99", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Create app icon", { exact: true })).toBeChecked();
   await page.goto("/templates/#free-trial");
   await expect(page.getByLabel("What do you want to make?")).toHaveValue("A neighborhood marketplace.");
@@ -158,11 +178,8 @@ test("checkout sends canonical IDs, access token, and add-on flag, then saves it
   await waitForStore(page);
   await page.getByLabel("Add Browser game", { exact: true }).click();
   await page.getByLabel("Add Discord bot", { exact: true }).click();
-  await openExtras(page);
   await page.getByLabel("Add AI teamwork", { exact: true }).check();
-  await openExtras(page);
   await page.getByLabel("Add skills & tools setup", { exact: true }).check();
-  await openExtras(page);
   await page.getByLabel("Create app icon", { exact: true }).check();
   await page.getByRole("button", { name: "Try test checkout" }).click();
   await page.waitForURL("https://checkout.stripe.com/**");
@@ -250,8 +267,9 @@ test("founder referral code previews ten percent off and is sent to checkout", a
   await page.getByLabel("Discount code", { exact: true }).fill("zain-runit-10");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.getByText("10% off applied to this order", { exact: false })).toBeVisible();
+  await expect(page.locator("#bundle").getByText("$13.49", { exact: true })).toBeVisible();
+  await page.getByLabel("Create app icon", { exact: true }).uncheck();
   await expect(page.locator("#bundle").getByText("$8.99", { exact: true }).last()).toBeVisible();
-  await openExtras(page);
   await page.getByLabel("Create app icon", { exact: true }).check();
   await expect(page.locator("#bundle").getByText("$13.49", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Try test checkout" }).click();
@@ -308,7 +326,6 @@ test("keyboard controls have usable labels", async ({ page }) => {
   await expect(add).toBeFocused();
   await page.keyboard.press("Space");
   await expect(page.getByLabel("Remove Discord bot", { exact: true })).toHaveAttribute("aria-pressed", "true");
-  await openExtras(page);
   await page.getByLabel("Create app icon", { exact: true }).focus();
   await page.keyboard.press("Space");
   await expect(page.getByLabel("Create app icon", { exact: true })).toBeChecked();
@@ -320,12 +337,9 @@ test("desktop and mobile layouts have no horizontal overflow", async ({ page }) 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await waitForStore(page);
   await page.getByLabel("Add Online store", { exact: true }).click();
-  await openExtras(page);
   await page.getByLabel("Add AI teamwork", { exact: true }).check();
-  await openExtras(page);
   await page.getByLabel("Add skills & tools setup", { exact: true }).check();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  await page.locator("#bundle > details > summary").click();
   await page.screenshot({ path: "/tmp/runit-templates-desktop.png", fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });

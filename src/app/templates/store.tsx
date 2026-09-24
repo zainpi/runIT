@@ -23,6 +23,12 @@ function TemplateIcon({ symbol }: { symbol: string }) {
   return <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[symbol]}</svg>;
 }
 
+// Pre-checked when a template is added, until the buyer changes an extra themselves.
+const recommendedExtra: Record<TemplateId, "appIcon" | "skillTree"> = {
+  "mobile-app": "appIcon", "mobile-game": "appIcon", "roblox-game": "appIcon",
+  "discord-bot": "skillTree", storefront: "skillTree", "browser-game": "skillTree",
+};
+
 export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: { initialCurrency?: TemplateCurrency }) {
   const [selected, setSelected] = useState<TemplateId[]>([]);
   const [details, setDetails] = useState<Personalization>(emptyPersonalization);
@@ -36,17 +42,17 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
   const [error, setError] = useState("");
   const [canceled, setCanceled] = useState(false);
   const [trialCheckout, setTrialCheckout] = useState(false);
-  const [extrasOpen, setExtrasOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
   const [orderVisible, setOrderVisible] = useState(false);
   const orderPanel = useRef<HTMLElement | null>(null);
+  const extrasChanged = useRef(false);
   const [referralCode, setReferralCode] = useState("");
   const [referral, setReferral] = useState<AppliedReferral | null>(null);
   const currency = checkout?.currency ?? initialCurrency;
   const currencyLabel = currency.toUpperCase();
   const price = (cents: number) => formatPrice(cents, currency);
   useEffect(() => {
-    const draft = loadDraft(); setSelected(draft.selected); setDetails(draft.details); setMode(draft.mode); setSubagents(draft.subagents); setSkillTree(draft.skillTree); setAppIcon(draft.appIcon); setExtrasOpen(draft.subagents || draft.skillTree || draft.appIcon); setLoaded(true);
+    const draft = loadDraft(); setSelected(draft.selected); setDetails(draft.details); setMode(draft.mode); setSubagents(draft.subagents); setSkillTree(draft.skillTree); setAppIcon(draft.appIcon); setLoaded(true);
     setCanceled(new URLSearchParams(location.search).has("canceled"));
     const referralFromUrl = new URLSearchParams(location.search).get("ref");
     if (referralFromUrl) { setReferralCode(referralFromUrl); setReferralOpen(true); }
@@ -69,7 +75,14 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     return () => observer.disconnect();
   }, []);
   useEffect(() => { if (loaded) { try { saveDraft(details, mode, selected, subagents, skillTree, appIcon); } catch { /* Editing remains available without browser persistence. */ } } }, [details, mode, selected, subagents, skillTree, appIcon, loaded]);
-  function toggle(id: TemplateId) { setSelected((current) => current.includes(id) ? current.filter((v) => v !== id) : [...current, id]); setError(""); }
+  function toggle(id: TemplateId) {
+    const adding = !selected.includes(id);
+    setSelected((current) => current.includes(id) ? current.filter((v) => v !== id) : [...current, id]); setError("");
+    if (!adding || extrasChanged.current) return;
+    if (recommendedExtra[id] === "skillTree") setSkillTree(true);
+    else if (checkout?.appIconAvailable) setAppIcon(true);
+  }
+  function changeExtra(set: (value: boolean) => void, value: boolean) { extrasChanged.current = true; set(value); }
   function closeTrial() {
     setTrialCheckout(false);
     if (location.hash === "#free-trial") history.replaceState(null, "", `${location.pathname}${location.search}#bundle`);
@@ -134,24 +147,23 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
         </> : <>
           <div className={styles.orderHeading}><h2>Your order</h2><span>{selected.length} selected</span></div>
           {selected.length ? <ul className={styles.orderItems} aria-label="Selected items">{selectedTemplates.map((template, index) => <li key={template.id}><span>{template.title}</span><strong>{cartPrice(index === 0 ? FIRST_TEMPLATE_CENTS : EXTRA_TEMPLATE_CENTS)}</strong><button type="button" aria-label={`Remove ${template.title} from bundle`} disabled={busy} onClick={() => toggle(template.id)}>×</button></li>)}</ul> : <p className={styles.empty}>Choose a template to get started.<br />You’ll make it your own after checkout.</p>}
-          <details className={styles.extras} open={extrasOpen} onToggle={(event) => setExtrasOpen(event.currentTarget.open)}>
-            <summary>Optional extras <span>{addOnCount ? `${addOnCount} added` : ""}<b aria-hidden="true">+</b></span></summary>
+          <fieldset className={styles.extras}>
+            <legend>Optional extras</legend>
             <div className={styles.addonList}>
               <label className={styles.addon} data-selected={appIcon}>
-                <input type="checkbox" aria-label="Create app icon" aria-describedby="icon-extra-description" checked={appIcon} disabled={busy || (!checkout?.appIconAvailable && !appIcon)} onChange={(event) => setAppIcon(event.target.checked)} />
+                <input type="checkbox" aria-label="Create app icon" aria-describedby="icon-extra-description" checked={appIcon} disabled={busy || (!checkout?.appIconAvailable && !appIcon)} onChange={(event) => changeExtra(setAppIcon, event.target.checked)} />
                 <span><strong>App icon <b>+{cartPrice(APP_ICON_ADDON_CENTS)}</b></strong><small id="icon-extra-description">1 icon + 3 updates. Download every version.</small>{checkout && !checkout.appIconAvailable && <small>Temporarily unavailable{appIcon ? "; uncheck to continue" : ""}.</small>}</span>
               </label>
               <label className={styles.addon} data-selected={subagents}>
-                <input type="checkbox" aria-label="Add AI teamwork" aria-describedby="subagent-extra-description" checked={subagents} disabled={busy} onChange={(event) => setSubagents(event.target.checked)} />
+                <input type="checkbox" aria-label="Add AI teamwork" aria-describedby="subagent-extra-description" checked={subagents} disabled={busy} onChange={(event) => changeExtra(setSubagents, event.target.checked)} />
                 <span><strong>AI teamwork <b>+{cartPrice(SUBAGENT_ADDON_CENTS)}</b></strong><small id="subagent-extra-description">A prompt for coordinating multiple AI agents.</small></span>
               </label>
               <label className={styles.addon} data-selected={skillTree}>
-                <input type="checkbox" aria-label="Add skills & tools setup" aria-describedby="skills-extra-description" checked={skillTree} disabled={busy} onChange={(event) => setSkillTree(event.target.checked)} />
+                <input type="checkbox" aria-label="Add skills & tools setup" aria-describedby="skills-extra-description" checked={skillTree} disabled={busy} onChange={(event) => changeExtra(setSkillTree, event.target.checked)} />
                 <span><strong>Skills & tools setup <b>+{cartPrice(SKILL_TREE_ADDON_CENTS)}</b></strong><small id="skills-extra-description">A setup guide for your AI’s skills and tools.</small></span>
               </label>
-              <p className={styles.extraNote}>One-time prices for this order, in {currencyLabel}.</p>
             </div>
-          </details>
+          </fieldset>
           <div className={styles.total} aria-live="polite" aria-atomic="true"><div><span>{selected.length ? "Total" : "Starting at"}</span><small>One-time payment · {currencyLabel}</small></div><strong>{price(selected.length ? total : FIRST_TEMPLATE_CENTS)}</strong></div>
           {referral && <p className={styles.discount}>{referral.discountPercent}% off applied to this order</p>}
           <button className={styles.checkoutButton} disabled={!selected.length || busy || !checkout?.available || (appIcon && !checkout.appIconAvailable)} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Loading…" : !checkout.available ? "Checkout coming soon" : appIcon && !checkout.appIconAvailable ? "App icon unavailable" : referral?.discountPercent === 100 ? "Complete free checkout →" : checkout.testMode ? "Try test checkout →" : "Continue to checkout →"}</button>
