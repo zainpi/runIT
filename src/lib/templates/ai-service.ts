@@ -10,7 +10,7 @@ import { validTrialId } from "./trial-contract";
 import { isReasoningEffort, type AiReasoningEffort } from "./ai-settings";
 import type { TemplateId } from "./catalog";
 
-export type AiOrderStore = { [K in "initializeTrial" | "read" | "reserve" | "complete" | "fail" | "apply" | "clear"]: (...args: Parameters<TemplateAiOrder[K]>) => Promise<ReturnType<TemplateAiOrder[K]>> };
+export type AiOrderStore = { [K in "initializeTrial" | "read" | "reserve" | "complete" | "fail" | "apply" | "clear"]: (...args: Parameters<TemplateAiOrder[K]>) => Promise<ReturnType<TemplateAiOrder[K]>> } & { startGuide?: (...args: Parameters<TemplateAiOrder["startGuide"]>) => ReturnType<TemplateAiOrder["startGuide"]> };
 type AiConfiguration = { key: string; model: string; reasoningEffort?: AiReasoningEffort; enabled: boolean; orders?: DurableObjectNamespace<TemplateAiOrder> };
 export async function aiConfiguration(): Promise<AiConfiguration> {
   const env = await environment();
@@ -56,14 +56,21 @@ export async function handleAiRequest(request: Request, dependencies: Dependenci
     const templateId = data.templateId as TemplateId;
     if (!Number.isInteger(data.revision) || (data.revision as number) < 0) throw new AiError("Refresh the conversation before continuing.");
     const revision = data.revision as number;
-    if (trial && data.action === "apply") throw new AiError("Purchase a template to apply the plan to its full build prompt.", 403);
+    if (trial && (data.action === "apply" || data.action === "guide")) throw new AiError("Purchase a template to create its full build guide and prompt.", 403);
     if (data.action === "apply") return jsonResponse({ available, state: unwrap(await order.apply(templateId, revision)) });
-    if (data.action !== "overview" && data.action !== "message") throw new AiError("Choose an overview or a message.");
+    if (data.action !== "overview" && data.action !== "message" && data.action !== "guide") throw new AiError("Choose an overview, message or guide.");
     if (!available) throw new AiError("AI editing is temporarily unavailable. Your saved conversation and templates are still accessible.", 503);
     if (data.consent !== true) throw new AiError("Confirm that your brief and messages may be sent to OpenAI to tailor your prompt.");
     if (typeof data.requestId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(data.requestId)) throw new AiError("Reload this page before sending.");
     if (data.action === "message" && (typeof data.message !== "string" || !data.message.trim() || data.message.length > 2000)) throw new AiError("Write a message of 1–2,000 characters.");
     const generation: AiGeneration = { requestId: data.requestId, templateId, revision, kind: data.action, brief: parseBrief(data.brief), message: data.action === "message" ? (data.message as string).trim() : "" };
+    // Queued durably before returning. Every saved-state fetch is authorized
+    // above, including refunds and disputes that occur after generation starts.
+    // Previously delivered content cannot be recalled from the browser.
+    if (data.action === "guide") {
+      if (!order.startGuide) throw new AiError("Guide generation is not configured yet.", 503);
+      return jsonResponse({ available, state: unwrap(await order.startGuide(generation, tokenHash(JSON.stringify(generation)))) }, 202);
+    }
     const reservation = unwrap(await order.reserve(generation, tokenHash(JSON.stringify(generation))));
     if (reservation.status === "replay") return jsonResponse({ available, state: reservation.snapshot });
     try {

@@ -107,7 +107,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     <section className={styles.intro}>
       <p className={styles.eyebrow}>AI BUILD TEMPLATES</p>
       <h1>Your idea. <span>A head start.</span></h1>
-      <p>Choose a template. Get a personalized plan and a build prompt for your coding AI.</p>
+      <p>Choose a template. Turn your idea into a complete build guide, a clickable HTML prototype, and a prompt for your coding AI.</p>
       <div className={styles.startingPrice}><strong>{price(FIRST_TEMPLATE_CENTS)} {currencyLabel}</strong><span>first template · {price(EXTRA_TEMPLATE_CENTS)} each extra</span></div>
     </section>
     {canceled && <p className={shared.notice} role="status">Checkout canceled. Your selection is saved.</p>}
@@ -124,7 +124,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
             <details className={styles.templateDetails}><summary>Details <span aria-hidden="true">⌄</span></summary><div><p>{template.description}</p><ul>{template.includes.map((item) => <li key={item}>{item}</li>)}</ul>{templateDemos[template.id].map((demo) => <a key={demo.url} href={demo.url} target="_blank" rel="noopener noreferrer">View {demo.name} demo ↗</a>)}</div></details>
           </article>;
         })}</div>
-        <p className={styles.included}><span aria-hidden="true">✓</span> Every order includes an AI plan, 20 edits, and downloadable build prompts.</p>
+        <p className={styles.included}><span aria-hidden="true">✓</span> Every order includes an AI plan, 20 edits, a complete HTML build guide with a simulated prototype, and downloadable build prompts.</p>
       </section>
       <aside id="bundle" ref={orderPanel} className={styles.order} aria-label="Your order">
         {trialCheckout ? <>
@@ -166,8 +166,8 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
       </aside>
     </div>
     <section className={styles.help} aria-label="Good to know">
-      <details><summary>How does it work?<span aria-hidden="true">+</span></summary><p>Choose a template and pay once. Then describe your idea, refine the plan with AI, and download your build prompt. Paste it into your coding AI to start building. You can personalize everything after checkout.</p></details>
-      <details><summary>What’s included?<span aria-hidden="true">+</span></summary><p>Each template includes a build prompt, setup instructions, and one free AI overview. Your order also includes 20 AI editing messages. Optional extras are charged once per order. App icon creation includes a 1024 × 1024 PNG and three updates, with every version available to download.</p><p>Your coding AI, hosting, and third-party tools may have their own costs.</p></details>
+      <details><summary>How does it work?<span aria-hidden="true">+</span></summary><p>Choose a template and pay once. Describe your idea, review and refine its plan, then create your complete build guide. Download one HTML file with simple steps, official resources, a detailed specification and a clickable prototype. Paste its full prompt into your coding AI to implement and test the app. The prototype uses sample data; it is not a working backend.</p></details>
+      <details><summary>What’s included?<span aria-hidden="true">+</span></summary><p>Each template includes a build prompt, one free AI overview, and one successful complete-guide generation. The guide covers setup, data, permissions, features, tests, launch and maintenance. Your order also includes 20 AI editing messages; regenerating a guide uses one of those messages. Failed guide attempts do not use a message. Full guides require a purchase; the free trial includes the short plan and three edits. Optional extras are charged once per order. App icon creation includes a 1024 × 1024 PNG and three updates, with every version available to download.</p><p>Your coding AI, hosting, and third-party tools may have their own costs.</p></details>
       <div className={styles.support}><Link href="/templates/library/">Already purchased? Open my templates →</Link><a id="prompt-builder" href={`mailto:${site.email}?subject=${encodeURIComponent("Prompt builder access")}&body=${encodeURIComponent("Hi runsIT, I’m interested in the upcoming prompt builder. Please share more about access.")}`}>Prompt builder · Coming soon ↗</a><a href={`mailto:${site.email}?subject=${encodeURIComponent("AI template enquiry")}`}>Need a hand?</a></div>
     </section>
     {!!selected.length && !trialCheckout && !orderVisible && <div className={styles.mobileOrder}><div><strong>{price(total)} {currencyLabel}</strong><span>{selected.length} template{selected.length === 1 ? "" : "s"}{addOnCount ? ` + ${addOnCount} extra${addOnCount === 1 ? "" : "s"}` : ""}</span></div><a href="#bundle">Review order <span aria-hidden="true">→</span></a></div>}

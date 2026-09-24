@@ -14,8 +14,9 @@ type Props = {
   onApplied(plan: AppPlan | null, brief: Personalization | null): void;
   onRestoreBrief(brief: Personalization): void;
   onCleared(): void;
+  onProject?(project: AiProject | null): void;
 };
-export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBrief, onCleared, trial = false }: Props) {
+export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBrief, onCleared, onProject, trial = false }: Props) {
   const [state, setState] = useState<AiSnapshot | null>(null);
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -26,8 +27,8 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
   const [consent, setConsent] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const alive = useRef(false);
-  const callbacks = useRef({ onApplied, onRestoreBrief, onCleared });
-  callbacks.current = { onApplied, onRestoreBrief, onCleared };
+  const callbacks = useRef({ onApplied, onRestoreBrief, onCleared, onProject });
+  callbacks.current = { onApplied, onRestoreBrief, onCleared, onProject };
   const pending = useRef<{ requestId: string; fingerprint: string } | null>(null);
   const sending = useRef(false);
   const latestDetails = useRef(details);
@@ -48,6 +49,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
     setAvailable(result.available); setState(result.state);
     const saved = result.state?.projects[templateId];
     callbacks.current.onApplied(saved?.appliedPlan ?? null, saved?.appliedBrief ?? null);
+    callbacks.current.onProject?.(saved ?? null);
   }
   useEffect(() => {
     alive.current = true;
@@ -65,10 +67,19 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function act(action: "overview" | "message" | "apply" | "load" | "clear") {
+  useEffect(() => {
+    if (!state?.pending) return;
+    let cancelled = false;
+    const timer = setTimeout(() => { request({ action: "load" }).then((result) => { if (!cancelled) accept(result); }).catch(() => { if (!cancelled) setError("Status could not refresh. Use Refresh conversation or reopen your saved link; the job can continue in the background."); }); }, 4000);
+    return () => { cancelled = true; clearTimeout(timer); };
+    // Each pending snapshot schedules one poll; failed polls require a manual retry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  async function act(action: "overview" | "message" | "guide" | "apply" | "load" | "clear") {
     if (sending.current) return;
     sending.current = true; setBusy(true); setError(""); setNotice("");
-    const generate = action === "overview" || action === "message";
+    const generate = action === "overview" || action === "message" || action === "guide";
     const body = { action, revision: project?.revision ?? 0, ...(generate ? { brief: details, message, consent } : {}) };
     const fingerprint = JSON.stringify(body);
     if (generate && pending.current?.fingerprint !== fingerprint) pending.current = { requestId: crypto.randomUUID(), fingerprint };
@@ -76,9 +87,10 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
       const result = await request({ ...body, ...(generate ? { requestId: pending.current?.requestId } : {}) });
       if (!alive.current) return;
       accept(result); pending.current = null;
-      if (generate) { setMessage(""); setNotice(trial ? "Your plan is ready to review. Send a message to refine it, or download a copy." : "Your plan is ready to review. Apply it when you’re happy with it."); }
+      if (generate && action !== "guide") { setMessage(""); setNotice(trial ? "Your plan is ready to review. Send a message to refine it, or download a copy." : "Your plan is ready to review. Apply it when you’re happy with it."); }
+      if (action === "guide") setNotice("Guide requested. It is saved to this purchase when ready; you can safely return using your private link.");
       if (action === "apply") setNotice("Applied to your full prompt below and saved to this purchase.");
-      if (action === "clear") { callbacks.current.onCleared(); setConfirmClear(false); setNotice(`Saved AI briefs, plans and messages deleted from this ${accessLabel}. Your remaining allowance is unchanged.`); }
+      if (action === "clear") { callbacks.current.onCleared(); setConfirmClear(false); setNotice(`Saved AI briefs, plans, messages and guides deleted from this ${accessLabel}. Your remaining allowance is unchanged.`); }
     } catch (cause) {
       if (!alive.current) return;
       setError(cause instanceof Error ? cause.message : "Please refresh the conversation before retrying.");
@@ -88,7 +100,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
         if (alive.current) {
           accept(result);
           const recovered = result.state?.projects[templateId];
-          if (generate && recovered && recovered.revision > body.revision && sameBrief(recovered.brief, details) && (action === "overview" || recovered.history.some((entry, index) => index === recovered.history.length - 2 && entry.role === "user" && entry.text === message.trim()))) {
+          if (generate && action !== "guide" && recovered && recovered.revision > body.revision && sameBrief(recovered.brief, details) && (action === "overview" || recovered.history.some((entry, index) => index === recovered.history.length - 2 && entry.role === "user" && entry.text === message.trim()))) {
             setMessage(""); setError(""); setNotice("Your response was saved. Review the updated plan below.");
           }
           pending.current = null;
@@ -100,7 +112,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
   const exportText = (value: AiProject) => JSON.stringify({ brief: value.brief, plan: value.plan, history: value.history }, null, 2);
   return <section className={styles.editor} aria-labelledby="ai-editor-heading" aria-busy={busy || loading}>
     <div className={styles.heading}><div><p className={shared.eyebrow}>{trial ? "Included in your free trial" : "Included with your purchase"}</p><h2 id="ai-editor-heading">Shape your app with AI</h2></div><span className={styles.allowance}>{state ? `${state.remaining} of ${state.limit} messages left` : `${allowance} messages per ${accessLabel}`}</span></div>
-    <p className={shared.muted}>{trial ? "Try a free overview and feature list, then refine your idea with 3 editing messages. Full build prompts and add-ons are available with a purchase. This chat only edits your app plan." : "Start with a free overview and feature list, then tell the AI what to change. Your 20 messages are shared across the templates in this purchase; the first overview for each template is free. This chat edits your app plan; use your downloads for purchased templates and add-ons."}</p>
+    <p className={shared.muted}>{trial ? "Try a free overview and feature list, then refine your idea with 3 editing messages. Full build prompts and add-ons are available with a purchase. This chat only edits your app plan." : "Start with a free overview and feature list, then tell the AI what to change. Your 20 messages are shared across the templates in this purchase; the first overview for each template is free. Review your plan, then create its complete build guide below."}</p>
     {loading && <p role="status">Opening your saved conversation…</p>}
     {!loading && !available && <p className={shared.notice}>{trial ? "AI editing is currently unavailable. Your saved plan and chat are still accessible." : "AI editing is currently unavailable. You can still edit your brief and copy or download the template below."}</p>}
     {project && <>
@@ -114,10 +126,12 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
       <div className={styles.actions}>{!trial && <button className={shared.primary} disabled={locked || stale || project.appliedRevision === project.revision} onClick={() => void act("apply")}>{stale ? "Update the plan for your new brief" : project.appliedRevision === project.revision ? "Applied to your prompt" : "Apply plan to my prompt"}</button>}<button className={shared.secondary} onClick={() => downloadText(exportText(project), `${templateId}-ai-plan.json`)}>Download plan & chat</button></div>
       <details className={styles.history} open><summary>Conversation</summary><ol>{project.history.map((entry, index) => <li key={index} data-role={entry.role}><strong>{entry.role === "user" ? "You" : "AI"}</strong><p>{entry.text}</p></li>)}</ol></details>
     </>}
-    {state?.pending && <p role="status">A response is being prepared for this {accessLabel}. Refresh the conversation shortly to see it.</p>}
+    {!trial && project && <div className={styles.overview}><h3>Turn this plan into your complete build guide</h3><p>Get step-by-step setup, service links, database and permission rules, feature specifications, tests, launch and maintenance instructions, plus an HTML prototype. Review the plan above first.</p><p className={shared.small}>Your first successful guide for each purchased template is included. Regenerating uses one of your 20 editing messages. Failed attempts do not use a message. Generation can take a few minutes.</p><button className={shared.primary} disabled={locked || !available || !consent || stale || (!!state?.guideUsed?.includes(templateId) && state.remaining === 0)} onClick={() => void act("guide")}>{state?.guideUsed?.includes(templateId) ? "Regenerate build guide · 1 message" : "Create my complete build guide"}</button>{!consent && <p className={shared.small}>Check the OpenAI consent box below to create your guide.</p>}</div>}
+    {state?.guideError && <p role="alert" className={shared.notice}>{state.guideError}</p>}
+    {state?.pending && <p role="status">{state.pendingKind === "guide" ? "Your complete guide is being prepared. This page checks automatically. You can leave and reopen your private purchase link." : `A response is being prepared for this ${accessLabel}. This page checks automatically.`}</p>}
     {!loading && <>
       <label className={styles.consent}><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />Send my brief and messages to OpenAI to tailor my prompt.</label>
-      <p className={shared.small}>We save your AI brief, plan and chat with this private {accessLabel} link so you can return on another device. Anyone with the link can read or edit them and use the allowance. Do not include passwords, API keys or private customer data. You can delete saved content below; deletion does not reset usage.</p>
+      <p className={shared.small}>We save your AI brief, plan, chat and generated guide with this private {accessLabel} link so you can return on another device. Anyone with the link can read or edit them and use the allowance. Do not include passwords, API keys or private customer data. You can delete saved content below; deletion does not reset usage.</p>
       {!project && freeOverview ? <button className={shared.primary} disabled={locked || !available || !consent || !details.idea.trim()} onClick={() => void act("overview")}>Create my free overview</button> : <form className={styles.composer} onSubmit={(event) => { event.preventDefault(); void act("message"); }}>
         <label htmlFor="ai-message">What would you like to change?</label><textarea id="ai-message" value={message} maxLength={2000} rows={3} onChange={(event) => setMessage(event.target.value)} placeholder="For example: simplify the first version, change the design, or add a feature." disabled={locked || !available || state?.remaining === 0} />
         <div className={styles.actions}><button className={shared.primary} type="submit" disabled={locked || !available || !consent || !message.trim() || !details.idea.trim() || state?.remaining === 0}>{busy ? "Working…" : "Send message"}</button><span className={shared.small}>{message.length}/2,000 · One response uses one message</span></div>
@@ -128,6 +142,6 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
     {error && <p role="alert" className={shared.notice}>{error}</p>}
     <p role="status" aria-live="polite" className={shared.small}>{busy ? "Working on your request…" : notice}</p>
     <div className={styles.actions}><button className={shared.secondary} disabled={busy || loading} onClick={() => void act("load")}>Refresh conversation</button>{state && Object.keys(state.projects).length > 0 && <button className={styles.textButton} disabled={locked} onClick={() => setConfirmClear(true)}>Delete saved AI content</button>}</div>
-    {confirmClear && <div className={shared.notice}><p>Delete all saved AI briefs, plans and conversations for this {accessLabel}? Download anything you want to keep first. The used-message count and free-overview usage will stay.</p><div className={styles.actions}><button className={shared.secondary} disabled={locked} onClick={() => setConfirmClear(false)}>Keep content</button><button className={shared.secondary} disabled={locked} onClick={() => void act("clear")}>Delete content for this {accessLabel}</button></div></div>}
+    {confirmClear && <div className={shared.notice}><p>Delete all saved AI briefs, plans, conversations and build guides for this {accessLabel}? Download anything you want to keep first. Message, overview and guide usage will stay.</p><div className={styles.actions}><button className={shared.secondary} disabled={locked} onClick={() => setConfirmClear(false)}>Keep content</button><button className={shared.secondary} disabled={locked} onClick={() => void act("clear")}>Delete content for this {accessLabel}</button></div></div>}
   </section>;
 }

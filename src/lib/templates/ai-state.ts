@@ -1,4 +1,5 @@
-import { AI_MESSAGE_LIMIT, AiError, type AiGeneration, type AiProject, type AiReply, type AiSnapshot } from "./ai-contract";
+import { AI_MESSAGE_LIMIT, AiError, sameBrief, type AiGeneration, type AiProject, type AiReply, type AiSnapshot } from "./ai-contract";
+import { GUIDE_LEASE_MS, parseBuildGuide, type BuildGuide } from "./guide-contract";
 import { TRIAL_MESSAGE_LIMIT } from "./trial-contract";
 import { AI_RESERVATION_TTL_MS } from "./ai-settings";
 import type { TemplateId } from "./catalog";
@@ -14,9 +15,11 @@ export type OrderAiState = {
   attempts: number;
   lastAttempt: number;
   overviewUsed: TemplateId[];
+  guideUsed?: TemplateId[];
+  guideError?: string;
   projects: Partial<Record<TemplateId, AiProject>>;
   requests: Record<string, RequestRecord>;
-  pending: { request: AiGeneration; expires: number } | null;
+  pending: { request: AiGeneration; expires: number; started?: boolean; charged?: boolean } | null;
 };
 export function emptyAiState(): OrderAiState { return { used: 0, attempts: 0, lastAttempt: 0, overviewUsed: [], projects: {}, requests: {}, pending: null }; }
 export function expirePending(state: OrderAiState, now: number) {
@@ -25,6 +28,7 @@ export function expirePending(state: OrderAiState, now: number) {
 export function snapshot(state: OrderAiState): AiSnapshot {
   const limit = state.limit ?? AI_MESSAGE_LIMIT;
   return { used: state.used, remaining: limit - state.used, limit, pending: !!state.pending, projects: state.projects, overviewUsed: state.overviewUsed,
+    guideUsed: state.guideUsed ?? [], guideError: state.guideError, pendingKind: state.pending?.request.kind,
     ...(state.checkoutCaptured ? { initialBrief: state.initialBrief, overviewConsent: state.overviewConsent === true, canStartOverview: !!state.initialBrief && state.overviewConsent === true && state.attempts === 0 } : {}) };
 }
 export function initializeTrial(state: OrderAiState, brief?: Personalization) {
@@ -45,29 +49,36 @@ export function reserveGeneration(state: OrderAiState, request: AiGeneration, fi
   if (prior) {
     if (prior.fingerprint !== fingerprint) throw new AiError("This request ID was already used for a different message.", 409);
     if (prior.status === "complete") return "replay";
+    if (prior.status === "pending" && request.kind === "guide") return "replay";
     if (prior.status === "pending") throw new AiError("Your AI response is still being prepared. Refresh the conversation shortly.", 409);
     throw new AiError("This attempt did not finish. Send it again as a new message; no message was deducted.", 409);
   }
   if (state.pending) throw new AiError("Another message for this purchase is being prepared. Refresh the conversation shortly.", 409);
   const project = state.projects[request.templateId];
   if ((project?.revision ?? 0) !== request.revision) throw new AiError("This conversation changed on another device. Refresh it before sending.", 409);
+  if (request.kind === "guide" && state.limit === TRIAL_MESSAGE_LIMIT) throw new AiError("Build guides require a purchased template.", 403);
+  if (request.kind === "guide" && (!project || !sameBrief(project.brief, request.brief))) throw new AiError("Update and review your saved plan before creating its guide.", 409);
   if (request.kind === "overview" && state.overviewUsed.includes(request.templateId)) throw new AiError("The free overview for this template has already been used. Send a message to revise it.", 409);
-  if (request.kind === "message" && state.used >= (state.limit ?? AI_MESSAGE_LIMIT)) throw new AiError(`All ${state.limit ?? AI_MESSAGE_LIMIT} messages have been used. Your saved plan and chat remain available.`, 429);
+  const charged = request.kind === "message" || (request.kind === "guide" && !!state.guideUsed?.includes(request.templateId));
+  if (charged && state.used >= (state.limit ?? AI_MESSAGE_LIMIT)) throw new AiError(`All ${state.limit ?? AI_MESSAGE_LIMIT} messages have been used. Your saved plan and chat remain available.`, 429);
   // Failed requests do not consume customer messages, but cannot create unbounded provider spend.
   if (state.attempts >= (state.limit === TRIAL_MESSAGE_LIMIT ? 12 : 60)) throw new AiError("AI attempts for this purchase are paused. Contact support with your receipt.", 429);
   if (now - state.lastAttempt < 3000) throw new AiError("Please wait a few seconds before sending another message.", 429);
   state.attempts++;
   state.lastAttempt = now;
-  if (request.kind === "message") state.used++;
+  if (charged) state.used++;
+  if (request.kind === "guide") delete state.guideError;
   state.requests[request.requestId] = { fingerprint, status: "pending" };
-  state.pending = { request, expires: now + AI_RESERVATION_TTL_MS };
+  state.pending = { request, charged, expires: now + (request.kind === "guide" ? GUIDE_LEASE_MS : AI_RESERVATION_TTL_MS) };
   return "reserved";
 }
 export function completeGeneration(state: OrderAiState, requestId: string, reply: AiReply, now: number) {
   expirePending(state, now);
   if (state.pending?.request.requestId !== requestId) throw new AiError("This attempt expired. Refresh the conversation before retrying.", 409);
   const request = state.pending.request, prior = state.projects[request.templateId];
+  if (request.kind === "guide") throw new AiError("Use the guide completion operation.", 409);
   state.projects[request.templateId] = {
+    ...(prior?.guide ? { guide: prior.guide } : {}),
     brief: request.brief, plan: reply.plan, revision: (prior?.revision ?? 0) + 1,
     appliedRevision: prior?.appliedRevision ?? null, appliedPlan: prior?.appliedPlan ?? null, appliedBrief: prior?.appliedBrief ?? null,
     history: [...(prior?.history ?? []), ...(request.kind === "message" ? [{ role: "user" as const, text: request.message }] : []), { role: "assistant", text: reply.message }],
@@ -78,9 +89,30 @@ export function completeGeneration(state: OrderAiState, requestId: string, reply
 }
 export function failGeneration(state: OrderAiState, requestId: string) {
   if (state.pending?.request.requestId !== requestId) return;
-  if (state.pending.request.kind === "message") state.used--;
+  if (state.pending.charged ?? state.pending.request.kind === "message") state.used--;
+  if (state.pending.request.kind === "guide") state.guideError = "Your guide could not finish. Retry; this attempt did not use a message.";
   state.requests[requestId].status = "failed";
   state.pending = null;
+}
+export function claimGuide(state: OrderAiState, now: number) {
+  expirePending(state, now);
+  if (state.pending?.request.kind !== "guide" || state.pending.started) return null;
+  state.pending.started = true;
+  state.pending.expires = now + GUIDE_LEASE_MS;
+  return { request: state.pending.request, project: state.projects[state.pending.request.templateId]! };
+}
+export function completeGuide(state: OrderAiState, requestId: string, document: BuildGuide, now: number) {
+  expirePending(state, now);
+  const pending = state.pending;
+  if (pending?.request.requestId !== requestId || pending.request.kind !== "guide") throw new AiError("This guide attempt expired. Please refresh.", 409);
+  const project = state.projects[pending.request.templateId]!;
+  project.guide = { id: requestId, generatedAt: new Date(now).toISOString(), sourceRevision: project.revision, brief: project.brief, plan: project.plan, document: parseBuildGuide(document, project.plan) };
+  project.appliedBrief = project.brief; project.appliedPlan = project.plan; project.appliedRevision = project.revision;
+  state.guideUsed ??= [];
+  if (!state.guideUsed.includes(pending.request.templateId)) state.guideUsed.push(pending.request.templateId);
+  state.requests[requestId].status = "complete";
+  state.pending = null;
+  delete state.guideError;
 }
 export function applyPlan(state: OrderAiState, templateId: TemplateId, revision: number) {
   const project = state.projects[templateId];
@@ -94,5 +126,6 @@ export function clearContent(state: OrderAiState) {
   state.projects = {};
   delete state.initialBrief;
   delete state.overviewConsent;
+  delete state.guideError;
   // Keep the quota and fingerprints so deleting content cannot reset purchased usage.
 }

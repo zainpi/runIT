@@ -24,8 +24,8 @@ export function loadDraft(): { details: Personalization; mode: BuildMode; select
   } catch { return { details: { ...emptyPersonalization }, mode: "manual", selected: [], subagents: false, skillTree: false, appIcon: false }; }
 }
 export function saveDraft(details: Personalization, mode: BuildMode, selected: TemplateId[], subagents = false, skillTree = false, appIcon = false) { localStorage.setItem(DRAFT_KEY, JSON.stringify({ details, mode, selected, subagents, skillTree, appIcon })); }
-export function downloadText(text: string, name: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+export function downloadText(text: string, name: string, type = "text/plain;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const anchor = document.createElement("a"); anchor.href = url; anchor.download = name; anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

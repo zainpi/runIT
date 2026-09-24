@@ -1,7 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import type { DurableObjectState } from "@cloudflare/workers-types";
 import { AiError, type AiGeneration, type AiReply, type AiResult } from "./ai-contract";
-import { applyPlan, clearContent, completeGeneration, emptyAiState, expirePending, failGeneration, initializeTrial, reserveGeneration, snapshot, type OrderAiState } from "./ai-state";
+import { applyPlan, claimGuide, clearContent, completeGeneration, completeGuide, emptyAiState, expirePending, failGeneration, initializeTrial, reserveGeneration, snapshot, type OrderAiState } from "./ai-state";
+import { generateBuildGuide } from "./guide-provider";
 import type { Personalization } from "./compose";
 import type { TemplateId } from "./catalog";
 import type { IconRequest, IconSnapshot } from "./icon-contract";
@@ -40,6 +41,33 @@ export class TemplateAiOrder extends DurableObject<Record<string, unknown>> {
   fail(requestId: string) { return this.#change((state) => { failGeneration(state, requestId); return snapshot(state); }); }
   apply(templateId: TemplateId, revision: number) { return this.#change((state) => { applyPlan(state, templateId, revision); return snapshot(state); }); }
   clear() { return this.#change((state) => { clearContent(state); return snapshot(state); }); }
+  async startGuide(request: AiGeneration, fingerprint: string) {
+    try {
+      return await this.ctx.storage.transaction(async () => {
+        const result = this.#change((state) => {
+          if (request.kind !== "guide") throw new AiError("Choose a guide request.");
+          reserveGeneration(state, request, fingerprint, Date.now());
+          return snapshot(state);
+        });
+        if (result.ok) await this.#schedule();
+        return result;
+      });
+    } catch (error) {
+      if (error instanceof AiError) return { ok: false as const, error: error.message, status: error.status };
+      throw error;
+    }
+  }
+  // Icons and guides share one alarm. Always schedule the earliest wakeup while
+  // holding the storage transaction, so jobs cannot erase each other's wakeup.
+  async #schedule() {
+    const icon = this.#readIconState().pending;
+    const row = this.ctx.storage.sql.exec<{ state: string }>("SELECT state FROM order_ai WHERE id = 1").toArray()[0];
+    const ai: OrderAiState | null = row ? JSON.parse(row.state) : null;
+    const guide = ai?.pending?.request.kind === "guide" ? ai.pending : null;
+    const times = [icon, guide].filter((p) => !!p).map((p) => p!.started ? p!.expires : Date.now() + 1);
+    if (times.length) await this.ctx.storage.setAlarm(Math.min(...times));
+    else await this.ctx.storage.deleteAlarm();
+  }
 
   #readIconState(): IconState {
     const row = this.ctx.storage.sql.exec<{ state: string }>("SELECT state FROM order_icon WHERE id = 1").toArray()[0];
@@ -69,7 +97,7 @@ export class TemplateAiOrder extends DurableObject<Record<string, unknown>> {
         const state = this.#readIconState();
         const created = reserveIcon(state, request, fingerprint);
         this.#saveIconState(state);
-        if (created) await this.ctx.storage.setAlarm(Date.now() + 1);
+        if (created) await this.#schedule();
         return { ok: true, value: this.#iconSnapshot(state, request.baseVersion) };
       });
     } catch (error) {
@@ -91,7 +119,7 @@ export class TemplateAiOrder extends DurableObject<Record<string, unknown>> {
       throw error;
     }
   }
-  async alarm() {
+  async #runIcon() {
     const claim = this.ctx.storage.transactionSync(() => {
       const state = this.#readIconState();
       const request = claimIcon(state, Date.now());
@@ -100,7 +128,7 @@ export class TemplateAiOrder extends DurableObject<Record<string, unknown>> {
     });
     // A repeated alarm never repeats an in-flight provider call. The later wakeup
     // releases an interrupted attempt for an explicit, bounded customer retry.
-    if (claim.expires) await this.ctx.storage.setAlarm(claim.expires);
+    await this.ctx.storage.transaction(() => this.#schedule());
     if (!claim.request) return;
     const request = claim.request;
     try {
@@ -122,5 +150,21 @@ export class TemplateAiOrder extends DurableObject<Record<string, unknown>> {
         this.#saveIconState(state);
       });
     }
+  }
+  async #runGuide() {
+    const claim = this.#change((state) => claimGuide(state, Date.now()));
+    await this.ctx.storage.transaction(() => this.#schedule());
+    if (!claim.ok || !claim.value) return;
+    const { request, project } = claim.value;
+    try {
+      const document = await generateBuildGuide(this.env, request, project);
+      this.#change((state) => completeGuide(state, request.requestId, document, Date.now()));
+    } catch {
+      this.fail(request.requestId);
+    }
+  }
+  async alarm() {
+    await Promise.all([this.#runIcon(), this.#runGuide()]);
+    await this.ctx.storage.transaction(() => this.#schedule());
   }
 }

@@ -98,6 +98,87 @@ Before an authorized release: verify the target Worker, retain its current versi
 
 References: [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [Cloudflare SQLite storage](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/), [Miniflare Durable Objects](https://developers.cloudflare.com/workers/testing/miniflare/storage/durable-objects/), [Worker bindings and types](https://developers.cloudflare.com/workers/languages/typescript/).
 
+## Complete build guides and HTML prototypes
+
+The paid library now has two stages: review the short feature plan, then choose
+**Create my complete build guide**. The first successful guide for each purchased
+template is included separately from the 20 editing messages. Regenerating uses
+one of those messages; failures refund that reservation. Usage survives content
+deletion. Trial access stays limited to the short plan and three edits.
+
+The guide supplies 10–20 owner/coding-AI steps with an expected result and a fix
+for a common failure, decisions marked as proposed defaults or required answers,
+selected services and official resources, and nine required specification
+sections: scope, architecture, data, permissions, workflows, security, testing,
+release and operations. Every original feature must map to concrete behavior, an
+acceptance check and a representative screen. Connected mobile/web apps default
+to Supabase unless the customer has selected another backend; platform-specific
+or offline products retain appropriate alternatives. Supabase is not presented
+as client hosting, a payment provider, or a replacement for developer accounts.
+
+`guide-provider.ts` uses the existing model/effort configuration with strict JSON
+output, `store:false`, moderation checks, a 32,000-token output ceiling, a
+240-second provider timeout and a 512 KB response limit. The brief and reviewed
+plan are sent; private purchase credentials, payment details, paid foundation
+text and add-ons are not. `guide-contract.ts` rejects missing sections/features,
+unknown resource IDs, invalid/unreachable screen graphs and documents above
+100 KB. These are structural checks, not proof that generated engineering advice
+is correct; current API, pricing and policy verification is explicitly assigned
+to the customer's coding AI before implementation.
+
+`action: guide` verifies the paid order and consent, atomically saves a reservation
+and schedules a Durable Object alarm, then returns HTTP 202. Reads continue to
+verify payment/refund/dispute status. The background job claims once, uses a
+300-second lease, and saves its result with the source revision, brief and plan.
+An interrupted attempt expires and requires an explicit retry; it is not silently
+repeated with another billable provider request. Replayed IDs are idempotent.
+The guide and icon jobs share the object's single alarm using the earliest
+pending wakeup; neither may overwrite the other's recovery schedule. No binding,
+class migration, secret or payment-price change is required. Legacy saved JSON
+without guide fields remains readable.
+
+Success applies the reviewed plan and includes the guide in the full coding
+prompt. Editing a plan preserves its previous guide, labels that guide as out of
+date, and excludes it from the current prompt. Downloading the old guide uses
+its own saved brief/plan, avoiding a mix of different revisions. HTML exports
+include the currently selected build mode, full purchased foundation and only
+enabled, purchased add-ons. Changing modes or add-ons does not need generation.
+
+`guide-html.ts` renders a single offline HTML file. It contains readable steps,
+an optional detailed specification, official links, a local checklist, print
+support, copyable full prompt and a deterministic clickable prototype. Prototype
+buttons navigate synthetic screens and show simulated feedback; inputs never
+submit, persist or call a backend. Generated strings are escaped. Links are from
+`guide-resources.ts`, not arbitrary model output. A restrictive CSP blocks
+network connections, form submission, images and other external dependencies.
+The library previews the file in a sandboxed iframe without same-origin access.
+Checklist storage is browser-local, with a graceful fallback when unavailable;
+it does not sync to the private purchase. Print includes the readable guide and
+screen sketches; the duplicate full prompt is omitted from printing.
+
+Deleting saved AI content removes the guide along with the plan and chat, while
+retaining quota and request fingerprints. Previously downloaded files cannot be
+recalled. Exported files do not include the private order link, but they contain
+the customer's idea and purchased prompt, so sharing is the owner's decision.
+
+Validation includes contract/security and entitlement tests, real Miniflare
+SQLite/alarm persistence with concurrent icon work and restart, and browser tests
+for automatic polling, reopening, mode/add-on export, stale guides, offline
+prototype actions, checklist persistence, phone layout and hostile markup.
+These use synthetic provider responses. Before an authorized release, run a
+budgeted real-provider staging guide for BoulderMe and contrasting categories
+(for example an offline game and an online store); review completeness,
+correctness, latency, cost and output-limit failures. Do not infer live model
+quality or service connectivity from fixture tests. Work remains local until a
+separate deployment request.
+
+The production packaging check also exposed unrelated Neutronium development
+data in Next.js file traces. `next.config.mjs` now excludes that local data,
+Neutronium backup archives and root environment/secret files from deployment
+traces. Runtime data remains in its original location; only generated build
+copies/caches were removed during verification. Confirm these excluded paths
+are absent from build traces and the Worker bundle after rebuilding.
+
 ## App icon creation and version history
 
 The **Create app icon** add-on costs $5 in the order's currency and includes one initial icon plus **three updates** (four versions total). Customers generate and download the actual 1024 × 1024 PNG on the private purchase page. Version buttons let them view, download, or update any earlier version. An update submits the selected saved image to the image-edit endpoint; it does not start over from text alone. Updates consume the same order allowance even when branching from an earlier version. The original and all completed updates remain available after the allowance is exhausted. Browsing, downloading, refreshing, switching devices, and repeated request IDs do not consume updates.

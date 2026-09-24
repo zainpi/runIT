@@ -1,5 +1,6 @@
 import type { TemplateId } from "./catalog";
 import type { Personalization } from "./compose";
+import type { GuideArtifact } from "./guide-contract";
 
 export const AI_MESSAGE_LIMIT = 20;
 export type AppPlan = {
@@ -11,6 +12,7 @@ export type AppPlan = {
 };
 export type AiReply = { message: string; plan: AppPlan };
 export type AiProject = {
+  guide?: GuideArtifact;
   brief: Personalization;
   plan: AppPlan;
   revision: number;
@@ -26,6 +28,9 @@ export type AiSnapshot = {
   pending: boolean;
   projects: Partial<Record<TemplateId, AiProject>>;
   overviewUsed: TemplateId[];
+  guideUsed?: TemplateId[];
+  guideError?: string;
+  pendingKind?: AiGeneration["kind"];
   initialBrief?: Personalization;
   overviewConsent?: boolean;
   canStartOverview?: boolean;
@@ -33,7 +38,7 @@ export type AiSnapshot = {
 export type AiGeneration = {
   requestId: string;
   templateId: TemplateId;
-  kind: "overview" | "message";
+  kind: "overview" | "message" | "guide";
   brief: Personalization;
   message: string;
   revision: number;

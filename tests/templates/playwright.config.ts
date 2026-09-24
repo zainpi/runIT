@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["store.spec.ts", "ai-editor.spec.ts", "trial.spec.ts", "icon.spec.ts"],
+  testMatch: ["store.spec.ts", "ai-editor.spec.ts", "trial.spec.ts", "icon.spec.ts", "guide.spec.ts"],
   timeout: 30_000,
   expect: { timeout: 7_000 },
   fullyParallel: false,

@@ -1,0 +1,453 @@
+{
+  "brief": {
+    "name": "BoulderMe",
+    "idea": "Find climbers at my gym with similar skills",
+    "features": "iOS with Supabase",
+    "style": "cozy, fun",
+    "budget": "",
+    "decideBudget": false
+  },
+  "plan": {
+    "overview": "Find a climbing partner at your gym.",
+    "features": [
+      {
+        "part": "Find climbers",
+        "description": "Filter by gym and skill level."
+      },
+      {
+        "part": "Session invitations",
+        "description": "Invite another climber and accept a session."
+      }
+    ],
+    "assumptions": [
+      "Memberships are self-reported."
+    ],
+    "questions": [
+      "Should the first release include chat?"
+    ],
+    "technicalDetails": [
+      "Use Supabase for profiles and invitations.",
+      "Authorize invitation transitions in server transactions."
+    ]
+  },
+  "document": {
+    "title": "BoulderMe: your build guide",
+    "summary": "Build a welcoming iOS app that helps people find a climbing partner at their gym. Follow these steps to set up Supabase, implement private invitations and prove the first release works.",
+    "decisions": [
+      {
+        "question": "Should chat ship in the first release?",
+        "recommendation": "Start with invitations and defer open chat until moderation is ready.",
+        "reason": "This keeps the first complete workflow small while preserving consent and privacy.",
+        "status": "needs-answer"
+      }
+    ],
+    "services": [
+      {
+        "resourceId": "supabase",
+        "purpose": "Authentication and a private database for climbers and invitations.",
+        "setup": "Create development and production projects in an account you own. Verify current plan limits first.",
+        "publicConfig": "SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY belong in client configuration.",
+        "secretConfig": "SUPABASE_SECRET_KEY is server-only. Enter its real value in provider secrets, never in chat.",
+        "costNotes": "Review current pricing and forecast database, file and active-user usage before launch."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Choose the first release",
+        "owner": "you",
+        "instructions": [
+          "Confirm the iOS target, initial gyms and adult audience.",
+          "Review profile visibility and decide whether chat is deferred.",
+          "Write the chosen defaults into the project brief."
+        ],
+        "doneWhen": "The brief records the launch scope and visibility rules.",
+        "ifBlocked": "If a decision is unclear, ask the coding AI for one recommended default.",
+        "resourceIds": [
+          "apple"
+        ]
+      },
+      {
+        "title": "Prepare your tools",
+        "owner": "both",
+        "instructions": [
+          "Open Apple developer resources on your Mac.",
+          "Install the supported Xcode release after verifying system requirements.",
+          "Create a new local project folder for BoulderMe."
+        ],
+        "doneWhen": "An empty app runs in the iOS simulator.",
+        "ifBlocked": "If the simulator fails, check Xcode platform downloads and selected device.",
+        "resourceIds": [
+          "apple",
+          "github"
+        ]
+      },
+      {
+        "title": "Create Supabase projects",
+        "owner": "you",
+        "instructions": [
+          "Open the official Supabase getting-started guide.",
+          "Create a development project in your own account and keep its database password local.",
+          "Record the project URL and publishable key in local configuration."
+        ],
+        "doneWhen": "The app can reach the selected development project.",
+        "ifBlocked": "If the request fails, confirm the project URL and network connection.",
+        "resourceIds": [
+          "supabase"
+        ]
+      },
+      {
+        "title": "Build the database",
+        "owner": "coding-ai",
+        "instructions": [
+          "Create versioned migrations for profiles, gyms and invitations.",
+          "Add foreign keys, status checks, indexes and RLS policies.",
+          "Apply migrations locally and insert synthetic seed data."
+        ],
+        "doneWhen": "A fresh local database can be rebuilt from migrations.",
+        "ifBlocked": "If a migration fails, inspect the first error and repair it before proceeding.",
+        "resourceIds": [
+          "supabaseLocal",
+          "supabaseRls"
+        ]
+      },
+      {
+        "title": "Connect sign-in",
+        "owner": "both",
+        "instructions": [
+          "Enable the selected email sign-in method in development.",
+          "Configure app callbacks using the actual app identifier.",
+          "Test sign-in, sign-out, recovery and an expired session."
+        ],
+        "doneWhen": "A verified test account can sign in again after restarting the app.",
+        "ifBlocked": "If callback handling fails, compare the app URL with the configured allowed redirect.",
+        "resourceIds": [
+          "supabaseAuth"
+        ]
+      },
+      {
+        "title": "Find partners",
+        "owner": "coding-ai",
+        "instructions": [
+          "Build the gym picker and skill filters using synthetic profiles.",
+          "Fetch only discoverable profiles with pagination.",
+          "Add empty, loading, offline and retry states."
+        ],
+        "doneWhen": "Changing gym or skill changes the visible partner results.",
+        "ifBlocked": "If no results appear, verify seed data and test the same query as the signed-in user.",
+        "resourceIds": [
+          "supabaseRls"
+        ]
+      },
+      {
+        "title": "Complete invitations",
+        "owner": "coding-ai",
+        "instructions": [
+          "Implement pending, accepted, declined, cancelled and expired states.",
+          "Authorize and lock state transitions on the server.",
+          "Connect the invitation controls and show recoverable errors."
+        ],
+        "doneWhen": "Two accounts can complete the invitation workflow without duplicate records.",
+        "ifBlocked": "If acceptance fails, check the actor, current state and transaction result.",
+        "resourceIds": [
+          "supabaseFunctions"
+        ]
+      },
+      {
+        "title": "Run acceptance checks",
+        "owner": "both",
+        "instructions": [
+          "Run unit tests and server permission tests.",
+          "Exercise the app on a real device with unrelated test accounts.",
+          "Record real provider checks separately from mocked tests."
+        ],
+        "doneWhen": "The acceptance table has passing evidence for every launch requirement.",
+        "ifBlocked": "If a test fails, resolve the underlying behavior and rerun the affected checks.",
+        "resourceIds": [
+          "security",
+          "accessibility"
+        ]
+      },
+      {
+        "title": "Prepare release",
+        "owner": "both",
+        "instructions": [
+          "Apply migrations and configure callbacks in staging first.",
+          "Prepare support and privacy materials and verify current store requirements.",
+          "Review costs and request a separate publishing decision."
+        ],
+        "doneWhen": "The staging checklist is complete and the owner has reviewed the release.",
+        "ifBlocked": "If a provider is not configured, keep the release blocked and record the missing setup.",
+        "resourceIds": [
+          "appStore",
+          "supabaseProduction"
+        ]
+      },
+      {
+        "title": "Maintain your app",
+        "owner": "both",
+        "instructions": [
+          "Document daily health checks and weekly cost review.",
+          "Restore a staging backup and compare expected records.",
+          "Write rollback, secret rotation and user deletion instructions."
+        ],
+        "doneWhen": "Another operator can follow the handover to run and recover the app.",
+        "ifBlocked": "If restoration fails, fix the procedure and repeat it before relying on the backup.",
+        "resourceIds": [
+          "supabaseProduction",
+          "supabasePricing"
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "id": "scope",
+        "items": [
+          {
+            "title": "First release",
+            "detail": "Launch an iOS app for adults to find climbing partners at selected gyms, with profiles, filters and consent-based invitations."
+          },
+          {
+            "title": "Later releases",
+            "detail": "Defer paid cosmetics and open messaging until invitation privacy and report handling have passed real-device acceptance tests."
+          },
+          {
+            "title": "Success",
+            "detail": "Two unrelated test accounts can complete a session invitation while a third account cannot inspect their private invitation."
+          }
+        ]
+      },
+      {
+        "id": "architecture",
+        "items": [
+          {
+            "title": "Client",
+            "detail": "SwiftUI presents profiles and session state. The server authorizes every write; sample prototype screens never call Supabase."
+          },
+          {
+            "title": "Backend",
+            "detail": "Supabase provides Auth and Postgres. Use a versioned migration folder and separate development and production projects."
+          },
+          {
+            "title": "Milestones",
+            "detail": "Build a local shell, a persisted invitation workflow, authentication, denial tests and staging before considering a public release."
+          }
+        ]
+      },
+      {
+        "id": "data",
+        "items": [
+          {
+            "title": "Profiles",
+            "detail": "profiles: id uuid references auth.users, display_name text, gym_id uuid, skill_level integer. Only owners can change their profile."
+          },
+          {
+            "title": "Invitations",
+            "detail": "invitations: id uuid primary key, sender_id and recipient_id uuid, status text, starts_at timestamptz. Reject self-invitations."
+          },
+          {
+            "title": "Constraints",
+            "detail": "Add foreign keys and a uniqueness rule for an active invitation between a pair and session. Index recipient_id and starts_at."
+          }
+        ]
+      },
+      {
+        "id": "permissions",
+        "items": [
+          {
+            "title": "Anonymous",
+            "detail": "Anonymous visitors cannot read profiles, memberships or invitations. Authentication alone never grants administrative permissions."
+          },
+          {
+            "title": "Members",
+            "detail": "Members can read discoverable profiles and their own invitations. An unrelated third user must receive no private invitation rows."
+          },
+          {
+            "title": "Privileged writes",
+            "detail": "Use a server-authorized transaction to accept an invitation. Do not expose the Supabase service role key to the iOS client."
+          }
+        ]
+      },
+      {
+        "id": "workflows",
+        "items": [
+          {
+            "title": "Find a partner",
+            "detail": "A member chooses a gym and skill range. Filter on the server, paginate stable results, and provide loading, empty and retry states."
+          },
+          {
+            "title": "Invite and accept",
+            "detail": "Invitation states are pending, accepted, declined, cancelled and expired. Only the recipient may accept a pending invitation."
+          },
+          {
+            "title": "Concurrency",
+            "detail": "Lock the pending invitation before transitioning its state. Repeated accepts return the same result; a cancellation race has one winner."
+          }
+        ]
+      },
+      {
+        "id": "security",
+        "items": [
+          {
+            "title": "Privacy",
+            "detail": "Use a chosen gym instead of exact live location. Document visibility and retention before asking the owner to approve launch."
+          },
+          {
+            "title": "Abuse",
+            "detail": "Rate limit invitations and enforce blocking in both reads and server writes. Reports must reach an operator with a review process."
+          },
+          {
+            "title": "Secrets",
+            "detail": "Use placeholder-only environment examples. Keep credentials out of source, logs and screenshots; test least-privilege access."
+          }
+        ]
+      },
+      {
+        "id": "testing",
+        "items": [
+          {
+            "title": "Happy path",
+            "detail": "Use two synthetic accounts to create profiles, filter climbers, send an invitation and accept it from the recipient account."
+          },
+          {
+            "title": "Denied access",
+            "detail": "Try accepting as the sender and reading as an unrelated third account. Both operations must be rejected by the backend."
+          },
+          {
+            "title": "Recovery",
+            "detail": "Repeat the acceptance request, simulate a dropped response, and verify one accepted record. Restore a staging backup and compare counts."
+          }
+        ]
+      },
+      {
+        "id": "release",
+        "items": [
+          {
+            "title": "Owner accounts",
+            "detail": "The owner completes Apple enrollment and Supabase account setup. Verify current account fees and distribution prerequisites."
+          },
+          {
+            "title": "Staging gate",
+            "detail": "Apply migrations in staging and run real-device acceptance checks with synthetic users. Record evidence and remaining blockers."
+          },
+          {
+            "title": "Approved rollout",
+            "detail": "After separate publishing approval, back up data, apply compatible migrations, release gradually and verify health and sign-in."
+          }
+        ]
+      },
+      {
+        "id": "operations",
+        "items": [
+          {
+            "title": "Daily and weekly",
+            "detail": "Check authentication failures and invitation errors daily. Review support reports, storage growth and provider costs every week."
+          },
+          {
+            "title": "Restore and rotation",
+            "detail": "Test a staging backup restore monthly. Rotate exposed keys promptly and revoke affected sessions without logging secret values."
+          },
+          {
+            "title": "Handover",
+            "detail": "Deliver README, SETUP, SERVICES, OPERATIONS and FOLLOW_UP_PROMPTS with runnable commands, tested release steps and known limitations."
+          }
+        ]
+      }
+    ],
+    "featureCoverage": [
+      {
+        "featureIndex": 0,
+        "behavior": "Choose a gym and skill range to find visible profiles that match the selected filters.",
+        "verification": "Changing the selected gym hides profiles from other gyms and preserves pagination.",
+        "screenId": "discover"
+      },
+      {
+        "featureIndex": 1,
+        "behavior": "Invite another climber, then accept from the recipient account through an authorized transition.",
+        "verification": "A recipient can accept once; the sender and unrelated users cannot accept on their behalf.",
+        "screenId": "invitation"
+      }
+    ],
+    "screens": [
+      {
+        "id": "discover",
+        "title": "Find your climbing partner",
+        "purpose": "Sample discovery results. The implemented app also needs loading, empty and retry states.",
+        "cards": [
+          {
+            "title": "Alex \u00b7 V3\u2013V4",
+            "body": "Sample climber \u00b7 North Gym \u00b7 Saturday mornings"
+          },
+          {
+            "title": "Sam \u00b7 V2\u2013V3",
+            "body": "Sample climber \u00b7 North Gym \u00b7 Weekday evenings"
+          }
+        ],
+        "actions": [
+          {
+            "label": "View Alex",
+            "target": "profile",
+            "feedback": "Showing a synthetic profile. No real person is connected."
+          }
+        ],
+        "fields": [
+          {
+            "label": "Gym",
+            "placeholder": "North Gym"
+          }
+        ]
+      },
+      {
+        "id": "profile",
+        "title": "Meet Alex",
+        "purpose": "A sample public profile. Private information stays hidden; blocked profiles must be unavailable.",
+        "cards": [
+          {
+            "title": "Climb together",
+            "body": "Sample preference: a relaxed bouldering session with someone at a similar skill level."
+          }
+        ],
+        "actions": [
+          {
+            "label": "Invite to climb",
+            "target": "invitation",
+            "feedback": "Demo invitation prepared. Nothing was sent."
+          },
+          {
+            "label": "Back to partners",
+            "target": "discover",
+            "feedback": "Returned to sample results."
+          }
+        ],
+        "fields": []
+      },
+      {
+        "id": "invitation",
+        "title": "Your climbing session",
+        "purpose": "Sample invitation detail. A real app must check permission and resolve cancellation or acceptance races.",
+        "cards": [
+          {
+            "title": "Saturday \u00b7 10:00 AM",
+            "body": "North Gym \u00b7 Sample invitation from Alex"
+          },
+          {
+            "title": "Status",
+            "body": "Pending \u00b7 This is a demonstration of the recipient view."
+          }
+        ],
+        "actions": [
+          {
+            "label": "Accept invitation",
+            "target": "invitation",
+            "feedback": "Simulated acceptance. No database record was changed."
+          },
+          {
+            "label": "Back to partners",
+            "target": "discover",
+            "feedback": "Returned to sample partners."
+          }
+        ],
+        "fields": []
+      }
+    ]
+  }
+}

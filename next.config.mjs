@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Runtime data and local credentials belong on their configured host/volume,
+  // never in a traced Next.js or OpenNext deployment artifact.
+  outputFileTracingExcludes: {
+    "/*": ["./.neutronium-dev/**/*", "./deploy/neutronium/backups/**/*", "./.env", "./.env.*", "./.dev.vars*"],
+  },
   ...(process.env.NEUTRONIUM_DIST_DIR ? { distDir: process.env.NEUTRONIUM_DIST_DIR } : {}),
   ...(process.env.NEUTRONIUM_STANDALONE === "true"
     ? { eslint: { ignoreDuringBuilds: true }, typescript: { ignoreBuildErrors: true } }
