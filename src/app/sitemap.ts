@@ -4,9 +4,9 @@ import { founders } from "@/lib/company";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = [
-    { path: "/templates/", priority: 0.9, frequency: "monthly" as const, modified: "2026-09-16" },
-    { path: "/", priority: 1, frequency: "monthly" as const, modified: "2026-09-16" },
-    ...founders.map((founder) => ({ path: founder.portfolioUrl, priority: 0.7, frequency: "monthly" as const, modified: "2026-09-10" })),
+    { path: "/templates/", priority: 0.9, frequency: "monthly" as const, modified: "2026-09-24" },
+    { path: "/", priority: 1, frequency: "monthly" as const, modified: "2026-09-24" },
+    ...founders.map((founder) => ({ path: founder.portfolioUrl, priority: 0.7, frequency: "monthly" as const, modified: "2026-09-24" })),
     { path: "/pulsedeals/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
     { path: "/local-lore/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
     { path: "/the-last-echo/", priority: 1, frequency: "weekly" as const, modified: "2026-08-06" },

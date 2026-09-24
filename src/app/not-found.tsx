@@ -1,29 +1,39 @@
-import { ButtonLink } from "@/components/ui/Button";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { MenuBar, Taskbar } from "@/components/runsos/MenuBar";
+import { Window } from "@/components/runsos/Window";
+import { ArrowIcon } from "@/components/runsos/icons";
+import os from "@/components/runsos/os.module.css";
+import styles from "./home.module.css";
+
+export const metadata: Metadata = { title: "Page not found" };
 
 export default function NotFound() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-0 h-[420px] w-[700px] -translate-x-1/2 rounded-full bg-brand-600/15 blur-[120px]" />
-      </div>
-      <div className="container-page flex min-h-[60vh] flex-col items-center justify-center gap-6 py-24 text-center">
-        <span className="text-7xl font-semibold text-gradient">404</span>
-        <h1 className="text-2xl font-semibold text-white sm:text-3xl">
-          This page took the day off
-        </h1>
-        <p className="max-w-md text-slate-400">
-          The page you&apos;re looking for doesn&apos;t exist or may have moved.
-          Let&apos;s get you back on track.
-        </p>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href="/" withArrow>
-            Back to home
-          </ButtonLink>
-          <ButtonLink href="/templates/" variant="secondary">
-            Browse AI templates
-          </ButtonLink>
-        </div>
-      </div>
-    </section>
+    <div className={os.root} data-os>
+      <MenuBar />
+      <main id="main" className={`${os.container} ${styles.errorDesk}`}>
+        <Window as="section" title="error.app" tone="#ff8a6b" labelledBy="not-found-heading" className={styles.errorWindow}>
+          <div className={styles.errorBody}>
+            <svg className={styles.errorIcon} width="72" height="64" viewBox="0 0 72 64" aria-hidden="true">
+              <path d="M36 4 68 60H4z" fill="#ffd23f" stroke="#1b1a17" strokeWidth="3.5" strokeLinejoin="round" />
+              <path d="M36 24v16" stroke="#1b1a17" strokeWidth="5" strokeLinecap="round" />
+              <circle cx="36" cy="50" r="3.5" fill="#1b1a17" />
+            </svg>
+            <div className={styles.errorText}>
+              <p className={`${os.pixel} ${styles.contactKicker}`}>Error 404 · file not found</p>
+              <h1 id="not-found-heading">This page took the day off.</h1>
+              <p className={styles.contactText}>The page you’re looking for doesn’t exist or may have moved. Let’s get you back on track.</p>
+              <div className={styles.errorActions}>
+                <Link className={os.button} href="/">Back to the desktop <ArrowIcon /></Link>
+                <Link className={`${os.button} ${os.buttonLight}`} href="/templates/">Browse AI templates</Link>
+              </div>
+            </div>
+          </div>
+        </Window>
+        <p className={styles.errorNote}>tip: check the link, or open a product from the desktop.</p>
+      </main>
+      <Taskbar backHref="/" backLabel="Back to runsIT →" />
+    </div>
   );
 }
