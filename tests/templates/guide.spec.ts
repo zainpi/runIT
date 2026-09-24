@@ -25,6 +25,7 @@ test("paid customer generates, restores, previews and downloads a working offlin
   });
   await page.goto(`/templates/library/#session_id=${order}&access=${token}`);
   await expect(page.getByLabel("App name")).toHaveValue("BoulderMe");
+  await page.getByRole("tab", { name: "Build files", exact: true }).click();
   await expect(page.getByRole("button", { name: "Create my complete build guide", exact: true })).toBeDisabled();
   await page.getByLabel("Send my brief and messages to OpenAI").check();
   await page.getByRole("button", { name: "Create my complete build guide", exact: true }).click();
@@ -33,6 +34,7 @@ test("paid customer generates, restores, previews and downloads a working offlin
   await expect(page.locator("#full-prompt")).toContainText("DETAILED BUILD GUIDE");
   await expect(page.getByText("20 of 20 messages left")).toBeVisible();
   await page.reload();
+  await page.getByRole("tab", { name: "Build files", exact: true }).click();
   await page.getByRole("button", { name: "Preview guide & prototype" }).click();
   const frame = page.frameLocator("#guide-preview");
   await expect(frame.getByRole("heading", { level: 1 })).toHaveText("BoulderMe: your build guide");
@@ -42,8 +44,11 @@ test("paid customer generates, restores, previews and downloads a working offlin
   await frame.getByRole("button", { name: "Invite to climb", exact: true }).click();
   await frame.getByRole("button", { name: "Accept invitation", exact: true }).click();
   await expect(frame.locator("#prototype-status")).toHaveText("Simulated acceptance. No database record was changed.");
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
   await page.getByLabel("Include subagent workflow").uncheck();
+  await page.getByRole("tab", { name: "Brief", exact: true }).click();
   await page.getByRole("radio", { name: "Make AI control my computer", exact: false }).check();
+  await page.getByRole("tab", { name: "Build files", exact: true }).click();
   const downloaded = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download complete HTML guide" }).click();
   const download = await downloaded;

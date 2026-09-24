@@ -357,6 +357,7 @@ test("paid library composes personalized prompt and supports copy and download",
 
   await page.getByRole("button", { name: "Browser game" }).click();
   await expect(prompt).toContainText("GAME_FOUNDATION_MARKER");
+  await page.getByRole("tab", { name: "Build files", exact: true }).click();
   await page.getByRole("button", { name: "Copy full prompt" }).click();
   await expect(page.getByRole("status", { name: "Template library status" })).toContainText("Browser game prompt copied");
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("GAME_FOUNDATION_MARKER");
@@ -376,10 +377,11 @@ test("private purchase URL is prominent, bookmarkable, and matches copy and acce
 
   const purchaseUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
   await page.goto(purchaseUrl);
+  await page.getByText("Save private link", { exact: false }).click();
   await expect(page.getByRole("heading", { name: "Save your purchase link", exact: true })).toBeVisible();
   const privateUrl = page.getByLabel("Your private purchase URL", { exact: true });
   await expect(privateUrl).toHaveValue(purchaseUrl);
-  await expect(page.getByText(/even on another device or after clearing your browser/i)).toBeVisible();
+  await expect(page.getByText(/saved AI conversation in this order on any device/i)).toBeVisible();
   await expect(page).toHaveURL(purchaseUrl);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: "/tmp/runit-templates-library-desktop.png", fullPage: true });
@@ -418,7 +420,7 @@ test("copied purchase URL restores the paid order in a clean browser with no rec
   const purchaseUrl = `http://127.0.0.1:3102/templates/library/#session_id=${sessionId}&access=${token}`;
 
   await cleanPage.goto(purchaseUrl);
-  await expect(cleanPage.getByRole("button", { name: "Browser game", exact: true })).toBeVisible();
+  await expect(cleanPage.getByText("Browser game · Your workspace", { exact: true })).toBeVisible();
   await expect(cleanPage.getByLabel(/Your brief .* complete foundation/)).toContainText("CROSS_DEVICE_FOUNDATION");
   await expect(cleanPage.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(purchaseUrl);
   await expect(cleanPage).toHaveURL(purchaseUrl);
@@ -473,7 +475,7 @@ test("same-tab private-link navigation loads the new order and ignores a late pr
     location.hash = `session_id=${newerSession}&access=${newerToken}`;
   }, { newerSession, newerToken });
   await expect(page.getByLabel(/Your brief .* complete foundation/)).toContainText("CURRENT_SECOND_ORDER");
-  await expect(page.getByRole("button", { name: "Browser game", exact: true })).toBeVisible();
+  await expect(page.getByText("Browser game · Your workspace", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(secondUrl);
   await expect(page).toHaveURL(secondUrl);
 
@@ -500,14 +502,17 @@ test("paid subagent add-on is enabled by default, survives mode changes, and is 
   await expect(addon).toBeChecked();
   await expect(prompt).toContainText("SUBAGENT_ADDON_MARKER");
 
+  await page.getByRole("tab", { name: "Brief", exact: true }).click();
   await page.getByLabel("Make AI control my computer").check();
   await expect(addon).toBeChecked();
   await expect(prompt).toContainText("SUBAGENT_ADDON_MARKER");
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
   await addon.uncheck();
   await expect(prompt).not.toContainText("SUBAGENT_ADDON_MARKER");
   await addon.check();
 
   const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("tab", { name: "Build files", exact: true }).click();
   await page.getByRole("button", { name: "Download .txt" }).click();
   const download = await downloadEvent;
   const path = await download.path();
@@ -531,7 +536,9 @@ test("paid skill-tree add-on exposes a separate manual setup artifact with copy 
   await page.goto(`/templates/library/#session_id=${sessionId}&access=${token}`);
   const include = page.getByLabel("Include skill tree setup", { exact: true });
   await expect(include).toBeChecked();
+  await page.getByRole("tab", { name: "Brief", exact: true }).click();
   await page.getByLabel("Do it myself").check();
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
 
   await page.getByRole("button", { name: "Copy skill setup prompt", exact: true }).click();
   await expect(page.getByRole("status", { name: "Template library status" })).toContainText(/skill setup.*copied/i);
@@ -585,6 +592,7 @@ test("forged skill-tree flags cannot expose instructions and switching orders cl
   await expect(page).toHaveURL(firstUrl);
   await expect(page.getByLabel("Your private purchase URL", { exact: true })).toHaveValue(firstUrl);
   await expect(page.getByLabel("Include skill tree setup", { exact: true })).toBeChecked();
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
   await expect(page.getByRole("button", { name: "Copy skill setup prompt", exact: true })).toBeVisible();
 
   await page.getByLabel("Saved orders on this browser").selectOption(secondSession);
@@ -645,4 +653,43 @@ test("pending library order shows a retryable payment error without a prompt", a
   await expect(page.getByRole("alert").filter({ hasText: "payment is not complete yet" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check payment again" })).toBeVisible();
   await expect(page.getByLabel(/Your brief .* complete foundation/)).toHaveCount(0);
+});
+
+test("saved orders show their app names, restore older names and keep renames tied to the right order", async ({ page }) => {
+  const second = "cs_test_pulse1234567890", unnamed = "cs_test_unnamed12345678";
+  const requests: { action: string; sessionId: string }[] = [];
+  await page.addInitScript(({ sessionId, token, second, unnamed }) => {
+    if (localStorage.getItem("runit-template-orders-v1")) return;
+    localStorage.setItem("runit-template-orders-v1", JSON.stringify([sessionId, second, unnamed].map((id) => ({
+      sessionId: id, accessToken: token, templates: id === second ? ["mobile-app", "storefront"] : ["mobile-app"], createdAt: "2026-09-24T12:00:00.000Z",
+    }))));
+  }, { sessionId, token, second, unnamed });
+  await page.route("**/api/templates/library/**", (route) => route.fulfill({ json: { templates: [{ id: "mobile-app", foundation: "APP_FOUNDATION" }] } }));
+  await page.route("**/api/templates/ai/**", (route) => {
+    const data = route.request().postDataJSON();
+    requests.push(data);
+    if (data.sessionId === unnamed) return route.fulfill({ status: 503, json: { error: "Temporarily unavailable" } });
+    const name = data.sessionId === second ? "Pulse Deals" : "BoulderMe";
+    const project = { brief: { name, idea: "A useful app", features: "", style: "", budget: "" }, revision: 1, appliedRevision: null, appliedPlan: null, appliedBrief: null, plan: { overview: "App overview", features: [{ part: "Core feature", description: "The primary app workflow." }], assumptions: [], questions: [] }, history: [] };
+    return route.fulfill({ json: { available: true, state: { used: 0, remaining: 20, limit: 20, pending: false, projects: { "mobile-app": project, ...(data.sessionId === second ? { storefront: project } : {}) }, overviewUsed: ["mobile-app"] } } });
+  });
+  await page.goto("/templates/library/");
+  const picker = page.getByLabel("Saved orders on this browser");
+  await expect(picker.locator(`option[value="${sessionId}"]`)).toHaveText("BoulderMe");
+  await expect(picker.locator(`option[value="${second}"]`)).toHaveText("Pulse Deals");
+  await expect(picker.locator(`option[value="${unnamed}"]`)).toHaveText("Mobile app");
+  await expect(picker).not.toContainText("2026-09-24");
+  await expect(picker).not.toContainText("templates");
+  expect(await picker.locator("option:not([disabled])").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value))).toEqual([sessionId, second, unnamed]);
+  await page.getByRole("tab", { name: "Brief", exact: true }).click();
+  await page.getByLabel("App name").fill("Boulder Club");
+  await expect(picker.locator(`option[value="${sessionId}"]`)).toHaveText("Boulder Club");
+  await expect(picker.locator(`option[value="${second}"]`)).toHaveText("Pulse Deals");
+  await picker.selectOption(second);
+  await expect(page.getByRole("heading", { level: 1, name: "Pulse Deals", exact: true })).toBeVisible();
+  await expect(picker.locator(`option[value="${sessionId}"]`)).toHaveText("Boulder Club");
+  await page.reload();
+  await expect(picker.locator(`option[value="${sessionId}"]`)).toHaveText("Boulder Club");
+  await expect(picker.locator(`option[value="${second}"]`)).toHaveText("Pulse Deals");
+  expect(requests.every((request) => request.action === "load")).toBe(true);
 });

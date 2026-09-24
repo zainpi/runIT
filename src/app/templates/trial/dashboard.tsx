@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { templateCatalog, type TemplateId } from "@/lib/templates/catalog";
 import { emptyPersonalization, type Personalization } from "@/lib/templates/compose";
 import { TRIAL_MESSAGE_LIMIT, type TrialAccess } from "@/lib/templates/trial-contract";
-import { planTechnicalDetails } from "@/lib/templates/technical-details";
+import { PlanOverview } from "../plan-overview";
 import { downloadText, loadDraft, saveDraft } from "../browser-storage";
 import { useTrialProject } from "./use-trial-project";
 import { ManagedLaunch, hasManagedLaunch } from "../managed-launch";
@@ -24,6 +24,7 @@ const quickPrompts = [
     message: "Please recommend a practical starting budget for this app's first release. Separate one-time build work from monthly operating costs, identify the services this feature plan actually needs, and describe low-usage and growing-usage scenarios. State your usage assumptions, the largest cost drivers, and ways to keep costs down. Treat prices as estimates and flag anything that needs current provider pricing before I commit.",
   },
 ] as const;
+const decideForMe = "Decide for me. Recommend the simplest practical option for my app and explain why.";
 
 function appendDraft(current: string, suggestion: string): string {
   if (current.includes(suggestion)) return current;
@@ -41,8 +42,6 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
   const ai = useTrialProject(access, templateId);
   const [view, setView] = useState<"plan" | "chat">("plan");
   const [chatCollapsed, setChatCollapsed] = useState(false);
-  const [flippedFeature, setFlippedFeature] = useState<string | null>(null);
-  const [hoverSuppressedFeature, setHoverSuppressedFeature] = useState<string | null>(null);
   const [exitingDecisions, setExitingDecisions] = useState<string[]>([]);
   const [customDecision, setCustomDecision] = useState<string | null>(null);
   const [customAnswer, setCustomAnswer] = useState("");
@@ -58,13 +57,15 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
   const project = ai.state?.projects[templateId];
   const brief = project?.brief ?? ai.state?.initialBrief ?? legacyBrief;
   const plan = project?.plan;
-  const technical = plan ? planTechnicalDetails(plan, templateId) : null;
   const pending = ai.busy || !!ai.state?.pending;
   const canUseAi = consent || ai.state?.overviewConsent === true;
   const remaining = ai.state?.remaining ?? TRIAL_MESSAGE_LIMIT;
   const overviewUsed = ai.state?.overviewUsed.includes(templateId);
   const canSend = !!ai.state && ai.available && canUseAi && !!brief.idea.trim() && !pending && remaining > 0;
-  const decisions = plan?.questions.map((question, index) => ({ question, key: `${project?.revision ?? 0}:${index}` })) ?? [];
+  const decisions = plan?.questions.map((question, index) => {
+    const options = plan.questionChoices?.find((choice) => choice.question === question)?.options;
+    return { question, options: options?.length === 2 ? options : undefined, key: `${project?.revision ?? 0}:${index}` };
+  }) ?? [];
   const isAnswered = (question: string) => hasDecisionAnswer(ai.message, question) || !!project?.history.some((item) => item.role === "user" && hasDecisionAnswer(item.text, question));
   const unansweredDecisions = decisions.filter(({ question }) => !isAnswered(question));
   const visibleDecisions = decisions.filter(({ question, key }) => !isAnswered(question) || exitingDecisions.includes(key)).slice(0, 3);
@@ -86,6 +87,7 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
     return true;
   }
   function answerDecision(question: string, key: string, answer: string) {
+    if (pending || remaining <= 0 || exitingDecisions.includes(key)) return;
     const normalized = answer.replace(/\s+/g, " ").trim();
     if (!normalized || !addToDraft(`About “${question}”: ${normalized}`, false)) return;
     setExitingDecisions((current) => [...current, key]);
@@ -130,23 +132,7 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
       <section className={`${styles.planPane} ${view !== "plan" ? styles.mobileHidden : ""}`} aria-label="Your project plan">
         <div className={styles.paneHeading}><div><p className={styles.kicker}>The big picture</p><h2>Your app plan</h2></div><span className={styles.version}>{project ? `v${project.revision}` : "Draft"}</span></div>
         {!brief.idea.trim() && <form className={styles.setup} onSubmit={(event) => { event.preventDefault(); if (setup.idea.trim()) setLegacyBrief(setup); }}><h3>What are you making?</h3><p>Add a brief to start this workspace.</p><label>Project name <input maxLength={100} value={setup.name} onChange={(event) => setSetup({ ...setup, name: event.target.value })} placeholder="Give your idea a name (optional)" /></label><label>Project description <textarea required maxLength={3000} rows={4} value={setup.idea} onChange={(event) => setSetup({ ...setup, idea: event.target.value })} placeholder="Who is it for, and what should it help them do?" /></label><button className={styles.primary} disabled={!setup.idea.trim()} type="submit">Save idea</button></form>}
-        {plan ? <>
-          <p className={styles.overview}>{plan.overview}</p>
-          <div className={styles.featureHeading}><h3>What it will do</h3><span>{plan.features.length} features · Hover or tap a card</span></div>
-          <div className={styles.featureGrid} role="list" aria-label={`Features for ${brief.name || "your app"}`}>{plan.features.map((feature, index) => {
-            const cardId = `${project?.revision ?? 0}:${index}`, flipped = flippedFeature === cardId;
-            return <article className={styles.featureTile} role="listitem" key={cardId}>
-              <button className={styles.featureCard} type="button" data-flipped={flipped} data-hover-suppressed={hoverSuppressedFeature === cardId} aria-pressed={flipped} aria-label={`${feature.part}. ${feature.description} ${flipped ? "Show feature name" : "Show description"}`} onClick={() => { setFlippedFeature(flipped ? null : cardId); setHoverSuppressedFeature(flipped ? cardId : null); }} onMouseLeave={() => setHoverSuppressedFeature(null)}>
-                <span className={styles.featureCardInner} aria-hidden="true">
-                  <span className={`${styles.featureFace} ${styles.featureFront}`}><span className={styles.featureIndex}>{String(index + 1).padStart(2, "0")}</span><strong>{feature.part}</strong><span className={styles.featureHint}>View details ↗</span></span>
-                  <span className={`${styles.featureFace} ${styles.featureBack}`}><span className={styles.featureBackLabel}>How it works</span><span className={styles.featureDescription}>{feature.description}</span><span className={styles.featureHint}>Tap to flip back ↶</span></span>
-                </span>
-              </button>
-              <button className={styles.refine} type="button" disabled={pending || remaining <= 0 || !canAddToDraft(`Let’s change ${feature.part.toLowerCase()}: `)} onClick={() => addToDraft(`Let’s change ${feature.part.toLowerCase()}: `)}>Refine in chat <span aria-hidden="true">↗</span></button>
-            </article>;
-          })}</div>
-          {technical && <details className={styles.technicalDetails}><summary>Technical details <span>{technical.notes.length} notes</span></summary><p>{technical.generated ? "Proposed implementation notes for this plan. Validate choices before building." : "Starting points based on this template. Review them against your final feature scope."}</p><ul>{technical.notes.map((note, index) => <li key={index}>{note}</li>)}</ul></details>}
-        </> : brief.idea.trim() && <div className={styles.emptyPlan}>
+        {plan ? <PlanOverview plan={plan} templateId={templateId} name={brief.name} revision={project.revision} canRefine={(text) => !pending && remaining > 0 && canAddToDraft(text)} onRefine={addToDraft} /> : brief.idea.trim() && <div className={styles.emptyPlan}>
           <div className={styles.planSymbol} aria-hidden="true">✦</div>
           <h3>{pending ? "Turning your idea into a plan" : "Your idea is ready to take shape"}</h3>
           <p>{pending ? "AI is mapping out your overview and features. This can take a couple of minutes. Your editing messages stay untouched." : overviewUsed ? "Your previous plan was deleted. Use a remaining chat message to create a new version." : "Create your free overview to see the features your app needs."}</p>
@@ -174,18 +160,20 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
           {project?.history.map((item, index) => <div key={index} className={item.role === "user" ? styles.userMessage : styles.aiMessage}><strong>{item.role === "user" ? "You" : "AI editor"}</strong><p>{item.text}</p></div>)}
           {visibleDecisions.length > 0 && <section className={styles.decisionPrompts} aria-label="Decisions to make">
             <h3>Decisions to make <span>{unansweredDecisions.length} left</span></h3>
-            <p>Answer a few at a time. We’ll add your choices to one message; send it when you’re ready.</p>
-            <div role="list" aria-label="Decision questions">{visibleDecisions.map(({ question, key }) => <article role="listitem" className={`${styles.decisionCard} ${exitingDecisions.includes(key) ? styles.decisionExiting : ""}`} key={key}>
-              <p>{question}</p>
-              <div className={styles.decisionActions}>
-                <button type="button" disabled={pending || remaining <= 0 || !canAddToDraft(`About “${question}”: Yes`)} onClick={() => answerDecision(question, key, "Yes")}>Yes</button>
-                <button type="button" disabled={pending || remaining <= 0 || !canAddToDraft(`About “${question}”: No`)} onClick={() => answerDecision(question, key, "No")}>No</button>
-                <button type="button" disabled={pending || remaining <= 0} onClick={() => { setCustomDecision(key); setCustomAnswer(""); }}>Write answer</button>
+            <p>Choose an answer, or use ✦ to let AI decide. We’ll add your choices to one message; send it when you’re ready.</p>
+            <div role="list" aria-label="Decision questions">{visibleDecisions.map(({ question, options, key }) => <article role="listitem" className={`${styles.decisionCard} ${exitingDecisions.includes(key) ? styles.decisionExiting : ""}`} key={key}>
+              <p id={`decision-question-${key}`}>{question}</p>
+              <div className={styles.decisionActions} data-has-choices={!!options} role="group" aria-labelledby={`decision-question-${key}`}>
+                {options ? options.map((answer) => <button key={answer} type="button" disabled={pending || remaining <= 0 || exitingDecisions.includes(key) || !canAddToDraft(`About “${question}”: ${answer}`)} onClick={() => answerDecision(question, key, answer)}>{answer}</button>) : <button type="button" disabled={pending || remaining <= 0 || exitingDecisions.includes(key)} onClick={() => { setCustomDecision(key); setCustomAnswer(""); }}>Write my answer</button>}
+                <button className={styles.decideForMe} type="button" aria-label="Decide for me" title="Decide for me" disabled={pending || remaining <= 0 || exitingDecisions.includes(key) || !canAddToDraft(`About “${question}”: ${decideForMe}`)} onClick={() => answerDecision(question, key, decideForMe)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 3 2.5 6.5L18 12l-6.5 2.5L9 21l-2.5-6.5L0 12l6.5-2.5L9 3Z" transform="translate(2 0) scale(.9 1)" /><path d="m19 2 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" /></svg>
+                </button>
               </div>
+              {options && <button className={styles.writeAnswer} type="button" disabled={pending || remaining <= 0 || exitingDecisions.includes(key)} onClick={() => { setCustomDecision(key); setCustomAnswer(""); }}>Write my own answer</button>}
               {customDecision === key && <form className={styles.customAnswer} onSubmit={(event) => { event.preventDefault(); answerDecision(question, key, customAnswer); }}>
                 <label htmlFor={`decision-answer-${key}`}>Your answer</label>
-                <textarea id={`decision-answer-${key}`} maxLength={300} rows={2} value={customAnswer} onChange={(event) => setCustomAnswer(event.target.value)} placeholder="Type a short answer…" autoFocus />
-                <div><button type="submit" disabled={!customAnswer.trim() || !canAddToDraft(`About “${question}”: ${customAnswer.replace(/\s+/g, " ").trim()}`)}>Add answer</button><button type="button" onClick={() => setCustomDecision(null)}>Cancel</button></div>
+                <textarea id={`decision-answer-${key}`} maxLength={300} rows={2} disabled={pending || remaining <= 0} value={customAnswer} onChange={(event) => setCustomAnswer(event.target.value)} placeholder="Type a short answer…" autoFocus />
+                <div><button type="submit" disabled={pending || remaining <= 0 || !customAnswer.trim() || !canAddToDraft(`About “${question}”: ${customAnswer.replace(/\s+/g, " ").trim()}`)}>Add answer</button><button type="button" onClick={() => setCustomDecision(null)}>Cancel</button></div>
               </form>}
             </article>)}</div>
           </section>}

@@ -1,16 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
-import type { AiSnapshot } from "../../src/lib/templates/ai-contract";
+import type { AiSnapshot, AppPlan } from "../../src/lib/templates/ai-contract";
 
 const token = "ab".repeat(32), sessionId = `trial_${"1".repeat(64)}`;
 const trialUrl = `/templates/trial/#session_id=${sessionId}&access=${token}`;
 const brief = { name: "BoulderMe", idea: "A place for climbers with similar skills to meet at their gym, share guest passes and plan a session together.", features: "iOS", style: "cozy, fun", budget: "" };
-const plan = { overview: "BoulderMe helps climbers find their people. Meet someone at your level, at a gym you already love, and turn a solo session into a shared one.", features: [
+const plan: AppPlan = { overview: "BoulderMe helps climbers find their people. Meet someone at your level, at a gym you already love, and turn a solo session into a shared one.", features: [
   { part: "Onboarding", description: "Choose your climbing level, preferred gyms, and availability." },
   { part: "Climber profiles", description: "Show your bouldering grade, gym memberships, and whether you have a guest pass." },
   { part: "Find climbers", description: "Browse people at the same gym with a similar skill level." },
   { part: "Plan a session", description: "Invite someone to climb and agree on a gym and time." },
   { part: "Look & feel", description: "A cozy, playful design with friendly copy and approachable cards." },
-], assumptions: ["Gym memberships and guest passes are self-reported."], questions: ["Should climbers connect one-to-one, or join small group sessions?", "Which gyms should be included at launch?"], technicalDetails: ["Keep gym, profile, and session records scoped to each account.", "Validate invitations on the server before notifying another climber."] };
+], assumptions: ["Gym memberships and guest passes are self-reported."], questions: ["Should climbers connect one-to-one, or join small group sessions?", "Which gyms should be included at launch?"], questionChoices: [
+  { question: "Should climbers connect one-to-one, or join small group sessions?", options: ["One-to-one sessions", "Small group sessions"] },
+  { question: "Which gyms should be included at launch?", options: ["Start with my gym", "Include nearby gyms"] },
+], technicalDetails: ["Keep gym, profile, and session records scoped to each account.", "Validate invitations on the server before notifying another climber."] };
 const fresh = (): AiSnapshot => ({ used: 0, remaining: 3, limit: 3, pending: false, projects: {}, overviewUsed: [], initialBrief: brief, overviewConsent: true, canStartOverview: true });
 
 async function mockWorkspace(page: Page, initial = fresh(), failOverview = false, loseMessage = false) {
@@ -116,13 +119,13 @@ test("dashboard keeps the plan beside chat, updates it, restores on a clean brow
   await expect(chat.getByRole("button", { name: "Expand" })).toHaveAttribute("aria-expanded", "false");
   await chat.getByRole("button", { name: "Expand" }).click();
   await expect(page.getByLabel("Ask for a change")).toHaveValue("Keep the design welcoming.");
-  await decisions.getByRole("listitem").filter({ hasText: plan.questions[0] }).getByRole("button", { name: "Yes" }).click();
-  await expect(page.getByLabel("Ask for a change")).toHaveValue(`Keep the design welcoming.\n\nAbout “${plan.questions[0]}”: Yes`);
+  await decisions.getByRole("listitem").filter({ hasText: plan.questions[0] }).getByRole("button", { name: "Small group sessions", exact: true }).click();
+  await expect(page.getByLabel("Ask for a change")).toHaveValue(`Keep the design welcoming.\n\nAbout “${plan.questions[0]}”: Small group sessions`);
   await expect(decisions.getByRole("listitem").filter({ hasText: plan.questions[0] })).toHaveCount(0);
-  await decisions.getByRole("listitem").filter({ hasText: plan.questions[1] }).getByRole("button", { name: "Write answer" }).click();
+  await decisions.getByRole("listitem").filter({ hasText: plan.questions[1] }).getByRole("button", { name: /Write my (own )?answer/ }).click();
   await decisions.getByLabel("Your answer").fill("Start with downtown gyms.");
   await decisions.getByRole("button", { name: "Add answer" }).click();
-  await expect(page.getByLabel("Ask for a change")).toHaveValue(`Keep the design welcoming.\n\nAbout “${plan.questions[0]}”: Yes\n\nAbout “${plan.questions[1]}”: Start with downtown gyms.`);
+  await expect(page.getByLabel("Ask for a change")).toHaveValue(`Keep the design welcoming.\n\nAbout “${plan.questions[0]}”: Small group sessions\n\nAbout “${plan.questions[1]}”: Start with downtown gyms.`);
   await expect(decisions).toHaveCount(0);
   await page.getByRole("button", { name: "Suggest a starting budget" }).click();
   await expect(page.getByLabel("Ask for a change")).toHaveValue(/Keep the design welcoming\.[\s\S]*Should climbers connect[\s\S]*Which gyms[\s\S]*recommend a practical starting budget/);
@@ -181,12 +184,21 @@ test("decisions show three at a time and collect seven answers in one message", 
     "Should invites expire after one day?",
     "Should new members get a welcome tour?",
   ];
+  const options: [string, string][] = [
+    ["Start in my city", "Start near partner gyms"],
+    ["Require gym approval", "Use self-reported passes"],
+    ["Save favorite gyms", "Browse without favorites"],
+    ["Support group sessions", "Keep sessions one-to-one"],
+    ["Show climbing grades", "Keep grades private"],
+    ["Expire after one day", "Keep invites open"],
+    ["Include a welcome tour", "Go straight to the app"],
+  ];
   const initial = fresh();
   initial.canStartOverview = false;
   initial.overviewUsed = ["mobile-app"];
   initial.projects["mobile-app"] = {
     brief,
-    plan: { ...plan, questions },
+    plan: { ...plan, questions, questionChoices: questions.map((question, index) => ({ question, options: options[index] })) },
     revision: 1,
     appliedRevision: null,
     appliedPlan: null,
@@ -203,7 +215,7 @@ test("decisions show three at a time and collect seven answers in one message", 
   await expect(decisions).not.toContainText(questions[3]);
   await composer.fill("Keep the interface welcoming.");
 
-  await cards.filter({ hasText: questions[0] }).getByRole("button", { name: "Write answer" }).click();
+  await cards.filter({ hasText: questions[0] }).getByRole("button", { name: /Write my (own )?answer/ }).click();
   await decisions.getByLabel("Your answer").fill("Toronto first.");
   await decisions.getByRole("button", { name: "Add answer" }).click();
   await expect(cards.filter({ hasText: questions[0] })).toHaveCount(0);
@@ -211,7 +223,7 @@ test("decisions show three at a time and collect seven answers in one message", 
   await expect(decisions).toContainText(questions[3]);
   await expect(decisions).toContainText("6 left");
 
-  const answers = ["No", "Yes", "Yes", "No", "Yes", "No"];
+  const answers = [options[1][1], options[2][0], options[3][0], options[4][1], options[5][0], options[6][1]];
   for (let index = 1; index < questions.length; index++) {
     await cards.filter({ hasText: questions[index] }).getByRole("button", { name: answers[index - 1], exact: true }).click();
     await expect(cards.filter({ hasText: questions[index] })).toHaveCount(0);
@@ -227,6 +239,78 @@ test("decisions show three at a time and collect seven answers in one message", 
   await page.reload();
   await expect(decisions).toHaveCount(0);
 });
+
+test("contextual answers and the sparkle button fit mobile and only draft changes", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const workspace = await mockWorkspace(page);
+  await page.goto(trialUrl);
+  await expect(page.getByRole("heading", { name: "BoulderMe", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "AI chat" }).click();
+  const decisions = page.getByRole("region", { name: "Decisions to make" });
+  const choices = decisions.getByRole("group", { name: plan.questions[0], exact: true });
+  const composer = page.getByLabel("Ask for a change");
+  await expect(choices.getByRole("button")).toHaveCount(3);
+  await expect(choices.getByRole("button", { name: "One-to-one sessions", exact: true })).toBeVisible();
+  await expect(choices.getByRole("button", { name: "Small group sessions", exact: true })).toBeVisible();
+  await expect(decisions.getByRole("button", { name: /^(Yes|No)$/ })).toHaveCount(0);
+  const decide = choices.getByRole("button", { name: "Decide for me", exact: true });
+  await expect(decide).toHaveAttribute("title", "Decide for me");
+  expect((await decide.boundingBox())!.width).toBeLessThan((await choices.getByRole("button", { name: "Small group sessions", exact: true }).boundingBox())!.width);
+  await decisions.screenshot({ path: "/tmp/runit-decision-choices-mobile.png" });
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    expect(await choices.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+  }
+  await decisions.screenshot({ path: "/tmp/runit-decision-choices-desktop.png" });
+  await composer.fill("x".repeat(1980));
+  for (const button of await choices.getByRole("button").all()) await expect(button).toBeDisabled();
+  await composer.fill("Keep the design welcoming.");
+  await decide.focus();
+  await decide.press("Enter");
+  const recommendation = "Decide for me. Recommend the simplest practical option for my app and explain why.";
+  await expect(composer).toHaveValue(`Keep the design welcoming.\n\nAbout “${plan.questions[0]}”: ${recommendation}`);
+  await expect(choices).toHaveCount(0);
+  await expect(decisions).toContainText(plan.questions[1]);
+  await expect(page.getByText("3 of 3 editing messages left")).toBeVisible();
+  expect(workspace.requests.filter((request) => request.action === "message")).toHaveLength(0);
+  await page.getByRole("button", { name: "Send changes" }).click();
+  await expect(page.getByText("2 of 3 editing messages left")).toBeVisible();
+  expect(workspace.requests.filter((request) => request.action === "message")).toHaveLength(1);
+  await page.reload();
+  await expect(decisions).toContainText(plan.questions[1]);
+  await expect(decisions).not.toContainText(plan.questions[0]);
+});
+
+for (const mode of ["legacy", "pending", "exhausted"] as const) {
+  test(`${mode} saved plans keep appropriate decision controls`, async ({ page }) => {
+    const initial = fresh();
+    initial.canStartOverview = false;
+    initial.overviewUsed = ["mobile-app"];
+    initial.pending = mode === "pending";
+    initial.remaining = mode === "exhausted" ? 0 : 3;
+    initial.used = mode === "exhausted" ? 3 : 0;
+    initial.projects["mobile-app"] = { brief, plan: { ...plan, questionChoices: mode === "legacy" ? undefined : plan.questionChoices }, revision: 1, appliedRevision: null, appliedPlan: null, appliedBrief: null, history: [] };
+    const workspace = await mockWorkspace(page, initial);
+    await page.goto(trialUrl);
+    const decisions = page.getByRole("region", { name: "Decisions to make" });
+    await expect(decisions).toBeVisible();
+    if (mode !== "legacy") {
+      for (const button of await decisions.getByRole("button").all()) await expect(button).toBeDisabled();
+      return;
+    }
+    await expect(decisions.getByRole("button", { name: /^(Yes|No)$/ })).toHaveCount(0);
+    const first = decisions.getByRole("listitem").filter({ hasText: plan.questions[0] });
+    await first.getByRole("button", { name: "Write my answer", exact: true }).click();
+    await first.getByLabel("Your answer").fill("Start with groups of four.");
+    await first.getByRole("button", { name: "Add answer", exact: true }).click();
+    await expect(first).toHaveCount(0);
+    await decisions.getByRole("button", { name: "Decide for me", exact: true }).click();
+    await expect(decisions).toHaveCount(0);
+    await expect(page.getByLabel("Ask for a change")).toHaveValue(/Start with groups of four\.[\s\S]*Decide for me/);
+    expect(workspace.requests.filter((request) => request.action === "overview" || request.action === "message")).toHaveLength(0);
+  });
+}
 
 test("managed launch request describes mobile hosting and omits the private trial credential", async ({ page }) => {
   await mockWorkspace(page);

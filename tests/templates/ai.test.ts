@@ -10,7 +10,7 @@ import { composePrompt } from "../../src/lib/templates/compose";
 import { planTechnicalDetails } from "../../src/lib/templates/technical-details";
 
 const brief = { name: "BoulderMe", idea: "Find climbers at my gym with similar skills", features: "iOS", style: "cozy, fun", budget: "", decideBudget: false };
-const reply: AiReply = { message: "Here is a first release for BoulderMe.", plan: { overview: "Find a climbing partner at your gym.", features: [{ part: "Find climbers", description: "Filter by gym and skill level." }, { part: "Guest passes", description: "Show whether you can offer a guest pass." }], assumptions: ["Memberships are self-reported."], questions: ["Should invitations include in-app messaging?"], technicalDetails: ["Keep gym and profile records scoped to each account.", "Validate invitations on the server before notifying another climber."] } };
+const reply: AiReply = { message: "Here is a first release for BoulderMe.", plan: { overview: "Find a climbing partner at your gym.", features: [{ part: "Find climbers", description: "Filter by gym and skill level." }, { part: "Guest passes", description: "Show whether you can offer a guest pass." }], assumptions: ["Memberships are self-reported."], questions: ["Should invitations include in-app messaging?"], questionChoices: [{ question: "Should invitations include in-app messaging?", options: ["Include in-app chat", "Keep invitations only"] }], technicalDetails: ["Keep gym and profile records scoped to each account.", "Validate invitations on the server before notifying another climber."] } };
 const safeModeration = { input: { type: "moderation_result", flagged: false }, output: { type: "moderation_result", flagged: false } };
 const providerReply = (disposition = "plan", moderation: unknown = safeModeration) => Response.json({ status: "completed", moderation, output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ disposition, ...reply }) }] }] });
 const generation = (kind: "overview" | "message" = "overview", revision = 0): AiGeneration => ({ requestId: randomUUID(), templateId: "mobile-app", brief, kind, revision, message: kind === "message" ? "Add guest passes" : "" });
@@ -77,6 +77,29 @@ test("reviewed plan augments a foundation without replacing mode or engineering 
   assert.match(prompt, /FOUNDATION SECURITY REQUIREMENTS/);
   assert.match(prompt, /Do not operate my computer/);
   assert.match(prompt, /technical details are provisional/);
+});
+
+test("question choices match every question with two distinct contextual answers", () => {
+  assert.deepEqual(parseReply(reply), reply);
+  const question = reply.plan.questions[0];
+  const choices = reply.plan.questionChoices!;
+  for (const questionChoices of [
+    undefined, [], [{ question: "Unrelated question", options: ["Include chat", "Invitations only"] }],
+    [{ question, options: ["Include chat"] }],
+    [{ question, options: ["Include chat", "Invitations only", "Something else"] }],
+    [{ question, options: ["Include chat", "include chat"] }],
+    [{ question, options: ["Yes", "No"] }],
+    [{ question, options: ["Include chat", "Decide for me"] }],
+    [{ question, options: ["Include\nchat", "Invitations only"] }],
+    [{ question, options: ["x".repeat(65), "Invitations only"] }],
+  ]) assert.throws(() => parseReply({ ...reply, plan: { ...reply.plan, questionChoices } }));
+  assert.throws(() => parseReply({ ...reply, plan: { ...reply.plan, questions: [question, "Another question?"], questionChoices: [...choices, ...choices] } }));
+  assert.throws(() => parseReply({ ...reply, plan: { ...reply.plan, questions: [question, question], questionChoices: [...choices, ...choices] } }));
+  const other = { question: "How should sessions work?", options: ["One-to-one sessions", "Small group sessions"] };
+  const reordered = { ...reply, plan: { ...reply.plan, questions: [other.question, question], questionChoices: [...choices, other] } };
+  assert.deepEqual(parseReply(reordered), reordered);
+  const resolved = { ...reply, plan: { ...reply.plan, questions: [], questionChoices: [] } };
+  assert.deepEqual(parseReply(resolved), resolved);
 });
 
 test("saved plans without technical notes get useful template starting points", () => {
@@ -168,6 +191,10 @@ test("OpenAI uses bounded structured output with no access credentials or provid
       assert.equal(data.store, false);
       assert.equal(data.text.format.strict, true);
       assert.ok(data.text.format.schema.properties.plan.required.includes("technicalDetails"));
+      assert.ok(data.text.format.schema.properties.plan.required.includes("questionChoices"));
+      const choicesSchema = data.text.format.schema.properties.plan.properties.questionChoices;
+      assert.equal(choicesSchema.items.properties.options.minItems, 2);
+      assert.equal(choicesSchema.items.properties.options.maxItems, 2);
       assert.equal(data.max_output_tokens, 5000);
       assert.equal(data.reasoning, undefined);
       assert.doesNotMatch(data.input[0].content, /cs_test_|accessToken|synthetic-key/);

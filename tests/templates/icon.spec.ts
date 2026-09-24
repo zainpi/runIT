@@ -40,17 +40,21 @@ test("icon supports three updates, browsing earlier versions, return visits and 
     return route.fulfill({ json: { available, state: snapshot(body.versionId) } });
   });
   await page.goto(`/templates/library/#session_id=${sessionId}&access=${token}`);
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
   const section = page.getByRole("region", { name: "Create app icon", exact: true });
   const generate = section.getByRole("button", { name: "Generate app icon", exact: true });
   await expect(generate).toBeDisabled();
+  await page.getByRole("tab", { name: "Brief", exact: true }).click();
   await page.getByLabel("App name").fill("Climb");
   await page.getByLabel("What do you want to make?").fill(brief.idea);
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
   await section.getByLabel("Icon direction").fill("A mountain silhouette in green");
   await section.getByLabel("Use OpenAI to create or update my icon").check();
   await generate.click();
   await expect(section.getByRole("status")).toContainText("Creating your icon");
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
   await expect(section.getByRole("img", { name: "Your app icon, version 1", exact: true })).toBeVisible();
   await expect(section).toContainText("3 updates remaining");
   expect(generations).toBe(1);
@@ -78,6 +82,7 @@ test("icon supports three updates, browsing earlier versions, return visits and 
   expect(generations).toBe(4);
   available = false;
   await page.reload();
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
   await expect(section.getByRole("group", { name: "Icon versions" }).getByRole("button")).toHaveCount(4);
   await section.getByRole("button", { name: "Version 1 · Original", exact: true }).click();
   await expect(section.getByRole("img", { name: "Your app icon, version 1", exact: true })).toBeVisible();
@@ -110,6 +115,7 @@ test("forged local icon purchase is ignored and changing orders clears the saved
   const version = { id: "00000000-0000-4000-8000-000000000001", number: 1, fileName: "icon.png", createdAt: "2026-09-23", templateId: "mobile-app", brief };
   await page.route("**/api/templates/icon/**", (route) => route.fulfill({ json: { available: false, state: { status: "complete", canGenerate: true, updatesRemaining: 3, versions: [version], image: { ...version, base64: png.toString("base64") } } } }));
   await page.goto(`/templates/library/#session_id=${sessionId}&access=${token}`);
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
   await expect(page.getByRole("img", { name: "Your app icon, version 1" })).toBeVisible();
   await page.getByLabel("Saved orders on this browser").selectOption(secondId);
   await expect(page.getByRole("region", { name: "Create app icon", exact: true })).toHaveCount(0);

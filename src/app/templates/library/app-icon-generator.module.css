@@ -1,6 +1,6 @@
-.generator { margin:32px 0; padding:28px; border:1px solid #354a49; border-radius:16px; background:linear-gradient(135deg,#132626,#111824); }
+.generator { margin:24px 0; padding:26px; border:1px solid #2a3444; border-radius:12px; background:#0e141e; }
 .generator .heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
-.generator .heading h2 { margin:6px 0 0; font-size:1.5rem; }
+.generator .heading h2 { margin:6px 0 0; font-size:1.35rem; font-weight:500; letter-spacing:-.025em; }
 .generator .heading>span { color:#b6e8cc; padding:6px 10px; border:1px solid #43645a; border-radius:6px; font-size:.75rem; }
 .generator form { display:grid; gap:14px; margin-top:24px; max-width:640px; }
 .generator form>label { font-size:.88rem; }
@@ -11,7 +11,7 @@
 .generator .consent input { margin-top:5px; accent-color:#a3d9b8; }
 .generator form>button { justify-self:start; }
 .generator .pending { padding:20px; border:1px solid #486467; border-radius:8px; background:#163032; color:#c3e9df; line-height:1.7; }
-.generator .result { display:flex; gap:28px; align-items:center; margin-top:24px; }
+.generator .result { display:flex; flex-direction:column; gap:20px; align-items:flex-start; margin-top:24px; }
 .generator .versions { display:flex; flex-wrap:wrap; gap:8px; margin-top:24px; }
 .generator .versions button { padding:10px 14px; border:1px solid #516564; border-radius:8px; background:#0d171e; color:#d4e6e0; font:inherit; font-size:.8rem; cursor:pointer; }
 .generator .versions button[aria-pressed="true"] { color:#13221b; background:#c8f17f; border-color:#c8f17f; }

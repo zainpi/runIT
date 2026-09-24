@@ -25,22 +25,24 @@ async function setup(page: Page, initial = emptyState()) {
     await route.fulfill({ json: { available: true, state } });
   });
   await page.goto(`/templates/library/#session_id=${order}&access=${token}`);
-  await expect(page.getByRole("heading", { name: "Shape your app with AI" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Shape your app with AI", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Refresh conversation" })).toBeEnabled();
   return { requests, setState(value: AiSnapshot) { state = value; } };
 }
 
-test("free overview, feature table, reviewed application, chat and saved-link restoration", async ({ page }) => {
+test("free overview, feature list, reviewed application, chat and saved-link restoration", async ({ page }) => {
   const harness = await setup(page);
+  await page.getByRole("tab", { name: "Brief", exact: true }).click();
   await page.getByLabel("App name").fill(brief.name);
   await page.getByLabel("What do you want to make?").fill(brief.idea);
   await page.getByLabel("Features & platforms").fill(brief.features);
   await page.getByLabel("Look & feel").fill(brief.style);
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
   await expect(page.getByRole("button", { name: "Create my free overview" })).toBeDisabled();
   await page.getByLabel("Send my brief and messages to OpenAI").check();
   await page.getByRole("button", { name: "Create my free overview" }).click();
-  await expect(page.getByRole("table")).toContainText("Guest passes");
-  await page.locator("section").filter({ has: page.getByRole("heading", { name: "Shape your app with AI" }) }).screenshot({ path: "/tmp/runit-templates-ai-overview.png" });
+  await expect(page.getByRole("list", { name: /Features for/ })).toContainText("Guest passes");
+  await page.getByRole("region", { name: "Shape your app with AI", exact: true }).screenshot({ path: "/tmp/runit-templates-ai-overview.png" });
   await expect(page.getByText("20 of 20 messages left")).toBeVisible();
   await expect(page.locator("#full-prompt")).not.toContainText("REVIEWED APP SPECIFICATION");
   await page.getByRole("button", { name: "Apply plan to my prompt" }).click();
@@ -49,7 +51,7 @@ test("free overview, feature table, reviewed application, chat and saved-link re
   await page.getByLabel("What would you like to change?").fill("Add invitations for a climbing session.");
   await page.getByRole("button", { name: "Send message", exact: true }).click();
   await expect(page.getByText("19 of 20 messages left")).toBeVisible();
-  await expect(page.getByRole("table")).toContainText("Sessions");
+  await expect(page.getByRole("list", { name: /Features for/ })).toContainText("Sessions");
   await expect(page.locator("#full-prompt")).not.toContainText("Invite another climber to a session.");
   await page.getByRole("button", { name: "Apply plan to my prompt" }).click();
   await expect(page.locator("#full-prompt")).toContainText("Invite another climber to a session.");
@@ -59,24 +61,27 @@ test("free overview, feature table, reviewed application, chat and saved-link re
   await expect(page.getByText("19 of 20 messages left")).toBeVisible();
   await expect(page.locator("#full-prompt")).toContainText("Invite another climber to a session.");
   expect(harness.requests.filter((value) => value.action === "overview")).toHaveLength(1);
+  await page.getByRole("tab", { name: "Brief", exact: true }).click();
   await page.getByLabel("What do you want to make?").fill("A completely different idea");
   await expect(page.locator("#full-prompt")).not.toContainText("REVIEWED APP SPECIFICATION");
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator("section").filter({ has: page.getByRole("heading", { name: "Shape your app with AI" }) }).screenshot({ path: "/tmp/runit-templates-ai-mobile.png" });
+  await page.getByRole("region", { name: "Shape your app with AI", exact: true }).screenshot({ path: "/tmp/runit-templates-ai-mobile.png" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await page.getByRole("button", { name: "Browser game", exact: true }).click();
   await expect(page.locator("#full-prompt")).toContainText("BROWSER_FOUNDATION");
-  await expect(page.getByRole("table")).toHaveCount(0);
+  await expect(page.getByRole("list", { name: /Features for/ })).toHaveCount(0);
 });
 
 test("exhausted quota preserves downloads and applying; deleting content keeps usage", async ({ page }) => {
   await setup(page, { ...emptyState(), used: 20, remaining: 0, projects: { "mobile-app": structuredClone(project) }, overviewUsed: ["mobile-app"] });
   await expect(page.getByRole("button", { name: "Send message", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Apply plan to my prompt" })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "Download .txt", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Download prompt", exact: false })).toBeEnabled();
+  await page.getByText("Manage saved content", { exact: true }).click();
   await page.getByRole("button", { name: "Delete saved AI content" }).click();
   await page.getByRole("button", { name: "Delete content for this purchase" }).click();
-  await expect(page.getByRole("table")).toHaveCount(0);
+  await expect(page.getByRole("list", { name: /Features for/ })).toHaveCount(0);
   await expect(page.getByText("0 of 20 messages left")).toBeVisible();
   await expect(page.getByRole("button", { name: "Create my free overview" })).toHaveCount(0);
 });
@@ -94,7 +99,7 @@ test("provider failure preserves the message and template; pending state can be 
   await expect(page.getByRole("alert").filter({ hasText: "No message was deducted" })).toBeVisible();
   await expect(page.getByLabel("What would you like to change?")).toHaveValue("Keep guest passes optional");
   await expect(page.getByText("20 of 20 messages left")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Download .txt", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Download prompt", exact: false })).toBeEnabled();
 });
 
 test("a lost response is recovered from saved history without sending the message twice", async ({ page }) => {
@@ -116,4 +121,61 @@ test("a lost response is recovered from saved history without sending the messag
   await expect(page.getByLabel("What would you like to change?")).toHaveValue("");
   await expect(page.getByText("19 of 20 messages left")).toBeVisible();
   expect(sent).toBe(1);
+});
+
+test("workspace tabs keep chat and drafts intact with one content column", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const harness = await setup(page, { ...emptyState(), projects: { "mobile-app": structuredClone(project) }, overviewUsed: ["mobile-app"] });
+  await page.route("**/api/templates/library/**", (route) => route.fulfill({ json: { templates: [{ id: "mobile-app", foundation: "FOUNDATION" }], subagents: true, subagentInstructions: "PURCHASED_WORKFLOW" } }));
+  await page.reload();
+  const chat = page.getByRole("complementary", { name: "AI editing chat" });
+  const composer = page.getByLabel("What would you like to change?");
+  await expect(composer).toBeEnabled();
+  await composer.fill("Keep this draft while I review my files.");
+  await page.getByLabel("Send my brief and messages to OpenAI").check();
+  for (const name of ["Brief", "Build files", "Add-ons", "Plan"]) {
+    await page.getByRole("tab", { name, exact: true }).click();
+    await expect(page.getByRole("tabpanel")).toHaveCount(1);
+    await expect(chat).toBeVisible();
+    await expect(composer).toHaveValue("Keep this draft while I review my files.");
+    await expect(page.getByLabel("Send my brief and messages to OpenAI")).toBeChecked();
+    const panelBox = await page.getByRole("tabpanel").boundingBox();
+    const chatBox = await chat.boundingBox();
+    expect(chatBox!.x).toBeGreaterThan(panelBox!.x + panelBox!.width);
+  }
+  const rows = page.getByRole("list", { name: /Features for/ }).getByRole("listitem");
+  const first = await rows.nth(0).boundingBox(), second = await rows.nth(1).boundingBox();
+  expect(first!.x).toBe(second!.x);
+  expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
+  await page.screenshot({ path: "/tmp/runit-purchase-tabs-desktop.png", fullPage: true });
+  await page.getByRole("tab", { name: "Plan", exact: true }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "Brief", exact: true })).toBeFocused();
+  await expect(page.getByRole("tab", { name: "Brief", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByLabel("App name").fill("My renamed app");
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
+  await page.getByLabel("Include subagent workflow", { exact: true }).uncheck();
+  await page.getByRole("tab", { name: "Build files", exact: true }).click();
+  await expect(page.locator("#full-prompt")).not.toContainText("PURCHASED_WORKFLOW");
+  await page.getByRole("tab", { name: "Brief", exact: true }).click();
+  await expect(page.getByLabel("App name")).toHaveValue("My renamed app");
+  await page.getByLabel("Running budget").scrollIntoViewIfNeeded();
+  await expect(composer).toBeInViewport();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("tab", { name: "Add-ons", exact: true }).click();
+  await page.getByRole("button", { name: /AI chat ·/ }).click();
+  await expect(composer).toHaveValue("Keep this draft while I review my files.");
+  await page.getByRole("button", { name: "Workspace", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Add-ons", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByLabel("Include subagent workflow", { exact: true })).not.toBeChecked();
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
+  await page.screenshot({ path: "/tmp/runit-purchase-tabs-mobile.png", fullPage: true });
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const name of ["Plan", "Brief", "Build files", "Add-ons"]) {
+      await page.getByRole("tab", { name, exact: true }).click();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    }
+  }
+  expect(harness.requests.every((request) => request.action === "load")).toBe(true);
 });

@@ -87,7 +87,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
       const response = await fetch("/api/templates/checkout/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ templates: ids, accessToken: token, subagents, skillTree, appIcon, referralCode: referral?.code }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
-      saveReceipt({ sessionId: result.sessionId, accessToken: token, templates: ids, createdAt: new Date().toISOString(), subagents, skillTree, appIcon });
+      saveReceipt({ sessionId: result.sessionId, accessToken: token, templates: ids, createdAt: new Date().toISOString(), subagents, skillTree, appIcon, projectNames: Object.fromEntries(ids.map((id) => [id, details.name.trim()])) });
       const url = new URL(result.url);
       if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com") throw new Error("The checkout address could not be verified.");
       window.location.assign(url.href);

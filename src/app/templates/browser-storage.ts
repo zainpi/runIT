@@ -1,6 +1,7 @@
 import { emptyPersonalization, type Personalization } from "@/lib/templates/compose";
 import { templateCatalog, type BuildMode, type TemplateId } from "@/lib/templates/catalog";
-export type Receipt = { sessionId: string; accessToken: string; templates: TemplateId[]; createdAt: string; subagents?: boolean; skillTree?: boolean; appIcon?: boolean };
+export type ReceiptProjectNames = Partial<Record<TemplateId, string>>;
+export type Receipt = { sessionId: string; accessToken: string; templates: TemplateId[]; createdAt: string; subagents?: boolean; skillTree?: boolean; appIcon?: boolean; projectNames?: ReceiptProjectNames };
 const RECEIPTS_KEY = "runit-template-orders-v1";
 const DRAFT_KEY = "runit-template-brief-v1";
 export function loadReceipts(): Receipt[] {
@@ -10,7 +11,21 @@ export function loadReceipts(): Receipt[] {
   } catch { return []; }
 }
 export function saveReceipt(receipt: Receipt) {
-  localStorage.setItem(RECEIPTS_KEY, JSON.stringify([receipt, ...loadReceipts().filter((r) => r.sessionId !== receipt.sessionId)].slice(0, 100)));
+  const saved = loadReceipts();
+  const previous = saved.find((r) => r.sessionId === receipt.sessionId && r.accessToken === receipt.accessToken);
+  localStorage.setItem(RECEIPTS_KEY, JSON.stringify([{ ...receipt, projectNames: receipt.projectNames ?? previous?.projectNames }, ...saved.filter((r) => r.sessionId !== receipt.sessionId)].slice(0, 100)));
+}
+export function receiptName(receipt: Receipt): string {
+  const names = receipt.templates.map((id) => receipt.projectNames?.[id]).filter((name): name is string => typeof name === "string" && !!name.trim()).map((name) => name.trim());
+  return [...new Set(names)].join(" · ") || templateCatalog.filter((template) => receipt.templates.includes(template.id)).map((template) => template.title).join(" · ") || "Unnamed app";
+}
+export function withReceiptNames(receipt: Receipt, names: ReceiptProjectNames, overwrite = true): Receipt {
+  return { ...receipt, projectNames: overwrite ? { ...receipt.projectNames, ...names } : { ...names, ...receipt.projectNames } };
+}
+export function saveReceiptNames(receipt: Receipt, names: ReceiptProjectNames, overwrite = true) {
+  // Name hydration must not reorder purchases or replace a changed credential.
+  const saved = loadReceipts().map((r) => r.sessionId === receipt.sessionId && r.accessToken === receipt.accessToken ? withReceiptNames(r, names, overwrite) : r);
+  localStorage.setItem(RECEIPTS_KEY, JSON.stringify(saved));
 }
 export function receiptLink(receipt: Receipt) { return `${location.origin}/templates/library/#session_id=${encodeURIComponent(receipt.sessionId)}&access=${receipt.accessToken}`; }
 export function loadDraft(): { details: Personalization; mode: BuildMode; selected: TemplateId[]; subagents: boolean; skillTree: boolean; appIcon: boolean } {

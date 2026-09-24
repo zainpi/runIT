@@ -1,0 +1,5 @@
+.featureList { display:flex; flex-direction:column; gap:12px; padding-top:14px; }
+.featureRow { min-width:0; overflow:hidden; border:1px solid #344255; border-radius:9px; background:#15202e; }
+.featureRow>div { padding:18px; }
+.featureRow h4 { margin:10px 0 8px; color:#f0f4fc; font-size:.95rem; line-height:1.4; font-weight:550; overflow-wrap:anywhere; }
+.featureRow p { color:#b9c9df; font-size:.8rem; line-height:1.75; overflow-wrap:anywhere; }

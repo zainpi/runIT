@@ -1,17 +1,19 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { templateCatalog, type BuildMode, type TemplateId } from "@/lib/templates/catalog";
 import { composePrompt, composeSkillSetupPrompt, emptyPersonalization, type Personalization } from "@/lib/templates/compose";
 import { site } from "@/lib/site";
-import { downloadText, loadDraft, loadReceipts, receiptLink, saveDraft, saveReceipt, type Receipt } from "../browser-storage";
+import { downloadText, loadDraft, loadReceipts, receiptLink, receiptName, saveDraft, saveReceipt, saveReceiptNames, withReceiptNames, type Receipt, type ReceiptProjectNames } from "../browser-storage";
 import { Personalize } from "../personalize";
-import { AiEditor } from "./ai-editor";
+import { AiEditor, type WorkspaceTab } from "./ai-editor";
 import { AppIconGenerator } from "./app-icon-generator";
 import { ManagedLaunch, hasManagedLaunch } from "../managed-launch";
 import { sameBrief, type AppPlan, type AiProject } from "@/lib/templates/ai-contract";
 import { BuildGuide } from "./build-guide";
 import styles from "../templates.module.css";
+import dashboard from "../trial/dashboard.module.css";
+import library from "./library.module.css";
 
 export function TemplateLibrary() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -25,6 +27,7 @@ export function TemplateLibrary() {
   const [skillTreeInstructions, setSkillTreeInstructions] = useState<string | undefined>();
   const [includeSkillTree, setIncludeSkillTree] = useState(false);
   const [appIconPurchased, setAppIconPurchased] = useState(false);
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("plan");
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +36,13 @@ export function TemplateLibrary() {
   const [projects, setProjects] = useState<Partial<Record<TemplateId, AiProject>>>({});
   const orderRequest = useRef({ generation: 0 });
 
+  const rememberNames = useCallback((receipt: Receipt, names: ReceiptProjectNames, overwrite = true) => {
+    setReceipts((saved) => saved.map((r) => r.sessionId === receipt.sessionId && r.accessToken === receipt.accessToken ? withReceiptNames(r, names, overwrite) : r));
+    try { saveReceiptNames(receipt, names, overwrite); } catch { /* Names still work in this tab when browser storage is unavailable. */ }
+  }, []);
+
   async function openOrder(receipt: Receipt) {
+    setWorkspaceTab("plan");
     setApplied({});
     setProjects({});
     const requestId = ++orderRequest.current.generation;
@@ -91,6 +100,31 @@ export function TemplateLibrary() {
     return () => { window.removeEventListener("hashchange", openFromUrl); ++pendingRequests.generation; };
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    async function restoreOrderNames() {
+      for (const receipt of loadReceipts().filter((r) => r.projectNames === undefined)) {
+        if (controller.signal.aborted) return;
+        try {
+          // This reads saved plans only; it never generates content or uses an AI message.
+          const response = await fetch("/api/templates/ai/", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify({ action: "load", sessionId: receipt.sessionId, accessToken: receipt.accessToken }) });
+          if (!response.ok) continue;
+          const data = await response.json();
+          if (controller.signal.aborted || !data.state?.projects) continue;
+          const names: ReceiptProjectNames = {};
+          for (const template of templateCatalog) {
+            const name = data.state.projects[template.id]?.brief?.name;
+            if (typeof name === "string") names[template.id] = name.trim().slice(0, 100);
+          }
+          // A rename made while this request was running takes precedence.
+          rememberNames(receipt, names, false);
+        } catch { /* Keep the template-name fallback if a saved order cannot be read. */ }
+      }
+    }
+    void restoreOrderNames();
+    return () => controller.abort();
+  }, [rememberNames]);
+
   const current = templates.find((template) => template.id === selected);
   const purchaseUrl = active ? receiptLink(active) : "";
   const title = templateCatalog.find((t) => t.id === selected)?.title ?? "Template";
@@ -100,33 +134,23 @@ export function TemplateLibrary() {
   const currentGuide = project?.guide && project.guide.sourceRevision === project.revision && project.appliedRevision === project.revision && sameBrief(project.guide.brief, details) ? project.guide : undefined;
   const prompt = current ? composePrompt(title, current.foundation, details, mode, includeSubagents ? subagentInstructions : undefined, includeSkillTree ? skillTreeInstructions : undefined, appPlan, currentGuide) : "";
   const setupPrompt = skillTreeInstructions ? composeSkillSetupPrompt(skillTreeInstructions, details, mode) : "";
-  function updateDetails(value: Personalization) { setDetails(value); try { const draft = loadDraft(); saveDraft(value, mode, draft.selected, draft.subagents, draft.skillTree, draft.appIcon); } catch { /* Editing still works. */ } }
+  function updateDetails(value: Personalization) {
+    setDetails(value);
+    if (active && selected) rememberNames(active, { [selected]: value.name.trim() });
+    try { const draft = loadDraft(); saveDraft(value, mode, draft.selected, draft.subagents, draft.skillTree, draft.appIcon); } catch { /* Editing still works. */ }
+  }
   function updateMode(value: BuildMode) { setMode(value); try { const draft = loadDraft(); saveDraft(details, value, draft.selected, draft.subagents, draft.skillTree, draft.appIcon); } catch { /* Editing still works. */ } }
   async function copy(text: string, message: string) {
     try { await navigator.clipboard.writeText(text); setStatus(message); }
     catch { setStatus("Copy isn’t available here. Use the download button, or select the text below and copy it."); }
   }
-  return <>
-    <section className={styles.libraryHero}><p className={styles.eyebrow}>Your next project starts here</p><h1>Make it <em>yours.</em></h1><p className={styles.muted}>Describe your idea, review the AI plan, then create your complete build guide and HTML prototype. Take the included prompt to your coding AI to build the app. Both build modes are included.</p>{selected && hasManagedLaunch(selected) && <button className={styles.launchShortcut} type="button" onClick={() => document.getElementById("managed-launch")?.scrollIntoView({ behavior: "smooth" })}>Want us to host or run it? Request a quote →</button>}</section>
-    {receipts.length > 0 && <div className={styles.orderPicker}><label htmlFor="order">Saved orders on this browser</label><select id="order" value={active?.sessionId ?? ""} disabled={busy} onChange={(event) => { const receipt = receipts.find((r) => r.sessionId === event.target.value); if (receipt) void openOrder(receipt); }}><option value="" disabled>Choose an order</option>{receipts.map((r) => <option key={r.sessionId} value={r.sessionId}>{r.createdAt.slice(0, 10)} · {r.templates.length || "Your"} templates · …{r.sessionId.slice(-8)}</option>)}</select></div>}
-    {busy && <p className={styles.notice} role="status">Verifying your payment and opening your templates…</p>}
-    {error && <div className={styles.notice} role="alert"><p>{error}</p>{active && <button className={styles.secondary} disabled={busy} onClick={() => void openOrder(active)}>Check payment again</button>}<p className={styles.small}>If your bank is still processing the payment, come back to this saved order later. Need help? Email <a href={`mailto:${site.email}`}>{site.email}</a> with your Stripe receipt.</p></div>}
-    {loaded && !receipts.length && !active && !error && <div className={styles.empty}><h2>Your templates will live here.</h2><p>After checkout, come back here to copy or download. If you purchased on another device, open your saved private access link.</p><Link className={styles.primary} href="/templates/">Explore templates →</Link><p className={styles.small}>Lost your link? Email <a href={`mailto:${site.email}`}>{site.email}</a> with your payment receipt for help.</p></div>}
-    {active && <section className={styles.accessBar} aria-labelledby="save-purchase-heading">
-      <p className={styles.eyebrow}>Your private order page</p>
-      <h2 id="save-purchase-heading">Save your purchase link</h2>
-      <p className={styles.accessIntro}>Save this URL before you leave. It opens every prompt, add-on and saved AI conversation in this purchase, even on another device or after clearing your browser.</p>
-      <label className={styles.small} htmlFor="purchase-url">Your private purchase URL</label>
-      <input id="purchase-url" className={styles.purchaseUrl} type="text" readOnly value={purchaseUrl} spellCheck={false} autoComplete="off" onFocus={(event) => event.currentTarget.select()} />
-      <div className={styles.actions}><button className={styles.primary} onClick={() => void copy(purchaseUrl, "Purchase link copied. Save it somewhere safe so you can return to this order.")}>Copy purchase link</button><button className={styles.secondary} onClick={() => downloadText(`YOUR PRIVATE TEMPLATE PURCHASE LINK\n\n${purchaseUrl}\n\nSave this file. Open the full URL to return to the templates and add-ons in this order, including on another device or after clearing browser storage. Payment must be complete to access the prompts.\n\nKeep this URL private: anyone with it can access your purchase. Manual edits stay in your browser. AI plans and chats are saved with this purchase when you use AI editing; download your personalized prompts to keep a copy.\n\nLost access? Contact ${site.email} with your Stripe receipt. Never send passwords or API keys.\n`, "template-order-access.txt")}>Download access file</button></div>
-      <p className={styles.small}>You can also bookmark this page. Keep the full URL private: anyone with it can access your purchase. Download your personalized prompts to keep a copy. Manual edits stay in this browser; AI plans and chats are saved to this purchase.</p>
-    </section>}
-    <p className={styles.status} role="status" aria-label="Template library status" aria-live="polite">{status}</p>
-    {templates.length > 0 && <>
-      <section className={styles.libraryTemplates}><p className={styles.eyebrow}>Your purchased foundations</p><div className={styles.libraryTabs} role="group" aria-label="Choose a purchased template">{templates.map((t) => <button key={t.id} aria-pressed={selected === t.id} onClick={() => setSelected(t.id)}>{templateCatalog.find((item) => item.id === t.id)?.title}</button>)}</div></section>
-      <section className={styles.workshop}><Personalize details={details} mode={mode} onDetails={updateDetails} onMode={updateMode} /></section>
-      {active && current && <AiEditor key={`${active.sessionId}:${active.accessToken}:${current.id}`} receipt={active} templateId={current.id} details={details} onRestoreBrief={updateDetails} onCleared={() => { setApplied({}); setProjects({}); }} onProject={(value) => setProjects((previous) => ({ ...previous, [current.id]: value ?? undefined }))} onApplied={(plan, brief) => setApplied((previous) => ({ ...previous, [current.id]: plan && brief ? { plan, brief } : undefined }))} />}
+  const buildFiles = <>
       {savedPlan && !appPlan && <p className={styles.notice}>You changed the brief after applying an AI plan. The download currently uses your new brief without the older plan. Update and apply the plan to include it again.</p>}
+      {project?.guide && current && <BuildGuide key={`${active?.sessionId}:${current.id}`} project={project} details={details} title={title} foundation={current.foundation} mode={mode} subagents={includeSubagents ? subagentInstructions : undefined} skillTree={includeSkillTree ? skillTreeInstructions : undefined} />}
+      <section className={`${styles.promptOutput} ${library.promptOutput}`}><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Ready for your AI</p><h2>{title} prompt</h2></div><div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(prompt, `${selected}-prompt.txt`)}>Download .txt</button><button className={styles.primary} onClick={() => void copy(prompt, `${title} prompt copied. Paste it into your AI tool to begin.`)}>Copy full prompt ↗</button></div></div><label className={styles.small} htmlFor="full-prompt">Your brief + {mode === "computer" ? "computer control" : "manual"} instructions + complete foundation{includeSubagents && subagentInstructions ? " + subagent workflow" : ""}{includeSkillTree && skillTreeInstructions ? " + skill tree setup" : ""}</label><textarea id="full-prompt" readOnly value={prompt} rows={20} spellCheck={false} /><p className={styles.small}>Replace any bracketed placeholders before starting. You can return, change the brief or mode, and download again. Your AI is also instructed to create FOLLOW_UP_PROMPTS.md in your project with useful prompts to ask next.</p></section>
+  </>;
+  const addons = <>
+      <section className={library.extras} aria-label="Your purchased extras"><div className={dashboard.paneHeading}><div><p className={dashboard.kicker}>Make it your own</p><h2>Your extras</h2></div></div>
       {subagentInstructions ? <label className={`${styles.addon} ${styles.libraryAddon}`} data-selected={includeSubagents}>
         <input type="checkbox" aria-label="Include subagent workflow" checked={includeSubagents} onChange={(event) => setIncludeSubagents(event.target.checked)} />
         <span><strong>Include subagent workflow <b>Purchased</b></strong><span>Let a lead AI such as Astra oversee cheaper coding agents. Included for every template in this order; you can turn it off for any download.</span><small>Uses the models and agent tools available to you. Manual mode keeps you in charge of applying changes. AI usage is billed by your provider.</small></span>
@@ -139,11 +163,36 @@ export function TemplateLibrary() {
         <div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(setupPrompt, "skill-tree-setup-prompt.txt")}>Download skill setup .txt</button><button className={styles.secondary} onClick={() => void copy(setupPrompt, "Skill setup prompt copied. Paste it into your AI tool to prepare your workspace.")}>Copy skill setup prompt</button></div>
         <details className={styles.sample}><summary>Preview skill setup prompt <span>↗</span></summary><pre>{setupPrompt}</pre></details>
       </section> : <p className={`${styles.small} ${styles.libraryAddon}`}>Skill tree setup was not included in this order.</p>}
+      </section>
       {appIconPurchased && active && current && <AppIconGenerator key={`${active.sessionId}:${active.accessToken}`} receipt={active} templateId={current.id} details={details} />}
-      {project?.guide && current && <BuildGuide key={`${active?.sessionId}:${current.id}`} project={project} details={details} title={title} foundation={current.foundation} mode={mode} subagents={includeSubagents ? subagentInstructions : undefined} skillTree={includeSkillTree ? skillTreeInstructions : undefined} />}
-      <section className={styles.promptOutput}><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Ready for your AI</p><h2>{title} prompt</h2></div><div className={styles.actions}><button className={styles.secondary} onClick={() => downloadText(prompt, `${selected}-prompt.txt`)}>Download .txt</button><button className={styles.primary} onClick={() => void copy(prompt, `${title} prompt copied. Paste it into your AI tool to begin.`)}>Copy full prompt ↗</button></div></div><label className={styles.small} htmlFor="full-prompt">Your brief + {mode === "computer" ? "computer control" : "manual"} instructions + complete foundation{includeSubagents && subagentInstructions ? " + subagent workflow" : ""}{includeSkillTree && skillTreeInstructions ? " + skill tree setup" : ""}</label><textarea id="full-prompt" readOnly value={prompt} rows={20} spellCheck={false} /><p className={styles.small}>Replace any bracketed placeholders before starting. You can return, change the brief or mode, and download again. Your AI is also instructed to create FOLLOW_UP_PROMPTS.md in your project with useful prompts to ask next.</p></section>
       {selected && hasManagedLaunch(selected) && <ManagedLaunch templateId={selected} projectName={details.name} />}
+  </>;
+  return <div className={`${dashboard.dashboard} ${library.library}`}>
+    <div className={dashboard.breadcrumb}><Link href="/templates/">Templates</Link><span aria-hidden="true">/</span><span>Project dashboard</span>{!!templates.length && <span className={dashboard.trialBadge}>Purchased</span>}</div>
+    <header className={dashboard.projectHeader}>
+      <div className={dashboard.projectIdentity}><div className={dashboard.avatar} aria-hidden="true">{(details.name || title).slice(0, 1).toUpperCase()}<span>↗</span></div><div><p className={dashboard.kicker}>{current ? `${title} · Your workspace` : "Your template workspace"}</p><h1>{current ? details.name || "Your new project" : "Your templates"}</h1><p className={dashboard.subtitle}>Shape your idea. Make it yours.</p></div></div>
+      <div className={dashboard.toolbar}>
+        {selected && hasManagedLaunch(selected) && <button className={dashboard.launchShortcut} type="button" onClick={() => { document.getElementById("workspace-tab-addons")?.click(); requestAnimationFrame(() => document.getElementById("managed-launch")?.scrollIntoView({ behavior: "smooth" })); }}>Have us launch it <span aria-hidden="true">↗</span></button>}
+        {active && <details className={dashboard.access}><summary>Save private link <span aria-hidden="true">↗</span></summary><div className={dashboard.accessPopover}>
+          <h2>Save your purchase link</h2><p>This link opens every template, add-on and saved AI conversation in this order on any device. Keep it private.</p>
+          <label htmlFor="purchase-url">Your private purchase URL</label><input id="purchase-url" type="text" readOnly value={purchaseUrl} spellCheck={false} autoComplete="off" onFocus={(event) => event.currentTarget.select()} />
+          <button onClick={() => void copy(purchaseUrl, "Purchase link copied. Save it somewhere safe so you can return to this order.")}>Copy purchase link</button>
+          <button onClick={() => downloadText(`YOUR PRIVATE TEMPLATE PURCHASE LINK\n\n${purchaseUrl}\n\nSave this file. Open the full URL to return to the templates and add-ons in this order, including on another device or after clearing browser storage. Payment must be complete to access the prompts.\n\nKeep this URL private: anyone with it can access your purchase. Manual edits stay in your browser. AI plans and chats are saved with this purchase when you use AI editing; download your personalized prompts to keep a copy.\n\nLost access? Contact ${site.email} with your Stripe receipt. Never send passwords or API keys.\n`, "template-order-access.txt")}>Download access file</button>
+          <p>You can also bookmark this page. Manual edits stay in this browser; AI plans and chats are saved to your purchase.</p>
+        </div></details>}
+        {current && <button className={dashboard.downloadPlan} onClick={() => downloadText(prompt, `${selected}-prompt.txt`)}>Download prompt <span aria-hidden="true">↓</span></button>}
+      </div>
+    </header>
+    {(receipts.length > 1 || (receipts.length > 0 && (!active || !!error))) && <div className={styles.orderPicker}><label htmlFor="order">Saved orders on this browser</label><select id="order" value={active?.sessionId ?? ""} disabled={busy} onChange={(event) => { const receipt = receipts.find((r) => r.sessionId === event.target.value); if (receipt) void openOrder(receipt); }}><option value="" disabled>Choose an app</option>{receipts.map((r) => <option key={r.sessionId} value={r.sessionId}>{receiptName(r)}</option>)}</select></div>}
+    {busy && <p className={styles.notice} role="status">Verifying your payment and opening your templates…</p>}
+    {error && <div className={styles.notice} role="alert"><p>{error}</p>{active && <button className={styles.secondary} disabled={busy} onClick={() => void openOrder(active)}>Check payment again</button>}<p className={styles.small}>If your bank is still processing the payment, come back to this saved order later. Need help? Email <a href={`mailto:${site.email}`}>{site.email}</a> with your Stripe receipt.</p></div>}
+    {loaded && !receipts.length && !active && !error && <div className={styles.empty}><h2>Your templates will live here.</h2><p>After checkout, come back here to copy or download. If you purchased on another device, open your saved private access link.</p><Link className={styles.primary} href="/templates/">Explore templates →</Link><p className={styles.small}>Lost your link? Email <a href={`mailto:${site.email}`}>{site.email}</a> with your payment receipt for help.</p></div>}
+    <p className={`${styles.status} ${library.status}`} role="status" aria-label="Template library status" aria-live="polite">{status}</p>
+    {templates.length > 0 && <>
+      {templates.length > 1 && <section className={styles.libraryTemplates}><p className={styles.eyebrow}>Your purchased foundations</p><div className={styles.libraryTabs} role="group" aria-label="Choose a purchased template">{templates.map((t) => <button key={t.id} aria-pressed={selected === t.id} onClick={() => { setSelected(t.id); setWorkspaceTab("plan"); }}>{templateCatalog.find((item) => item.id === t.id)?.title}</button>)}</div></section>}
+      {active && current && <AiEditor key={`${active.sessionId}:${active.accessToken}:${current.id}`} receipt={active} templateId={current.id} details={details} activeTab={workspaceTab} onTabChange={setWorkspaceTab} buildFiles={buildFiles} addons={addons} briefEditor={<Personalize compact details={details} mode={mode} onDetails={updateDetails} onMode={updateMode} />} onRestoreBrief={updateDetails} onCleared={() => { setApplied({}); setProjects({}); }} onProject={(value) => setProjects((previous) => ({ ...previous, [current.id]: value ?? undefined }))} onApplied={(plan, brief) => setApplied((previous) => ({ ...previous, [current.id]: plan && brief ? { plan, brief } : undefined }))} />}
+
     </>}
     <p className={styles.libraryBack}><Link href="/templates/">← Back to all templates</Link></p>
-  </>;
+  </div>;
 }
