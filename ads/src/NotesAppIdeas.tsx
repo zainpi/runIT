@@ -160,8 +160,13 @@ const Payoff = () => {
 
 export const NotesAppIdeas = ({ music }: NotesAppIdeasProps) => {
   const frame = useCurrentFrame();
-  // Keep the bed low under dialogue in the hook, then lift it for the product beat.
-  const bed = interpolate(frame, [0, scenes.hook.duration - 6, scenes.hook.duration, TOTAL - 20, TOTAL], [0.07, 0.07, 0.2, 0.2, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Keep the bed low under dialogue, lift it for the product beat and end card.
+  const bed = interpolate(
+    frame,
+    [0, scenes.notes.from - 6, scenes.notes.from, scenes.product.from - 4, scenes.product.from, scenes.payoff.from - 4, scenes.payoff.from, scenes.end.from - 4, scenes.end.from, TOTAL - 20, TOTAL],
+    [0.08, 0.08, 0.3, 0.3, 0.6, 0.6, 0.3, 0.3, 0.55, 0.55, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
   return (
     <AbsoluteFill style={{ backgroundColor: color.bg, fontFamily: font.body }}>
       <Sequence {...scenes.hook} name="1 hook"><Hook /></Sequence>
