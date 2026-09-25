@@ -9,6 +9,6 @@ export default function TemplatesLayout({ children }: { children: React.ReactNod
       <a className={styles.contactLink} href={`mailto:${site.email}`}>Say hello ↗</a>
     </div></header>
     <main id="main" className={styles.container}>{children}</main>
-    <footer className={styles.footer}><div className={styles.container}><span>runsIT · Made with care in Canada.</span><a href={`mailto:${site.email}`}>{site.email} ↗</a></div></footer>
+    <footer className={styles.footer}><div className={styles.container}><span>runsIT · Made with care in Canada.</span><nav className={styles.footerLinks} aria-label="Footer"><Link href="/contact/">Contact</Link><Link href="/privacy/">Privacy</Link><Link href="/terms/">Terms</Link><a href={`mailto:${site.email}`}>{site.email} ↗</a></nav></div></footer>
   </div>;
 }

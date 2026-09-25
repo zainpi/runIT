@@ -5,32 +5,14 @@ import { founders, products } from "@/lib/company";
 import { site } from "@/lib/site";
 import { templateCatalog } from "@/lib/templates/catalog";
 import { templateDemos } from "@/lib/templates/demos";
+import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
+import { StickyCta } from "@/components/site/StickyCta";
 import styles from "./home.module.css";
-
-function Wordmark() {
-  return (
-    <Link href="/" className={styles.wordmark} aria-label="runsIT home">
-      runs<span>IT</span><span className={styles.wordmarkDot}>.</span>
-    </Link>
-  );
-}
 
 export default function HomePage() {
   return (
     <div className={styles.home}>
-      <header className={styles.header}>
-        <div className={`${styles.container} ${styles.headerInner}`}>
-          <Wordmark />
-          <nav className={styles.nav} aria-label="Primary">
-            <a href="#products">Products</a>
-            <Link href="/templates/">AI templates</Link>
-            <Link href="/about/">About us</Link>
-          </nav>
-          <a className={styles.headerContact} href={`mailto:${site.email}`}>
-            Say hello <ArrowRightIcon />
-          </a>
-        </div>
-      </header>
+      <SiteHeader productsHref="#products" />
 
       <main id="main" className={styles.container}>
         <section className={styles.hero} id="company" aria-labelledby="company-heading">
@@ -43,7 +25,7 @@ export default function HomePage() {
               own idea into an app with step-by-step guidance. No coding
               experience needed to get started.
             </p>
-            <div className={styles.heroActions}>
+            <div className={styles.heroActions} id="hero-cta">
               <Link className={styles.primaryLink} href="/templates/">Build with a template <ArrowRightIcon /></Link>
               <a className={styles.secondaryLink} href="#products">Explore our products <ArrowRightIcon /></a>
             </div>
@@ -175,17 +157,15 @@ export default function HomePage() {
             <h2 id="contact-heading">A product question or a different idea?</h2>
             <p className={styles.contactDescription}>Ask about our products or tell us the custom template you need.</p>
           </div>
-          <a href={`mailto:${site.email}`}>{site.email} <ArrowRightIcon /></a>
+          <div className={styles.contactLinks}>
+            <Link href="/contact/">Send us a message <ArrowRightIcon /></Link>
+            <a href={`mailto:${site.email}`}>{site.email} <ArrowRightIcon /></a>
+          </div>
         </section>
       </main>
 
-      <footer className={styles.footer}>
-        <div className={`${styles.container} ${styles.footerInner}`}>
-          <Wordmark />
-          <p>© {new Date().getFullYear()} runsIT. Built with care in Canada.</p>
-          <a href="#company">Back to top ↑</a>
-        </div>
-      </footer>
+      <StickyCta href="/templates/" label="Build with a template" after="hero-cta" until="contact" />
+      <SiteFooter topHref="#company" />
     </div>
   );
 }

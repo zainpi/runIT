@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRightIcon } from "@/components/icons";
 import { JsonLd } from "@/components/JsonLd";
+import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
+import { StickyCta } from "@/components/site/StickyCta";
 import { company, founders, products, xProfileUrl, type ProductId } from "@/lib/company";
 import { site } from "@/lib/site";
+import { siteSocialImage } from "@/lib/social";
 import { organizationId } from "@/lib/structured-data";
 import { AI_MESSAGE_LIMIT } from "@/lib/templates/ai-contract";
 import { templateCatalog } from "@/lib/templates/catalog";
 import { templateDemos } from "@/lib/templates/demos";
 import { TRIAL_MESSAGE_LIMIT } from "@/lib/templates/trial-contract";
-import { alt as socialImageAlt, size as socialImageSize } from "../opengraph-image";
 import home from "../home.module.css";
 import styles from "./about.module.css";
 
@@ -17,15 +19,13 @@ const title = "About runsIT — Independent Canadian software company";
 const description =
   "runsIT is an independent Canadian software company building apps, games and business tools, plus AI templates for building your own. Meet the founders.";
 const pageUrl = `${site.url}/about/`;
-// A page-level openGraph object replaces the root one, so reuse the site share image explicitly.
-const socialImage = { url: "/opengraph-image/", ...socialImageSize, alt: socialImageAlt };
 
 export const metadata: Metadata = {
   title: { absolute: title },
   description,
   alternates: { canonical: "/about/" },
-  openGraph: { type: "website", url: "/about/", siteName: site.name, title, description, locale: "en_CA", images: [socialImage] },
-  twitter: { card: "summary_large_image", title, description, images: [socialImage] },
+  openGraph: { type: "website", url: "/about/", siteName: site.name, title, description, locale: "en_CA", images: [siteSocialImage] },
+  twitter: { card: "summary_large_image", title, description, images: [siteSocialImage] },
 };
 
 const listFormat = new Intl.ListFormat("en-GB", { style: "long", type: "conjunction" });
@@ -155,14 +155,6 @@ const aboutPageJsonLd = {
   mainEntity: { "@id": organizationId },
 };
 
-function Wordmark() {
-  return (
-    <Link href="/" className={home.wordmark} aria-label="runsIT home">
-      runs<span>IT</span><span className={home.wordmarkDot}>.</span>
-    </Link>
-  );
-}
-
 function SectionHeading({ id, label, title, intro }: { id: string; label: string; title: string; intro?: string }) {
   return (
     <div className={home.sectionHeading}>
@@ -178,19 +170,7 @@ function SectionHeading({ id, label, title, intro }: { id: string; label: string
 export default function AboutPage() {
   return (
     <div className={`${home.home} ${styles.about}`}>
-      <header className={home.header}>
-        <div className={`${home.container} ${home.headerInner}`}>
-          <Wordmark />
-          <nav className={home.nav} aria-label="Primary">
-            <Link href="/#products">Products</Link>
-            <Link href="/templates/">AI templates</Link>
-            <Link href="/about/" aria-current="page">About us</Link>
-          </nav>
-          <a className={home.headerContact} href={`mailto:${site.email}`}>
-            Say hello <ArrowRightIcon />
-          </a>
-        </div>
-      </header>
+      <SiteHeader current="about" />
 
       <main id="main" className={home.container}>
         <section className={`${home.hero} ${styles.hero}`} id="about" aria-labelledby="about-heading">
@@ -205,7 +185,7 @@ export default function AboutPage() {
                 We make things you can use today: a deals app for iPhone, three games and an IT workspace for companies. Our AI templates share the foundations behind those products, so you can describe your own idea and follow step-by-step guidance to build it with an AI tool. No coding experience is needed to get started.
               </p>
             </div>
-            <div className={home.heroActions}>
+            <div className={home.heroActions} id="hero-cta">
               <Link className={home.primaryLink} href="/templates/">Browse AI templates <ArrowRightIcon /></Link>
               <a className={home.secondaryLink} href="#products">Explore our products <ArrowRightIcon /></a>
             </div>
@@ -463,7 +443,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className={`${home.contact} ${styles.cta}`} aria-label="Next steps">
+        <section className={`${home.contact} ${styles.cta}`} id="next-steps" aria-label="Next steps">
           <div>
             <p className={home.sectionLabel}>Get started</p>
             <p className={styles.ctaTitle}>Explore what we’ve made, or build your own.</p>
@@ -477,13 +457,8 @@ export default function AboutPage() {
         </section>
       </main>
 
-      <footer className={home.footer}>
-        <div className={`${home.container} ${home.footerInner}`}>
-          <Wordmark />
-          <p>© {new Date().getFullYear()} runsIT. Built with care in {company.country}.</p>
-          <a href="#about">Back to top ↑</a>
-        </div>
-      </footer>
+      <StickyCta href="/templates/" label="Browse AI templates" after="hero-cta" until="next-steps" />
+      <SiteFooter topHref="#about" />
 
       <JsonLd data={aboutPageJsonLd} />
     </div>

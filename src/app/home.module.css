@@ -106,12 +106,21 @@
 .contact { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding-block: 50px 62px; border-top: 1px solid var(--home-line); }
 .contact > a { display: inline-flex; align-items: center; gap: 1.5rem; min-height: 44px; color: var(--home-accent); font-size: 1.125rem; }
 .contact > a:hover { text-decoration: underline; text-underline-offset: 5px; }
+.contactLinks { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.contactLinks a { display: inline-flex; align-items: center; gap: 1.5rem; min-height: 44px; color: var(--home-accent); font-size: 1.125rem; }
+.contactLinks a:first-child { font-weight: 500; }
+.contactLinks a:hover { text-decoration: underline; text-underline-offset: 5px; }
 .contactDescription { margin-top: 14px!important; color: var(--home-muted); font-size: .9rem; line-height: 1.8; }
 .footer { border-top: 1px solid var(--home-line); }
 .footerInner { display: flex; justify-content: space-between; align-items: center; gap: 2rem; min-height: 104px; }
 .footer .wordmark { font-size: 1.5rem; }
 .footer p, .footerInner > a { color: var(--home-muted); font-size: .8125rem; }
 .footerInner > a { display: flex; align-items: center; min-height: 44px; }
+.footerLinks { display: flex; flex-wrap: wrap; gap: 0 20px; }
+.footerLinks :is(a, button) { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--home-muted); font: inherit; font-size: .8125rem; cursor: pointer; }
+.footerLinks :is(a, button):hover { color: #fff; }
+.home .footerLinks button:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 6px; box-shadow: none; }
+.footerAddress { display: block; margin-top: 2px; }
 .portfolio { min-height: 100vh; }
 .portfolioHero h1 { max-width: 1000px; overflow-wrap: anywhere; }
 .portfolioWork { display: flex; flex-direction: column; }
@@ -155,9 +164,11 @@
   .founderCard { padding: 26px; }
   .founderAvatar { margin-bottom: 22px; }
   .contact { padding-block: 40px; }
-  .contact > a { font-size: 1rem; }
+  .contact > a, .contactLinks a { font-size: 1rem; }
+  .contactLinks { align-items: flex-start; }
   .footerInner { flex-wrap: wrap; padding-block: 24px; gap: 16px; }
-  .footerInner > p { order: 3; width: 100%; font-size: .75rem; }
+  .footerInner > p { order: 4; width: 100%; font-size: .75rem; }
+  .footerLinks { order: 3; width: 100%; gap: 0 18px; }
   .portfolioHero h1 { font-size: clamp(2.8rem, 11vw, 4.5rem); }
   .portfolioProject { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .portfolioProject .productAction { grid-column: 1; }

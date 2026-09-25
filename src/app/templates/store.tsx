@@ -174,6 +174,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
             <button type="button" disabled={busy} onClick={() => setTrialCheckout(true)}>Have a free-trial code?</button>
           </div>
           <p className={styles.saveNote}>Save your private link after checkout to return later.</p>
+          <p className={styles.saveNote}>By continuing, you agree to our <Link href="/terms/">terms</Link> and <Link href="/privacy/">privacy policy</Link>.</p>
         </>}
       </aside>
     </div>

@@ -14,6 +14,8 @@ const nextConfig = {
     ? { output: "standalone", experimental: { cpus: 1 } }
     : {}),
   poweredByHeader: false,
+  // Render metadata in <head> for every client, including crawlers that also run JavaScript.
+  htmlLimitedBots: /.*/,
   trailingSlash: true,
   async headers() {
     return [
@@ -61,6 +63,14 @@ const nextConfig = {
         destination: "/the-last-echo/index.html",
       },
       {
+        source: "/the-last-echo/redeem",
+        destination: "/the-last-echo/redeem/index.html",
+      },
+      {
+        source: "/the-last-echo/redeem/",
+        destination: "/the-last-echo/redeem/index.html",
+      },
+      {
         source: "/the-last-echo/guides",
         destination: "/the-last-echo/guides/index.html",
       },
@@ -74,12 +84,7 @@ const nextConfig = {
     return [
       { source: "/services", destination: "/#products", permanent: true },
       { source: "/case-studies", destination: "/#products", permanent: true },
-      {
-        source: "/contact",
-        destination: "/#contact",
-        permanent: true,
-      },
-      { source: "/book", destination: "/#contact", permanent: true },
+      { source: "/book", destination: "/contact/", permanent: true },
     ];
   },
 };

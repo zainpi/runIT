@@ -11,16 +11,8 @@ export const site = {
   description:
     "Explore runsIT apps and games, then build your own with AI templates based on their foundations. No coding experience needed to get started.",
   email: "info@runs-it.com",
-  phone: "+1 (555) 018-2240",
-  phoneHref: "+15550182240",
-  location: "Remote-first · Serving clients worldwide",
   // Set this to your real scheduling link (Calendly, Cal.com, etc.).
   calendarUrl: "https://cal.com/runit/strategy-call",
-  social: {
-    linkedin: "https://www.linkedin.com/company/runit-automation",
-    x: "https://x.com/runit_ai",
-    youtube: "https://www.youtube.com/@runit-automation",
-  },
 } as const;
 
 export type NavLink = { label: string; href: string; external?: boolean };
@@ -29,7 +21,7 @@ export const mainNav: NavLink[] = [
   { label: "Products", href: "/#products" },
   { label: "AI Templates", href: "/templates/" },
   { label: "About us", href: "/about/" },
-  { label: "Contact", href: "/#contact" },
+  { label: "Contact", href: "/contact/" },
 ];
 
 export const footerNav: { title: string; links: NavLink[] }[] = [
@@ -58,7 +50,9 @@ export const footerNav: { title: string; links: NavLink[] }[] = [
     title: "Company",
     links: [
       { label: "About us", href: "/about/" },
-      { label: "Contact", href: "/#contact" },
+      { label: "Contact", href: "/contact/" },
+      { label: "Privacy", href: "/privacy/" },
+      { label: "Terms", href: "/terms/" },
       { label: "My templates", href: "/templates/library/" },
     ],
   },

@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { ArrowRightIcon } from "@/components/icons";
 import { founders, products, xProfileUrl } from "@/lib/company";
 import { site } from "@/lib/site";
+import { siteSocialImage } from "@/lib/social";
+import { SiteFooter } from "@/components/site/SiteChrome";
+import { StickyCta } from "@/components/site/StickyCta";
 import styles from "../home.module.css";
 
 type PageProps = { params: Promise<{ founder: string }> };
@@ -24,8 +27,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description,
     alternates: { canonical: founder.portfolioUrl },
-    openGraph: { title, description, url: founder.portfolioUrl },
-    twitter: { title, description },
+    openGraph: { type: "profile", title, description, url: founder.portfolioUrl, siteName: site.name, locale: "en_CA", images: [siteSocialImage] },
+    twitter: { card: "summary_large_image", title, description, images: [siteSocialImage] },
   };
 }
 
@@ -58,7 +61,7 @@ export default async function FounderPortfolio({ params }: PageProps) {
               we’re building business tools, consumer apps, and games at our
               independent Canadian software company.
             </p>
-            <div className={styles.heroActions}>
+            <div className={styles.heroActions} id="hero-cta">
               <a className={styles.primaryLink} href="#work">Explore our work <ArrowRightIcon /></a>
               {founder.x && <a className={styles.secondaryLink} href={xProfileUrl(founder.x)} rel="me noopener">@{founder.x} on X <ArrowRightIcon /></a>}
             </div>
@@ -86,7 +89,7 @@ export default async function FounderPortfolio({ params }: PageProps) {
           </div>
         </section>
 
-        <section className={styles.contact} aria-labelledby="portfolio-contact-heading">
+        <section className={styles.contact} id="contact" aria-labelledby="portfolio-contact-heading">
           <div>
             <p className={styles.sectionLabel}>Contact runsIT</p>
             <h2 id="portfolio-contact-heading">Let’s connect.</h2>
@@ -97,12 +100,8 @@ export default async function FounderPortfolio({ params }: PageProps) {
         </section>
       </main>
 
-      <footer className={styles.footer}>
-        <div className={`${styles.container} ${styles.footerInner}`}>
-          <p>© {new Date().getFullYear()} runsIT · {founder.name}</p>
-          <Link href="/">Back to runsIT <ArrowRightIcon /></Link>
-        </div>
-      </footer>
+      <StickyCta href="/templates/" label="Build with a template" after="hero-cta" until="contact" />
+      <SiteFooter />
     </div>
   );
 }

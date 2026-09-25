@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import { SiteFrame } from "@/components/layout/SiteFrame";
+import { ConsentManager } from "@/components/consent/ConsentManager";
 import { site } from "@/lib/site";
 import { organizationJsonLd } from "@/lib/structured-data";
 
@@ -83,6 +84,7 @@ export default function RootLayout({
           Skip to content
         </a>
         <SiteFrame>{children}</SiteFrame>
+        <ConsentManager />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

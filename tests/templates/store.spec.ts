@@ -329,7 +329,7 @@ test("keyboard controls have usable labels", async ({ page }) => {
   await page.getByLabel("Create app icon", { exact: true }).focus();
   await page.keyboard.press("Space");
   await expect(page.getByLabel("Create app icon", { exact: true })).toBeChecked();
-  await expect(page.getByRole("navigation")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
 });
 
 test("desktop and mobile layouts have no horizontal overflow", async ({ page }) => {

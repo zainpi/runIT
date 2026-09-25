@@ -83,6 +83,9 @@ export const company = {
   type: "Independent software company",
   country: "Canada",
   countryCode: "CA",
+  // Public mailing address for the footer, contact page and legal pages. Left empty until
+  // the company confirms a real address; nothing renders while it is blank.
+  mailingAddress: "" as string,
   // Date the About page's key facts were last checked against current sources.
   factsReviewed: "2026-09-24",
 } as const;

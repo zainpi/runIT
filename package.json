@@ -16,6 +16,7 @@
     "test:neutronium": "tsx --test tests/neutronium/*.test.ts",
     "test:neutronium:browser": "playwright test --config tests/neutronium/playwright.config.ts",
     "test:local-lore": "node --test tests/local-lore/*.test.mjs",
+    "test:contact": "tsx --test tests/contact/*.test.ts",
     "higgsfield": "node scripts/higgsfield.mjs",
     "test:higgsfield": "node --test tests/higgsfield.test.mjs",
     "test:local-lore:layout": "playwright test --config tests/local-lore/playwright.config.ts",

@@ -1,0 +1,17 @@
+.banner { position: fixed; right: 24px; bottom: 24px; z-index: 60; width: min(420px, calc(100% - 32px)); padding: 22px 22px 20px; border: 1px solid #333c50; border-radius: 12px; background: #10151e; color: #f4f6fc; box-shadow: 0 24px 60px rgba(0, 0, 0, .5); font-family: var(--font-sans), system-ui, sans-serif; }
+.banner h2 { margin: 0; font-family: var(--font-display), sans-serif; font-size: 1.05rem; font-weight: 500; letter-spacing: -.02em; color: #f4f6fc; }
+.banner h2:focus { outline: none; }
+.banner h2:focus-visible { outline: 2px solid #a9b7ff; outline-offset: 4px; }
+.banner p { margin: 10px 0 0; color: #b4bccb; font-size: .875rem; line-height: 1.65; }
+.banner a { color: #a9b7ff; text-decoration: underline; text-underline-offset: 3px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.actions button { flex: 1 1 140px; min-height: 44px; padding: 0 16px; border-radius: 6px; font: inherit; font-size: .875rem; font-weight: 600; cursor: pointer; }
+.accept { border: 1px solid #a9b7ff; background: #a9b7ff; color: #101727; }
+.accept:hover { background: #c4ceff; }
+.decline { border: 1px solid #56617a; background: transparent; color: #f4f6fc; }
+.decline:hover { border-color: #a9b7ff; }
+.actions button:focus-visible, .banner a:focus-visible { outline: 2px solid #a9b7ff; outline-offset: 3px; box-shadow: none; }
+
+@media (max-width: 700px) {
+  .banner { right: 16px; bottom: 16px; left: 16px; width: auto; }
+}

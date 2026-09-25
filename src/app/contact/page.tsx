@@ -1,126 +1,63 @@
 import type { Metadata } from "next";
-import { PageHero } from "@/components/ui/PageHero";
-import { Reveal } from "@/components/Reveal";
-import { LeadForm } from "@/components/forms/LeadForm";
-import { ButtonLink } from "@/components/ui/Button";
+import Link from "next/link";
+import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
+import { company } from "@/lib/company";
 import { site } from "@/lib/site";
-import {
-  MailIcon,
-  PhoneIcon,
-  MapPinIcon,
-  CalendarIcon,
-  ClockIcon,
-} from "@/components/icons";
+import { siteSocialImage } from "@/lib/social";
+import home from "../home.module.css";
+import styles from "../content-page.module.css";
+import { ContactForm } from "./ContactForm";
+
+const title = "Contact runsIT";
+const description = "Ask about PulseDeals, The Last Echo, Local Lore, Build Your Room or Neutronium, get help with an AI template order, or suggest a custom template.";
 
 export const metadata: Metadata = {
-  title: "Contact — Book Your Free Automation Consultation",
-  description:
-    "Get in touch with our AI automation team. Tell us about your challenge and book a free consultation to discover where automation can create the biggest impact.",
-  alternates: { canonical: "/contact" },
+  title: { absolute: `${title} — Questions, support and template ideas` },
+  description,
+  alternates: { canonical: "/contact/" },
+  openGraph: { type: "website", url: "/contact/", siteName: site.name, title, description, locale: "en_CA", images: [siteSocialImage] },
+  twitter: { card: "summary_large_image", title, description, images: [siteSocialImage] },
 };
 
 export default function ContactPage() {
-  const details = [
-    {
-      icon: MailIcon,
-      label: "Email us",
-      value: site.email,
-      href: `mailto:${site.email}`,
-    },
-    {
-      icon: PhoneIcon,
-      label: "Call us",
-      value: site.phone,
-      href: `tel:${site.phoneHref}`,
-    },
-    {
-      icon: MapPinIcon,
-      label: "Location",
-      value: site.location,
-    },
-    {
-      icon: ClockIcon,
-      label: "Response time",
-      value: "Within one business day",
-    },
-  ];
-
   return (
-    <>
-      <PageHero
-        eyebrow="Contact"
-        title={
-          <>
-            Let&apos;s talk about{" "}
-            <span className="text-gradient">automating your business</span>
-          </>
-        }
-        description="Tell us about your biggest time drain and we'll show you where AI automation can help. Fill out the form or reach us directly — we read every message."
-      />
-
-      <section className="pb-8">
-        <div className="container-page grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:items-start">
-          {/* Contact details */}
-          <Reveal>
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-4">
-                {details.map((d) => {
-                  const content = (
-                    <div className="surface surface-hover flex items-center gap-4 p-5">
-                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-700/10 text-brand-200 ring-1 ring-inset ring-brand-400/25">
-                        <d.icon className="h-5 w-5" />
-                      </span>
-                      <div className="flex flex-col">
-                        <span className="text-xs uppercase tracking-wider text-slate-500">
-                          {d.label}
-                        </span>
-                        <span className="text-sm font-medium text-white">
-                          {d.value}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                  return d.href ? (
-                    <a key={d.label} href={d.href} className="block">
-                      {content}
-                    </a>
-                  ) : (
-                    <div key={d.label}>{content}</div>
-                  );
-                })}
-              </div>
-
-              {/* Booking promo */}
-              <div className="surface relative overflow-hidden p-6">
-                <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand-500/20 blur-2xl" />
-                <CalendarIcon className="h-6 w-6 text-accent-cyan" />
-                <h3 className="mt-3 text-lg font-semibold text-white">
-                  Prefer to book directly?
-                </h3>
-                <p className="mt-1.5 text-sm text-slate-400">
-                  Skip the form and grab a time on our calendar for a free
-                  30-minute strategy call.
-                </p>
-                <ButtonLink
-                  href="/book"
-                  variant="secondary"
-                  className="mt-4"
-                  withArrow
-                >
-                  Book a Free Call
-                </ButtonLink>
-              </div>
+    <div className={`${home.home} ${styles.page}`}>
+      <SiteHeader current="contact" />
+      <main id="main" className={home.container}>
+        <section className={styles.hero} aria-labelledby="contact-heading">
+          <p className={home.eyebrow}><span /> Contact</p>
+          <h1 id="contact-heading">Get in <span>touch.</span></h1>
+          <p className={styles.lead}>
+            A question about one of our products, help with a template order, or an idea for a custom template? Send us a note and we’ll reply by email.
+          </p>
+        </section>
+        <div className={styles.contactGrid}>
+          <section aria-label="Contact form">
+            <ContactForm />
+          </section>
+          <aside className={styles.aside} aria-label="Other ways to reach us">
+            <div className={styles.asideCard}>
+              <h2>Prefer email?</h2>
+              <p>Write to <a href={`mailto:${site.email}`}>{site.email}</a>. It reaches the same team.</p>
             </div>
-          </Reveal>
-
-          {/* Form */}
-          <Reveal delay={0.1}>
-            <LeadForm variant="contact" />
-          </Reveal>
+            <div className={styles.asideCard}>
+              <h2>Product help</h2>
+              <ul>
+                <li><a href="/pulsedeals/support.html">PulseDeals support</a></li>
+                <li><a href="/the-last-echo/support.html">The Last Echo support</a></li>
+                <li><Link href="/templates/library/">Open your purchased templates</Link></li>
+              </ul>
+            </div>
+            {company.mailingAddress && (
+              <div className={styles.asideCard}>
+                <h2>Mailing address</h2>
+                <p>{company.mailingAddress}</p>
+              </div>
+            )}
+          </aside>
         </div>
-      </section>
-
-      <div className="py-16" />
-    </>
+      </main>
+      <SiteFooter />
+    </div>
   );
 }

@@ -35,3 +35,13 @@ PULSEDEALS_REFERRAL_ENVIRONMENT=Production
 # PULSEDEALS_APPLE_OFFER_KEY_ID=
 # PULSEDEALS_APPLE_OFFER_PRIVATE_KEY= (server-only App Store Connect In-App Purchase .p8)
 # PULSEDEALS_APPLE_ISSUER_ID=
+
+# Contact form (runsit.ca/contact/). Messages are sent through Resend's email API; until both
+# values are set, the form tells visitors to email info@runs-it.com instead. The sender must use
+# a domain verified in Resend. CONTACT_TO_EMAIL defaults to info@runs-it.com.
+CONTACT_RESEND_API_KEY=
+CONTACT_FROM_EMAIL=
+# CONTACT_TO_EMAIL=
+
+# Google Analytics 4 is a build-time variable (NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXX) set in the
+# build environment, not here. It loads only after a visitor accepts analytics cookies.

@@ -68,6 +68,7 @@
 .codeOptions>button:hover,.codeOptions summary:hover { color:#e4eccf; }
 .codeOptions>details>div { margin:0 0 12px; padding:5px 0 8px; border:0; }
 .store .saveNote { margin-top:12px; font-size:.69rem; line-height:1.7; color:#9eadbc; }
+.store .saveNote a { color:#dfe7d3; text-decoration:underline; text-underline-offset:3px; }
 .store .trialIntro { margin:12px 0 22px; color:#b4c2cf; font-size:.8rem; line-height:1.7; }
 .help { margin:38px 0 0; padding-bottom:16px; }
 .help>details { border-top:1px solid #2a3241; }
