@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRightIcon } from "@/components/icons";
 import { JsonLd } from "@/components/JsonLd";
-import { company, founders, products, type ProductId } from "@/lib/company";
+import { company, founders, products, xProfileUrl, type ProductId } from "@/lib/company";
 import { site } from "@/lib/site";
 import { organizationId } from "@/lib/structured-data";
 import { AI_MESSAGE_LIMIT } from "@/lib/templates/ai-contract";
@@ -333,6 +333,7 @@ export default function AboutPage() {
                 </div>
                 <h3>{founder.name}</h3>
                 <p>{founder.role}, runsIT</p>
+                {founder.x && <a className={styles.socialLink} href={xProfileUrl(founder.x)} rel="noopener">@{founder.x} on X</a>}
                 <Link className={home.portfolioLink} href={founder.portfolioUrl}>
                   View {founder.name}’s portfolio <ArrowRightIcon />
                 </Link>

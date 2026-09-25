@@ -1,4 +1,4 @@
-import { company, founders, type Founder } from "./company";
+import { company, founders, xProfileUrl, type Founder } from "./company";
 import { site } from "./site";
 
 // Stable IDs let page-level JSON-LD refer to these entities instead of repeating them.
@@ -20,5 +20,6 @@ export const organizationJsonLd = {
     name: founder.name,
     jobTitle: founder.role,
     url: `${site.url}${founder.portfolioUrl}`,
+    ...(founder.x ? { sameAs: [xProfileUrl(founder.x)] } : {}),
   })),
 };

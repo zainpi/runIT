@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRightIcon } from "@/components/icons";
-import { founders, products } from "@/lib/company";
+import { founders, products, xProfileUrl } from "@/lib/company";
 import { site } from "@/lib/site";
 import styles from "../home.module.css";
 
@@ -58,7 +58,10 @@ export default async function FounderPortfolio({ params }: PageProps) {
               we’re building business tools, consumer apps, and games at our
               independent Canadian software company.
             </p>
-            <a className={styles.primaryLink} href="#work">Explore our work <ArrowRightIcon /></a>
+            <div className={styles.heroActions}>
+              <a className={styles.primaryLink} href="#work">Explore our work <ArrowRightIcon /></a>
+              {founder.x && <a className={styles.secondaryLink} href={xProfileUrl(founder.x)} rel="me noopener">@{founder.x} on X <ArrowRightIcon /></a>}
+            </div>
           </div>
         </section>
 

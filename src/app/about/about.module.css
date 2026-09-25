@@ -46,6 +46,9 @@
 .pairList a { color: #dce2ff; }
 .pairList a:hover { color: var(--home-accent); text-decoration: underline; text-underline-offset: 4px; }
 
+.socialLink { display: inline-flex; align-items: center; min-height: 44px; margin-top: 6px; color: var(--home-muted); font-size: .875rem; }
+.socialLink:hover { color: #f4f6fc; text-decoration: underline; text-underline-offset: 4px; }
+
 .audiences { display: grid; gap: 0; max-width: 900px; }
 .audiences li { position: relative; padding: 16px 0 16px 28px; border-bottom: 1px solid var(--home-line); color: var(--home-muted); line-height: 1.75; }
 .audiences li::before { content: ""; position: absolute; top: 28px; left: 4px; width: 7px; height: 7px; border-radius: 50%; background: #6ee7cb; }
