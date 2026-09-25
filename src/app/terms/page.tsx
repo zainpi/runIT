@@ -133,6 +133,7 @@ const sections: LegalSection[] = [
 export default function TermsPage() {
   return (
     <LegalPage
+      file="terms.txt"
       eyebrow="Terms"
       title="Terms and conditions"
       updated={updated}

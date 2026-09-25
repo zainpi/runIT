@@ -5,20 +5,22 @@
   gap: 16px 24px;
   margin-bottom: 40px;
   padding: 20px 24px;
-  border: 1px solid #485747;
+  border:2px solid #1b1a17;
   border-radius: 10px;
-  background: #141d19;
+  background: #fffdf7;
   scroll-margin-top: 24px;
 }
 .intro { min-width: 0; }
 .heading { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .offer .heading h2 { margin: 0; font-size: 1.125rem; line-height: 1.4; letter-spacing: -.02em; }
-.status { color: #c8e5ad; font-size: .75rem; line-height: 1.5; }
-.offer .description { margin: 6px 0 0; color: #bec9c2; font-size: .85rem; line-height: 1.6; }
-.action { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 44px; padding: 10px 14px; border: 1px solid #526746; border-radius: 6px; color: #c8e5ad; font-size: .8rem; font-weight: 500; white-space: nowrap; }
-.action:hover { border-color: #c8e5ad; background: #1d2b20; }
-.action:focus-visible { outline: 2px solid #c8e5ad; outline-offset: 4px; }
+.status { color: #4d7726; font-size: .75rem; line-height: 1.5; }
+.offer .description { margin: 6px 0 0; color: #5e594f; font-size: .85rem; line-height: 1.6; }
+.action { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 44px; padding: 10px 14px; border:2px solid #1b1a17; border-radius: 6px; color: #4d7726; font-size: .8rem; font-weight: 500; white-space: nowrap; }
+.action:hover { border-color: #1b1a17; background: #efe6d3; }
+.action:focus-visible { outline: 2px solid #1b1a17; outline-offset: 4px; }
 @media (max-width: 560px) {
   .offer { grid-template-columns: minmax(0, 1fr); margin-bottom: 32px; padding: 20px; }
   .action { justify-self: start; }
 }
+
+.offer { border:2.5px solid #1b1a17; border-radius:14px; box-shadow:6px 6px 0 #1b1a17; background:linear-gradient(#fffdf7,#fffdf7) 16px 10px/10px 10px no-repeat,linear-gradient(#1b1a17,#1b1a17) 14px 8px/14px 14px no-repeat,linear-gradient(#fffdf7,#fffdf7) 36px 10px/10px 10px no-repeat,linear-gradient(#1b1a17,#1b1a17) 34px 8px/14px 14px no-repeat,linear-gradient(#fffdf7,#fffdf7) 56px 10px/10px 10px no-repeat,linear-gradient(#1b1a17,#1b1a17) 54px 8px/14px 14px no-repeat,linear-gradient(#7fd8c3 0 31px,#1b1a17 31px 33px,#fffdf7 33px) no-repeat; background-color:#fffdf7; padding-top:52px; }

@@ -1,11 +1,11 @@
 .loading { padding-block: 48px 64px; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .intro { display: grid; gap: 16px; margin-bottom: 36px; }
-.line, .title, .card { display: block; border-radius: 8px; background: linear-gradient(90deg, #141b26 0%, #1d2634 50%, #141b26 100%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+.line, .title, .card { display: block; border-radius: 8px; background: linear-gradient(90deg, #f6f0e2 0%, #fffdf7 50%, #f6f0e2 100%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
 .line { height: 14px; }
 .title { width: min(560px, 95%); height: 56px; }
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.card { height: 145px; border: 1px solid #262f3c; }
+.card { height: 145px; border: 2.5px solid #1b1a17; border-radius: 12px; }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } }

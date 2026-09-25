@@ -11,6 +11,7 @@ export const organizationJsonLd = {
   "@id": organizationId,
   name: site.legalName,
   url: site.url,
+  logo: `${site.url}/icon.svg`,
   description: site.description,
   email: site.email,
   address: { "@type": "PostalAddress", addressCountry: company.countryCode },

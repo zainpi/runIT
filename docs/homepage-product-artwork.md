@@ -16,7 +16,7 @@ duration and text description in sync. The source composition stays under
 
 ## Product images
 
-Replaced on 25 September 2026 with compositions of each product's real interface, so the cards show the apps rather than abstract illustrations. Each is a 1600 × 800 WebP (quality 80) drawn on its card colour, so the edges blend into the artwork frame. The homepage reads the path, size and alt text from `products` in `src/lib/company.ts`.
+Replaced on 25 September 2026 with compositions of each product's real interface, so the cards show the apps rather than abstract illustrations. Each is a 1600 × 800 WebP (quality 80) drawn on its card colour, so the edges blend into the artwork frame. The homepage cards, the desktop app window and the About page read the path, size and alt text from `products` in `src/lib/company.ts`.
 
 | Product | Asset | Source material |
 | --- | --- | --- |
@@ -25,5 +25,9 @@ Replaced on 25 September 2026 with compositions of each product's real interface
 | Local Lore | `public/products/local-lore-preview.webp` | The live Local Lore page captured at 1440 × 900 and 390 × 844 in a result state, with API responses mocked the same way as `tests/local-lore/layout.spec.ts`. Real Street View and Google map images are not used: the photo and map are illustrated stand-ins, and their Google attribution captions were hidden for the capture. |
 | Neutronium | `public/products/neutronium-preview.webp` | The Neutronium development workspace (`npm run dev`, Acme Inc. sample data) captured at 1440 × 900 with the development badge, sandbox bar and workspace note hidden. The floating panel is an enlarged crop of the same screen’s access request. |
 | Build Your Room | `public/products/build-your-room-artwork.webp` | Unchanged promotional illustration, originally `Build_Your_Room/assets/listing/v1/upload/game_thumbnail.jpg`, re-encoded from the 1920 × 1080 JPEG (765 KB) to a 1280 × 720 WebP (135 KB). It is an illustration, not a gameplay screenshot. |
+
+### runsOS desktop icons
+
+The homepage desktop and dock use square icons at 62 px and 52 px, listed in `src/components/runsos/apps.ts`: the PulseDeals App Store icon (`public/products/pulsedeals-icon.webp`, from the PulseDeals repository's `AppIcon-1024.png`), The Last Echo's existing `app-icon.png`, Neutronium's N mark from `src/app/neutronium/icons.tsx` on its light app colour, Local Lore's L mark in its lime and forest green, and a square crop of the Build Your Room key art. Each generated icon is a 256 × 256 WebP.
 
 To refresh a card, capture the product at 2× device scale, place the screenshots in device or browser frames in an HTML scene sized 1600 × 800 with the card colour as the background, screenshot it with Chromium, and encode it with `sharp(...).webp({ quality: 80 })`. Use a new filename so cached copies are not reused, and update the alt text in `company.ts` to describe what the image shows.

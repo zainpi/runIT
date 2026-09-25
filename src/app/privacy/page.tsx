@@ -131,6 +131,7 @@ const sections: LegalSection[] = [
 export default function PrivacyPage() {
   return (
     <LegalPage
+      file="privacy-policy.txt"
       eyebrow="Privacy"
       title="Privacy policy"
       updated={updated}

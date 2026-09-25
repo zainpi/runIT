@@ -4,8 +4,9 @@ A company homepage for runsIT, with links to Neutronium, PulseDeals,
 The Last Echo, Local Lore, and Build Your Room on Roblox, plus profiles for the three founders and their portfolios.
 Built with **Next.js (App Router) + TypeScript + Tailwind CSS + Framer Motion**.
 
-Dark, high-end SaaS aesthetic, mobile-first, SEO-optimized, accessible, and
-fully static-rendered for fast loading.
+The site is styled as **runsOS**: a playful desktop where products open as app
+windows, templates live in a folder, and the dock and menu bar handle navigation.
+It is mobile-first, SEO-optimized, accessible, and static-rendered for fast loading.
 
 ## Getting started
 
@@ -61,7 +62,10 @@ Homepage content is configured in:
 - **`src/lib/company.ts`** — product descriptions and destinations, and founder
   names, roles, and portfolio routes. The shared portfolio page is at
   **`src/app/[founder]/page.tsx`**; only the configured founder slugs are served.
-- **`src/app/home.module.css`** — the homepage layout and responsive styles.
+- **`src/components/runsos/`** — the runsOS design system: menu bar, taskbar,
+  windows, the interactive homepage desktop (`Desktop.tsx`) and per-product
+  icons, artwork and colours (`apps.ts`).
+- **`src/app/home.module.css`** — homepage sections, founder portfolios and the 404 page.
 
 Legacy agency pages retain their content in **`src/lib/content.ts`**.
 

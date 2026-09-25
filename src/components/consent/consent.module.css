@@ -1,17 +1,20 @@
-.banner { position: fixed; right: 24px; bottom: 24px; z-index: 60; width: min(420px, calc(100% - 32px)); padding: 22px 22px 20px; border: 1px solid #333c50; border-radius: 12px; background: #10151e; color: #f4f6fc; box-shadow: 0 24px 60px rgba(0, 0, 0, .5); font-family: var(--font-sans), system-ui, sans-serif; }
-.banner h2 { margin: 0; font-family: var(--font-display), sans-serif; font-size: 1.05rem; font-weight: 500; letter-spacing: -.02em; color: #f4f6fc; }
+.banner { position: fixed; right: 24px; bottom: 24px; z-index: 60; width: min(420px, calc(100% - 32px)); border: 2.5px solid #1b1a17; border-radius: 14px; background: #fffdf7; color: #1b1a17; box-shadow: 6px 6px 0 #1b1a17; font-family: var(--font-os-sans), system-ui, sans-serif; overflow: hidden; }
+.banner h2 { margin: 0; padding: 10px 16px; border-bottom: 2.5px solid #1b1a17; background: #ffd23f; font-family: var(--font-os-pixel), ui-monospace, monospace; font-size: 1.0625rem; font-weight: 500; color: #1b1a17; }
 .banner h2:focus { outline: none; }
-.banner h2:focus-visible { outline: 2px solid #a9b7ff; outline-offset: 4px; }
-.banner p { margin: 10px 0 0; color: #b4bccb; font-size: .875rem; line-height: 1.65; }
-.banner a { color: #a9b7ff; text-decoration: underline; text-underline-offset: 3px; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-.actions button { flex: 1 1 140px; min-height: 44px; padding: 0 16px; border-radius: 6px; font: inherit; font-size: .875rem; font-weight: 600; cursor: pointer; }
-.accept { border: 1px solid #a9b7ff; background: #a9b7ff; color: #101727; }
-.accept:hover { background: #c4ceff; }
-.decline { border: 1px solid #56617a; background: transparent; color: #f4f6fc; }
-.decline:hover { border-color: #a9b7ff; }
-.actions button:focus-visible, .banner a:focus-visible { outline: 2px solid #a9b7ff; outline-offset: 3px; box-shadow: none; }
+.banner h2:focus-visible { outline: 3px solid #1b1a17; outline-offset: -6px; }
+.banner p { margin: 0; padding: 14px 18px 0; color: #3d3a33; font-size: .9375rem; line-height: 1.55; }
+.banner a { color: #b8361a; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px 18px 18px; }
+.actions button { flex: 1 1 140px; min-height: 46px; padding: 0 16px; border: 2.5px solid #1b1a17; border-radius: 10px; font: inherit; font-size: .9375rem; font-weight: 800; color: #1b1a17; cursor: pointer; box-shadow: 3px 3px 0 #1b1a17; }
+.accept { background: #ff5a36; }
+.decline { background: #fffdf7; }
+.actions button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #1b1a17; }
+.actions button:focus-visible, .banner a:focus-visible { outline: 3px solid #1b1a17; outline-offset: 3px; box-shadow: 0 0 0 6px #ffd23f; }
 
-@media (max-width: 700px) {
-  .banner { right: 16px; bottom: 16px; left: 16px; width: auto; }
+@media (max-width: 760px) {
+  .banner { right: 14px; bottom: 14px; left: 14px; width: auto; box-shadow: 4px 4px 0 #1b1a17; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions button:active { transform: none; }
 }

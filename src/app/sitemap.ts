@@ -4,13 +4,13 @@ import { company, founders } from "@/lib/company";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = [
-    { path: "/templates/", priority: 0.9, frequency: "monthly" as const, modified: "2026-09-16" },
-    { path: "/", priority: 1, frequency: "monthly" as const, modified: "2026-09-16" },
+    { path: "/templates/", priority: 0.9, frequency: "monthly" as const, modified: "2026-09-24" },
+    { path: "/", priority: 1, frequency: "monthly" as const, modified: "2026-09-24" },
     { path: "/about/", priority: 0.8, frequency: "monthly" as const, modified: company.factsReviewed },
     { path: "/contact/", priority: 0.6, frequency: "yearly" as const, modified: "2026-09-25" },
     { path: "/privacy/", priority: 0.3, frequency: "yearly" as const, modified: "2026-09-25" },
     { path: "/terms/", priority: 0.3, frequency: "yearly" as const, modified: "2026-09-25" },
-    ...founders.map((founder) => ({ path: founder.portfolioUrl, priority: 0.7, frequency: "monthly" as const, modified: "2026-09-10" })),
+    ...founders.map((founder) => ({ path: founder.portfolioUrl, priority: 0.7, frequency: "monthly" as const, modified: "2026-09-24" })),
     { path: "/pulsedeals/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
     { path: "/local-lore/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
     { path: "/the-last-echo/", priority: 1, frequency: "weekly" as const, modified: "2026-08-06" },

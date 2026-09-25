@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRightIcon } from "@/components/icons";
+import { ArrowIcon } from "@/components/runsos/icons";
+import os from "@/components/runsos/os.module.css";
 import { contactLimits, contactTopics, validateContact, type ContactField } from "@/lib/contact";
 import { site } from "@/lib/site";
 import styles from "../content-page.module.css";
@@ -97,8 +98,8 @@ export function ContactForm() {
         <input id="contact-website" name="website" tabIndex={-1} autoComplete="off" />
       </div>
       <div>
-        <button className={styles.submit} type="submit" disabled={sending}>
-          {sending ? <><span className={styles.spinner} aria-hidden="true" /> Sending…</> : <>Send message <ArrowRightIcon /></>}
+        <button className={`${os.button} ${styles.submit}`} type="submit" disabled={sending}>
+          {sending ? <><span className={styles.spinner} aria-hidden="true" /> Sending…</> : <>Send message <ArrowIcon /></>}
         </button>
       </div>
       <p className={styles.privacyNote}>

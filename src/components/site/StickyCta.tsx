@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRightIcon } from "@/components/icons";
+import { ArrowIcon } from "@/components/runsos/icons";
 import styles from "./sticky-cta.module.css";
 
 /**
@@ -32,7 +32,7 @@ export function StickyCta({ href, label, after, until }: { href: string; label: 
 
   return (
     <div className={styles.sticky} hidden={!visible}>
-      <Link href={href} className={styles.link}>{label} <ArrowRightIcon /></Link>
+      <Link href={href} className={styles.link}>{label} <ArrowIcon /></Link>
     </div>
   );
 }
