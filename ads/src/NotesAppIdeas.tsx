@@ -6,9 +6,9 @@ import { NOTES, NotesCard, IDEAS } from "./components/NotesCard";
 import { Phone } from "./components/Phone";
 import { Headline, Hi, StepLabel, WordCaptions } from "./components/Text";
 import { loadFonts } from "./fonts";
-import { HOOK_TRIM, HOOK_WORDS, MONTAGE_CUTS, PAYOFF_RATE, PAYOFF_TRIM, PLANNING, PRODUCT, STEPS } from "./timing";
+import { HOOK_TRIM, HOOK_WORDS, MONTAGE_CUTS, PAYOFF_RATE, PAYOFF_TRIM, PLANNING, PRODUCT, STEPS, VOICEOVER } from "./timing";
 
-export type NotesAppIdeasProps = { music: boolean };
+export type NotesAppIdeasProps = { music: boolean; voiceover?: boolean };
 
 loadFonts();
 
@@ -35,7 +35,7 @@ const Hook = () => {
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{ transform: `scale(${scale})` }}>
-        <Clip src={clip("hook")} label="hook clip" startFrom={Math.round(HOOK_TRIM * 30)} volume={1} />
+        <Clip src={clip("hook")} label="hook clip" startFrom={Math.round(HOOK_TRIM * 30)} volume={0.35} />
       </AbsoluteFill>
       <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(8,11,18,.62) 0%, rgba(8,11,18,0) 34%, rgba(8,11,18,0) 62%, rgba(8,11,18,.45) 80%)" }} />
       <Headline top={safe.top + 40} size={96}>my notes app is<br />an <Hi>app-idea graveyard</Hi></Headline>
@@ -72,7 +72,7 @@ const MontageShot = ({ start, index }: { start: number; index: number }) => {
   const scale = usePunch(0.07);
   return (
     <AbsoluteFill style={{ transform: `scale(${scale})` }}>
-      <Clip src={clip("montage")} label={`montage shot ${index + 1}`} startFrom={Math.round(start * 30)} volume={0.55} />
+      <Clip src={clip("montage")} label={`montage shot ${index + 1}`} startFrom={Math.round(start * 30)} volume={0.3} />
     </AbsoluteFill>
   );
 };
@@ -145,7 +145,7 @@ const Payoff = () => {
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{ transform: `scale(${scale})` }}>
-        <Clip src={clip("payoff")} label="payoff clip" startFrom={Math.round(PAYOFF_TRIM * 30)} playbackRate={PAYOFF_RATE} volume={0.6} />
+        <Clip src={clip("payoff")} label="payoff clip" startFrom={Math.round(PAYOFF_TRIM * 30)} playbackRate={PAYOFF_RATE} volume={0.25} />
       </AbsoluteFill>
       <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(8,11,18,.6) 0%, rgba(8,11,18,0) 36%)" }} />
       <Sequence durationInFrames={sec(1.0)} layout="none">
@@ -158,13 +158,13 @@ const Payoff = () => {
   );
 };
 
-export const NotesAppIdeas = ({ music }: NotesAppIdeasProps) => {
+export const NotesAppIdeas = ({ music, voiceover = true }: NotesAppIdeasProps) => {
   const frame = useCurrentFrame();
-  // Keep the bed low under dialogue, lift it for the product beat and end card.
+  // The bed sits under the voiceover throughout: quiet in the hook, a little lift for the product beat.
   const bed = interpolate(
     frame,
     [0, scenes.notes.from - 6, scenes.notes.from, scenes.product.from - 4, scenes.product.from, scenes.payoff.from - 4, scenes.payoff.from, scenes.end.from - 4, scenes.end.from, TOTAL - 20, TOTAL],
-    [0.08, 0.08, 0.3, 0.3, 0.6, 0.6, 0.3, 0.3, 0.55, 0.55, 0],
+    [0.08, 0.08, 0.18, 0.18, 0.3, 0.3, 0.18, 0.18, 0.3, 0.3, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
   );
   return (
@@ -182,6 +182,13 @@ export const NotesAppIdeas = ({ music }: NotesAppIdeasProps) => {
       <Sfx at={scenes.notes.from + NOTES.stamp} src={sfx.stamp} volume={0.9} />
       <Sfx at={scenes.twist.from} src={sfx.whoosh} volume={0.45} />
       <Sfx at={scenes.end.from} src={sfx.stamp} volume={0.5} />
+      {voiceover
+        ? VOICEOVER.map((line) => (
+            <Sequence key={line.id} from={Math.round(line.at * 30)} durationInFrames={Math.ceil(line.duration * 30) + 3} name={`vo ${line.id}`} layout="none">
+              <Audio src={staticFile(`voiceover/${line.id}.wav`)} volume={1} />
+            </Sequence>
+          ))
+        : null}
       {music && hasStaticFile(MUSIC) ? <Audio src={staticFile(MUSIC)} volume={bed} /> : null}
     </AbsoluteFill>
   );

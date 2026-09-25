@@ -21,9 +21,11 @@ ads/
   scripts/clips.mjs              CLI for the job runner
   scripts/record-product.mts     product screen recorder (Playwright)
   scripts/make-music.py          original synthesized music bed (numpy)
+  scripts/make-voiceover.py      voiceover lines via Kokoro-82M TTS (offline)
   src/                           Remotion project (NotesAppIdeas composition)
   public/campaigns/<id>/         downloaded keyframes/clips (paid; commit them)
   public/footage/                product recordings + marks.json (tap timestamps)
+  public/voiceover/              one WAV per line + vo.json (start, duration, word timings)
   public/fonts, public/sfx       Sora/Inter, Kenney CC0 sound effects
   out/                           renders (git-ignored)
 ```
@@ -86,7 +88,27 @@ then the frames are retimed to real speed. `AD_SLOWMO` changes the factor.
 In-page animation code must use `performance.now()`, not rAF timestamps,
 because the slowed animation clock also drives rAF.
 
-## 3. Compose and render
+## 3. Voiceover
+
+```sh
+pip install kokoro-onnx soundfile numpy
+npm run voiceover                     # or: python3 scripts/make-voiceover.py --voice af_heart --speed 1.15
+```
+
+This uses [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (Apache-2.0,
+so commercial use is fine), running offline on the CPU. The first run
+downloads about 350 MB of model files to `~/.cache/runsit-ads/kokoro`. The
+lines, their start times in the edit and the spoken spelling ("Runs it") are
+in `LINES` at the top of the script. It prints each line's end time and warns
+when two lines overlap. Captions in the hook are timed from `vo.json`.
+Higgsfield has no text-to-speech model, and separate Seedance takes would
+each give her a different voice. So the clips carry no dialogue, and this
+one voice narrates the whole ad.
+
+To audition voices, rerun with `--voice` (`af_heart`, `af_bella`, `af_aoede`,
+`af_kore`, `af_sarah`, `af_nicole`, …) and re-render.
+
+## 4. Compose and render
 
 ```sh
 npm run studio                      # live preview
@@ -98,9 +120,11 @@ npm run typecheck
 
 - Any clip missing from `public/` renders as a styled placeholder, so the edit
   works before the paid clips exist. Rerender once they are downloaded.
-- Timing that depends on a generated take is in `src/timing.ts`: where her line
-  lands in the hook (`HOOK_TRIM`, `HOOK_WORDS`), the montage cut points, and
-  the payoff trim/speed. Scene boundaries are in `src/brand.ts`.
+- Timing that depends on a generated take is in `src/timing.ts`: the hook
+  offset, the montage cut points, and the payoff trim/speed. Scene boundaries
+  are in `src/brand.ts`. Voiceover placement comes from
+  `public/voiceover/vo.json`.
+- Props: `music` (default true) and `voiceover` (default true).
 - Product segments are fitted from `public/footage/marks.json`, so after
   re-recording the step captions and tap sounds stay in sync automatically.
 - `--props='{"music":false}'` drops the music bed. Use the no-music render
@@ -116,6 +140,7 @@ npm run typecheck
 - Remotion is free for individuals and companies with 3 or fewer employees.
   Larger companies need a [company license](https://www.remotion.pro/license).
 - Sound effects are Kenney CC0. The music bed is synthesized by
-  `make-music.py` (original, no samples).
+  `make-music.py` (original, no samples). The voiceover is Kokoro-82M
+  (Apache-2.0).
 - Generated people are actors in a skit, not customers. Don't present them as
   testimonials. Turn on TikTok's "AI-generated content" label when posting.

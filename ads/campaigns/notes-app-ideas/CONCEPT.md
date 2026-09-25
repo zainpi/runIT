@@ -12,19 +12,24 @@ tool. We sell the head start. We don't promise a finished or instant app.
 
 | Time | Picture | On-screen text | Audio |
 |---|---|---|---|
-| 0–3.4 s | **Hook clip** (generated): she talks to camera at her desk at night | Top: "my notes app is an **app-idea graveyard**" · word-by-word captions | Her line: *"Every app idea I've ever had is still in my notes app."* |
-| 3.4–5.8 s | iOS Notes-style card "app ideas 💡" over a blurred freeze frame. Six items pop in with ticks, one per template: climbing buddy app · grandma's hot sauce store · roblox obby w/ friends · discord sneaker-drop bot · boba shop idle game · daily guess-my-city game | Stamp: **0 built** | Whoosh, a pop per tick, stamp impact |
-| 5.8–8.4 s | **Montage clip** (generated), three hard cuts: hot-sauce maker, teen gamer, climber | "everyone's sitting on **one.**" | Room sound from the clip |
-| 8.4–9.6 s | Kinetic type on the brand background | "what if it came with the **build plan?**" | Whoosh, riser |
-| 9.6–16.2 s | Real product footage in a phone frame | 1. pick a template → 2. describe your idea → "AI is planning…" → 3. AI turns it into a real plan → 4. step-by-step guide + clickable prototype | Taps synced to `marks.json`, music drop |
-| 16.2–18.4 s | **Payoff clip** (generated): she types, then throws her hands up | "paste it into your AI coder…" → "…and **actually build it.**" | Keyboard, laugh |
-| 18.4–21.4 s | End card | runsIT. · AI build templates · from $9.99 · "Your idea. A head start." · 6 template chips · **runsit.ca/templates →** · link in bio | Impact |
+| 0–3.4 s | **Hook clip** (generated): she looks at camera with a knowing look and holds up a phone full of notes, lips closed | Top: "my notes app is an **app-idea graveyard**" · word-by-word captions of the VO | VO: *"Every app idea I've ever had… is still in my notes app."* |
+| 3.4–5.8 s | iOS Notes-style card "app ideas 💡" over a blurred freeze frame. Six items pop in with ticks, one per template: climbing buddy app · grandma's hot sauce store · roblox obby w/ friends · discord sneaker-drop bot · boba shop idle game · daily guess-my-city game | Stamp: **0 built** | VO: *"Six ideas. Zero built."* · a pop per tick, stamp impact |
+| 5.8–8.4 s | **Montage clip** (generated), three hard cuts: hot-sauce maker, teen gamer, climber | "everyone's sitting on **one.**" | VO: *"And honestly? Everyone's sitting on one."* |
+| 8.4–9.6 s | Kinetic type on the brand background | "what if it came with the **build plan?**" | VO: *"So what if it came with the build plan?"* · riser |
+| 9.6–16.2 s | Real product footage in a phone frame | 1. pick a template → 2. describe your idea → "AI is planning…" → 3. AI turns it into a real plan → 4. step-by-step guide + clickable prototype | VO: *"Pick a template. Describe your idea. AI turns it into a real plan, then a step-by-step guide and prototype."* · taps, music drop |
+| 16.2–18.4 s | **Payoff clip** (generated): she types, then throws her hands up | "paste it into your AI coder…" → "…and **actually build it.**" | VO: *"Paste it into your AI coder, and actually build it."* |
+| 18.4–21.4 s | End card | runsIT. · AI build templates · from $9.99 · "Your idea. A head start." · 6 template chips · **runsit.ca/templates →** · link in bio | VO: *"runsIT templates. From nine ninety-nine."* |
 
 Product facts used: 6 templates (Discord bot, Roblox game, Mobile game, Mobile
 app, Online store, Browser game). **From $9.99** for the first template, $5
 for each extra (CAD on runsit.ca, USD on runs-it.com, hence "from"). Every
 order includes an AI plan, 20 edits, the guide/prototype and downloadable
 prompts.
+
+**Voiceover:** her inner monologue, one consistent voice (Kokoro-82M `af_heart`,
+a young woman's natural American voice), made by `scripts/make-voiceover.py`.
+The generated clips carry no dialogue, only room tone, so the voice never
+has to match a lip-sync.
 
 ## Post caption
 
@@ -36,9 +41,10 @@ Alternative on-screen hook for an A/B test: "POV: your notes app is where app id
 
 ## Posting checklist
 
-- [ ] Final clips generated and reviewed: face consistent between hook and
-      payoff, no garbled text or extra fingers, her line is audible and matches
-      the captions (re-time `HOOK_WORDS` in `src/timing.ts`).
+- [x] Final clips generated and reviewed (2026-09-25): same face in hook and
+      payoff, lips closed in the hook, notes list illegible, no stray speech.
+- [ ] Listen to the voiceover once on a phone. If the voice isn't right,
+      rerun `npm run voiceover -- --voice <name>` and re-render (it's free).
 - [ ] Rendered `out/notes-app-ideas.mp4` (music) and
       `out/notes-app-ideas-no-music.mp4`. Watched it end to end on a phone
       with sound on and off.
@@ -64,3 +70,10 @@ Alternative on-screen hook for an A/B test: "POV: your notes app is where app id
   her as a user or reviewer.
 - No claims about money earned, users gained or apps shipped.
 - "from $9.99" only. Don't show a currency, since it differs by site.
+
+## Spend
+
+Higgsfield, from `manifest.json`: hero keyframe $0.21 + hook $2.31 + montage
+$2.31 + payoff $2.31 = **$7.15** of the $7.50 budget (estimates from the
+pricing endpoint; one take each, no regenerations). Voiceover and music cost
+nothing.

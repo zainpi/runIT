@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test lib/*.test.mjs",
     "stills": "remotion still src/index.ts NotesAppIdeas out/poster.png --frame=170",
-    "render:all": "npm run render && npm run render:no-music && npm run stills"
+    "render:all": "npm run render && npm run render:no-music && npm run stills",
+    "voiceover": "python3 scripts/make-voiceover.py"
   },
   "dependencies": {
     "@remotion/cli": "4.0.528",

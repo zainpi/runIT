@@ -1,21 +1,23 @@
 import footage from "../public/footage/marks.json";
+import voiceover from "../public/voiceover/vo.json";
 import { FPS, scenes, sec } from "./brand";
 import type { Word } from "./components/Text";
 
-// Hook: where her line lands in clips/hook.mp4 (seconds from HOOK_TRIM).
-// Re-time after reviewing a new take; the placeholder uses these as-is.
+// Voiceover lines (scripts/make-voiceover.py): each has its start in the edit and word timings.
+export const VOICEOVER = voiceover.lines;
+const hookLine = VOICEOVER.find((line) => line.id === "hook");
+
+// Hook: the source offset into clips/hook.mp4, and captions timed to her voiceover line.
 export const HOOK_TRIM = 0;
-export const HOOK_WORDS: Word[] = [
-  ["Every", 0.3], ["app", 0.52], ["idea", 0.72], ["I've", 0.98], ["ever", 1.16], ["had", 1.36],
-  ["is", 1.6], ["still", 1.74], ["in", 1.98], ["my", 2.1], ["notes", 2.3], ["app.", 2.6],
-].map(([text, at]) => ({ text: text as string, at: (at as number) - HOOK_TRIM }));
+export const HOOK_WORDS: Word[] = (hookLine?.words ?? []).map((word) => ({ text: word.text, at: hookLine!.at + word.at }));
 
 // Montage: three hard cuts, one from each shot of clips/montage.mp4 (source seconds).
-export const MONTAGE_CUTS = [0.35, 2.0, 3.55];
+export const MONTAGE_CUTS = [1.1, 2.5, 4.05]; // his grin, the gamer laughing, the climber typing an idea
 
-// Payoff: typing, then hands up; played slightly fast so the celebration lands in 2.2 s.
-export const PAYOFF_TRIM = 0.6;
-export const PAYOFF_RATE = 1.45;
+// Payoff: the take types until ~3.3 s, covers her mouth, then throws her hands up at ~4.8 s.
+// Start mid-typing and play slightly fast so the celebration lands inside 2.2 s.
+export const PAYOFF_TRIM = 1.9;
+export const PAYOFF_RATE = 1.4;
 
 type SceneName = keyof typeof footage.scenes;
 type Segment = { name: SceneName; src: string; from: number; frames: number; trimBefore: number; playbackRate: number; taps: number[] };

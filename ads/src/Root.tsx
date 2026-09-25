@@ -10,6 +10,6 @@ export const Root = () => (
     fps={FPS}
     width={WIDTH}
     height={HEIGHT}
-    defaultProps={{ music: true }}
+    defaultProps={{ music: true, voiceover: true }}
   />
 );
