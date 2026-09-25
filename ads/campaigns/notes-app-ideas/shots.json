@@ -1,0 +1,75 @@
+{
+  "campaign": "notes-app-ideas",
+  "budgetUsd": 7.5,
+  "notes": "Budget covers one Marketing Studio keyframe plus three 5-second 720p Seedance 2.5 clips (about $7 at the 2026-09 token rate). Run `npm run clips:check` first; it only calls the free /estimate endpoint. The voiceover is a separate TTS track (scripts/make-voiceover.py), so no clip includes speech.",
+  "jobs": [
+    {
+      "id": "hero",
+      "kind": "image",
+      "model": "marketing-studio/image",
+      "output": "keyframes/hero.png",
+      "maxUsd": 0.6,
+      "input": {
+        "prompt": "Candid vertical smartphone photo, authentic TikTok UGC look. A young East Asian woman in her mid-20s with shoulder-length black hair and an oversized cream knit sweater sits at a small wooden desk in a cozy apartment at night. An open laptop lights her face with a cool blue glow, a warm desk lamp on the left, a mechanical keyboard, an iced coffee, a small plant and a few blank sticky notes on the wall. She looks straight into the camera with a slightly tired, amused expression, as if about to confess something. Natural skin texture, shallow depth of field, realistic lighting. No text, no logos, no brand names, laptop screen not legible.",
+        "aspect_ratio": "9:16",
+        "resolution": "2k",
+        "quality": "high",
+        "enhance_prompt": false
+      }
+    },
+    {
+      "id": "hook",
+      "kind": "video",
+      "model": "bytedance/seedance-2.5/image-to-video",
+      "fromImage": "hero",
+      "imageField": "image_url",
+      "output": "clips/hook.mp4",
+      "input": {
+        "prompt": "The woman holds eye contact with the handheld phone camera with a dry, knowing look, as if listening to her own thoughts. She slowly raises one eyebrow, gives a tiny tired smile, holds up her phone showing a long notes list to the camera for a moment, then glances at her laptop and slumps back in her chair with a small sigh. She does not speak; her lips stay closed. Subtle handheld sway, natural room tone, faint city ambience. Photorealistic. No dialogue, no captions, no on-screen text, no music.",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "9:16",
+        "output_format": "mp4",
+        "generate_audio": true
+      },
+      "fallback": {
+        "model": "bytedance/seedance-2.5/text-to-video",
+        "prompt": "Vertical handheld phone video, authentic TikTok UGC look. A young East Asian woman in her mid-20s with shoulder-length black hair and an oversized cream knit sweater sits at a wooden desk at night, laptop glow on her face, warm desk lamp. She looks into the camera with a dry, knowing look, raises one eyebrow, gives a tiny tired smile, holds up her phone showing a long notes list, then slumps back in her chair with a small sigh. She does not speak; her lips stay closed. Natural room tone. Photorealistic. No dialogue, no captions, no on-screen text, no logos, no music."
+      }
+    },
+    {
+      "id": "montage",
+      "kind": "video",
+      "model": "bytedance/seedance-2.5/text-to-video",
+      "output": "clips/montage.mp4",
+      "input": {
+        "prompt": "Fast three-shot vertical montage with hard cuts, candid handheld documentary style, photorealistic. Shot 1 (about 1.6 seconds): a Black man in his 30s in a small home kitchen fills bottles of homemade red hot sauce, then looks up with a grin as an idea hits him. Shot 2 (about 1.6 seconds): a teenage boy wearing a gaming headset at an RGB-lit desk points at his monitor and laughs with a friend on voice chat. Shot 3 (about 1.8 seconds): a woman in her 30s with chalky hands at an indoor bouldering gym types a quick note on her phone and smiles. Natural sound of each place, no music. No text, no captions, no logos, no legible screens.",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "9:16",
+        "output_format": "mp4",
+        "generate_audio": true
+      }
+    },
+    {
+      "id": "payoff",
+      "kind": "video",
+      "model": "bytedance/seedance-2.5/image-to-video",
+      "fromImage": "hero",
+      "imageField": "image_url",
+      "output": "clips/payoff.mp4",
+      "input": {
+        "prompt": "The woman turns from the camera to her laptop and types quickly with focus, the screen glow flickering on her face. After a moment she stops, leans back, covers her mouth in disbelief, then laughs and throws both hands up in celebration. Slow handheld push-in, natural keyboard clicks and room tone. Photorealistic. No captions, no on-screen text, no music.",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "9:16",
+        "output_format": "mp4",
+        "generate_audio": true
+      },
+      "fallback": {
+        "model": "bytedance/seedance-2.5/text-to-video",
+        "prompt": "Vertical handheld phone video, authentic TikTok UGC look. A young East Asian woman in her mid-20s with shoulder-length black hair and an oversized cream knit sweater types quickly on a laptop at a wooden desk at night, screen glow on her face, warm desk lamp. She stops, leans back, covers her mouth in disbelief, then laughs and throws both hands up in celebration. Slow push-in, natural keyboard clicks and room tone. Photorealistic. No captions, no on-screen text, no logos, no music."
+      }
+    }
+  ]
+}

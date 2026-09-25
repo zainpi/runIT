@@ -1,0 +1,347 @@
+{
+  "voice": "af_heart",
+  "speed": 1.15,
+  "model": "Kokoro-82M v1.0 (Apache-2.0)",
+  "lines": [
+    {
+      "id": "hook",
+      "at": 0.25,
+      "duration": 2.984,
+      "text": "Every app idea I've ever had… is still in my notes app.",
+      "words": [
+        {
+          "text": "Every",
+          "at": 0.0
+        },
+        {
+          "text": "app",
+          "at": 0.286
+        },
+        {
+          "text": "idea",
+          "at": 0.491
+        },
+        {
+          "text": "I've",
+          "at": 0.736
+        },
+        {
+          "text": "ever",
+          "at": 0.94
+        },
+        {
+          "text": "had…",
+          "at": 1.185
+        },
+        {
+          "text": "is",
+          "at": 1.553
+        },
+        {
+          "text": "still",
+          "at": 1.717
+        },
+        {
+          "text": "in",
+          "at": 2.003
+        },
+        {
+          "text": "my",
+          "at": 2.166
+        },
+        {
+          "text": "notes",
+          "at": 2.33
+        },
+        {
+          "text": "app.",
+          "at": 2.616
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "at": 3.8,
+      "duration": 1.72,
+      "text": "Six ideas. Zero built.",
+      "words": [
+        {
+          "text": "Six",
+          "at": 0.0
+        },
+        {
+          "text": "ideas.",
+          "at": 0.261
+        },
+        {
+          "text": "Zero",
+          "at": 0.834
+        },
+        {
+          "text": "built.",
+          "at": 1.147
+        }
+      ]
+    },
+    {
+      "id": "montage",
+      "at": 5.95,
+      "duration": 1.977,
+      "text": "And honestly? Everyone's sitting on one.",
+      "words": [
+        {
+          "text": "And",
+          "at": 0.0
+        },
+        {
+          "text": "honestly?",
+          "at": 0.19
+        },
+        {
+          "text": "Everyone's",
+          "at": 0.722
+        },
+        {
+          "text": "sitting",
+          "at": 1.141
+        },
+        {
+          "text": "on",
+          "at": 1.483
+        },
+        {
+          "text": "one.",
+          "at": 1.635
+        }
+      ]
+    },
+    {
+      "id": "twist",
+      "at": 8.12,
+      "duration": 1.614,
+      "text": "So what if it came with the build plan?",
+      "words": [
+        {
+          "text": "So",
+          "at": 0.0
+        },
+        {
+          "text": "what",
+          "at": 0.124
+        },
+        {
+          "text": "if",
+          "at": 0.31
+        },
+        {
+          "text": "it",
+          "at": 0.435
+        },
+        {
+          "text": "came",
+          "at": 0.559
+        },
+        {
+          "text": "with",
+          "at": 0.745
+        },
+        {
+          "text": "the",
+          "at": 0.931
+        },
+        {
+          "text": "build",
+          "at": 1.086
+        },
+        {
+          "text": "plan?",
+          "at": 1.304
+        }
+      ]
+    },
+    {
+      "id": "pick",
+      "at": 9.85,
+      "duration": 0.804,
+      "text": "Pick a template.",
+      "words": [
+        {
+          "text": "Pick",
+          "at": 0.0
+        },
+        {
+          "text": "a",
+          "at": 0.21
+        },
+        {
+          "text": "template.",
+          "at": 0.315
+        }
+      ]
+    },
+    {
+      "id": "describe",
+      "at": 11.05,
+      "duration": 1.083,
+      "text": "Describe your idea.",
+      "words": [
+        {
+          "text": "Describe",
+          "at": 0.0
+        },
+        {
+          "text": "your",
+          "at": 0.417
+        },
+        {
+          "text": "idea.",
+          "at": 0.666
+        }
+      ]
+    },
+    {
+      "id": "plan",
+      "at": 12.55,
+      "duration": 1.706,
+      "text": "AI turns it into a real plan,",
+      "words": [
+        {
+          "text": "AI",
+          "at": 0.0
+        },
+        {
+          "text": "turns",
+          "at": 0.171
+        },
+        {
+          "text": "it",
+          "at": 0.469
+        },
+        {
+          "text": "into",
+          "at": 0.64
+        },
+        {
+          "text": "a",
+          "at": 0.896
+        },
+        {
+          "text": "real",
+          "at": 1.024
+        },
+        {
+          "text": "plan,",
+          "at": 1.28
+        }
+      ]
+    },
+    {
+      "id": "guide",
+      "at": 14.3,
+      "duration": 1.955,
+      "text": "then a step-by-step guide and prototype.",
+      "words": [
+        {
+          "text": "then",
+          "at": 0.0
+        },
+        {
+          "text": "a",
+          "at": 0.244
+        },
+        {
+          "text": "step-by-step",
+          "at": 0.367
+        },
+        {
+          "text": "guide",
+          "at": 0.855
+        },
+        {
+          "text": "and",
+          "at": 1.14
+        },
+        {
+          "text": "prototype.",
+          "at": 1.344
+        }
+      ]
+    },
+    {
+      "id": "payoff",
+      "at": 16.3,
+      "duration": 2.731,
+      "text": "Paste it into your AI coder, and actually build it.",
+      "words": [
+        {
+          "text": "Paste",
+          "at": 0.0
+        },
+        {
+          "text": "it",
+          "at": 0.281
+        },
+        {
+          "text": "into",
+          "at": 0.442
+        },
+        {
+          "text": "your",
+          "at": 0.683
+        },
+        {
+          "text": "AI",
+          "at": 0.924
+        },
+        {
+          "text": "coder,",
+          "at": 1.084
+        },
+        {
+          "text": "and",
+          "at": 1.526
+        },
+        {
+          "text": "actually",
+          "at": 1.727
+        },
+        {
+          "text": "build",
+          "at": 2.129
+        },
+        {
+          "text": "it.",
+          "at": 2.41
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "at": 19.08,
+      "duration": 2.172,
+      "text": "runsIT templates. From nine ninety-nine.",
+      "words": [
+        {
+          "text": "runsIT",
+          "at": 0.0
+        },
+        {
+          "text": "templates.",
+          "at": 0.341
+        },
+        {
+          "text": "From",
+          "at": 0.98
+        },
+        {
+          "text": "nine",
+          "at": 1.235
+        },
+        {
+          "text": "ninety-nine.",
+          "at": 1.491
+        }
+      ]
+    }
+  ]
+}
