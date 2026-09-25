@@ -86,21 +86,17 @@ export default function HomePage() {
                 className={`${styles.productCard} ${styles[product.id]}`}
               >
                 <a href={product.href} className={styles.productMainLink} aria-label={product.action}>
-                <div className={styles.productArtwork} aria-hidden="true">
-                  {product.id === "the-last-echo" ? (
-                    <span className={styles.gameTitle}>THE LAST<br /><strong>ECHO</strong></span>
-                  ) : (
-                    <Image
-                      src={product.artwork}
-                      alt=""
-                      width={product.id === "build-your-room" ? 1920 : 1536}
-                      height={product.id === "build-your-room" ? 1080 : 1024}
-                      className={styles.productImage}
-                      unoptimized
-                    />
-                  )}
-                  <span className={styles.artworkLabel}>{product.name}</span>
-                  <span className={styles.productArrow}><ArrowRightIcon /></span>
+                <div className={styles.productArtwork}>
+                  <Image
+                    src={product.artwork.src}
+                    alt={product.artwork.alt}
+                    width={product.artwork.width}
+                    height={product.artwork.height}
+                    className={styles.productImage}
+                    unoptimized
+                  />
+                  <span className={styles.artworkLabel} aria-hidden="true">{product.name}</span>
+                  <span className={styles.productArrow} aria-hidden="true"><ArrowRightIcon /></span>
                 </div>
                 <div className={styles.productContent}>
                   <p className={styles.productCategory}>{product.category}</p>

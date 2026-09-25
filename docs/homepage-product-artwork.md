@@ -16,28 +16,14 @@ duration and text description in sync. The source composition stays under
 
 ## Product images
 
-Created with the built-in image generation tool on 11 September 2026. Each image is an original 1536 × 1024 illustration, encoded as WebP at quality 82 for the homepage. The originals remain in the image generation output directory.
+Replaced on 25 September 2026 with compositions of each product's real interface, so the cards show the apps rather than abstract illustrations. Each is a 1600 × 800 WebP (quality 80) drawn on its card colour, so the edges blend into the artwork frame. The homepage reads the path, size and alt text from `products` in `src/lib/company.ts`.
 
-The page treats these images as decorative because the adjacent card names and descriptions identify each product. Images fit inside the artwork area without cropping; The Last Echo retains its existing forest artwork.
+| Product | Asset | Source material |
+| --- | --- | --- |
+| PulseDeals | `public/products/pulsedeals-preview.webp` | Raw App Store previews from the PulseDeals repository (`docs/store_assets/previews/raw/`: alerts, feed, detail) in iPhone frames on `#352318`. The in-app deals are the app’s own “Sample deal” examples. |
+| The Last Echo | `public/products/the-last-echo-preview.webp` | Gameplay screenshots `public/the-last-echo/screenshots/new/03-early-battle.png` and `04-late-boss-battle.png` in landscape phone frames over the game’s `forest_bg.png` on `#0d1f1a`. |
+| Local Lore | `public/products/local-lore-preview.webp` | The live Local Lore page captured at 1440 × 900 and 390 × 844 in a result state, with API responses mocked the same way as `tests/local-lore/layout.spec.ts`. Real Street View and Google map images are not used: the photo and map are illustrated stand-ins, and their Google attribution captions were hidden for the capture. |
+| Neutronium | `public/products/neutronium-preview.webp` | The Neutronium development workspace (`npm run dev`, Acme Inc. sample data) captured at 1440 × 900 with the development badge, sandbox bar and workspace note hidden. The floating panel is an enlarged crop of the same screen’s access request. |
+| Build Your Room | `public/products/build-your-room-artwork.webp` | Unchanged promotional illustration, originally `Build_Your_Room/assets/listing/v1/upload/game_thumbnail.jpg`, re-encoded from the 1920 × 1080 JPEG (765 KB) to a 1280 × 720 WebP (135 KB). It is an illustration, not a gameplay screenshot. |
 
-Build Your Room was added on 16 September 2026 using its existing 1920 × 1080 promotional illustration, copied unchanged from `Build_Your_Room/assets/listing/v1/upload/game_thumbnail.jpg` to `public/products/build-your-room-artwork.jpg`. It is an illustration, not a gameplay screenshot. The card links directly to the Roblox experience and preserves the complete image without cropping its title.
-
-## Final assets and prompts
-
-### neutronium
-
-Asset: `public/products/neutronium-artwork.webp`.
-
-Use case: stylized-concept. Asset type: simple illustration for a software product card on a dark company homepage. Style: polished minimal 3D clay illustration, rounded geometric shapes, matte materials, gentle studio lighting, soft shadows, restrained detail. Landscape composition, 1536 by 1024, a single centered scene occupying the middle 60% of the height with spacious background all around so it can crop well to a wide 2.6:1 banner or a mobile 1.5:1 card. No words, letters, numbers, logos, watermarks, border, captions, or readable interface text. Keep it immediately understandable at thumbnail size. Subject: an open small laptop with a simple blank interface made of just three rounded tiles, connected by thin clean lines to two upright employee profile cards and one small shield with a check mark, suggesting organized employee onboarding and secure company IT. Backdrop: solid deep navy #18243c with subtle light falloff. Colors: muted periwinkle, powder blue, and a tiny mint accent. Balanced modest scene with a strong laptop silhouette; only a few objects, no futuristic neon.
-
-### pulsedeals
-
-Asset: `public/products/pulsedeals-artwork.webp`.
-
-Use case: stylized-concept. Asset type: simple illustration for a software product card on a dark company homepage. Style: polished minimal 3D clay illustration, rounded geometric shapes, matte materials, gentle studio lighting, soft shadows, restrained detail. Landscape composition, 1536 by 1024, a single centered scene occupying the middle 60% of the height with spacious background all around so it can crop well to a wide 2.6:1 banner or a mobile 1.5:1 card. No words, letters, numbers, logos, watermarks, border, captions, or readable interface text. Keep it immediately understandable at thumbnail size. Subject: one slightly tilted upright smartphone displaying three simple blank product tiles, alongside a single oversized price tag with a downward arrow and one small shopping bag, suggesting discovering price drops. Backdrop: solid dark warm brown #352318 with subtle light falloff. Colors: peach, apricot, cream, and burnt orange. A restrained friendly shopping illustration, only three main objects. The phone interface uses shapes only, absolutely no text or prices.
-
-### local-lore
-
-Asset: `public/products/local-lore-artwork.webp`.
-
-Use case: stylized-concept. Asset type: simple illustration for a software product card on a dark company homepage. Style: polished minimal 3D clay illustration, rounded geometric shapes, matte materials, gentle studio lighting, soft shadows, restrained detail. Landscape composition, 1536 by 1024, a single centered scene occupying the middle 60% of the height with spacious background all around so it can crop well to a wide 2.6:1 banner or a mobile 1.5:1 card. No words, letters, numbers, logos, watermarks, border, captions, or readable interface text. Keep it immediately understandable at thumbnail size. Subject: a small folded neighborhood map with clean simple roads, two tiny house shapes, two rounded trees, and a large lime location pin rising from its center, suggesting a local geography guessing game. Backdrop: solid deep forest green #173229 with subtle light falloff. Colors: sage, pale mint, cream, and a restrained vivid lime #dcfa68 accent. A friendly miniature map scene with simple recognizable forms, no map labels or text.
+To refresh a card, capture the product at 2× device scale, place the screenshots in device or browser frames in an HTML scene sized 1600 × 800 with the card colour as the background, screenshot it with Chromium, and encode it with `sharp(...).webp({ quality: 80 })`. Use a new filename so cached copies are not reused, and update the alt text in `company.ts` to describe what the image shows.
