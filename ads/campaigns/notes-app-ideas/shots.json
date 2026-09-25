@@ -1,7 +1,7 @@
 {
   "campaign": "notes-app-ideas",
   "budgetUsd": 7.5,
-  "notes": "Budget covers one Marketing Studio keyframe plus three 5-second 720p Seedance 2.5 clips (about $7 at the 2026-09 token rate). Run `npm run clips:check` first; it only calls the free /estimate endpoint.",
+  "notes": "Budget covers one Marketing Studio keyframe plus three 5-second 720p Seedance 2.5 clips (about $7 at the 2026-09 token rate). Run `npm run clips:check` first; it only calls the free /estimate endpoint. The voiceover is a separate TTS track (scripts/make-voiceover.py), so no clip includes speech.",
   "jobs": [
     {
       "id": "hero",
@@ -25,7 +25,7 @@
       "imageField": "image_url",
       "output": "clips/hook.mp4",
       "input": {
-        "prompt": "The woman holds eye contact with the handheld phone camera, raises one eyebrow and says in a dry, casual American accent: \"Every app idea I've ever had is still in my notes app.\" She exhales a small laugh, glances at her laptop and slumps back in her chair. Subtle handheld sway, natural room tone, faint city ambience. Photorealistic. No captions, no on-screen text, no music.",
+        "prompt": "The woman holds eye contact with the handheld phone camera with a dry, knowing look, as if listening to her own thoughts. She slowly raises one eyebrow, gives a tiny tired smile, holds up her phone showing a long notes list to the camera for a moment, then glances at her laptop and slumps back in her chair with a small sigh. She does not speak; her lips stay closed. Subtle handheld sway, natural room tone, faint city ambience. Photorealistic. No dialogue, no captions, no on-screen text, no music.",
         "duration": 5,
         "resolution": "720p",
         "aspect_ratio": "9:16",
@@ -34,7 +34,7 @@
       },
       "fallback": {
         "model": "bytedance/seedance-2.5/text-to-video",
-        "prompt": "Vertical handheld phone video, authentic TikTok UGC look. A young East Asian woman in her mid-20s with shoulder-length black hair and an oversized cream knit sweater sits at a wooden desk at night, laptop glow on her face, warm desk lamp. She looks into the camera, raises one eyebrow and says in a dry, casual American accent: \"Every app idea I've ever had is still in my notes app.\" She exhales a small laugh and slumps back in her chair. Natural room tone. Photorealistic. No captions, no on-screen text, no logos, no music."
+        "prompt": "Vertical handheld phone video, authentic TikTok UGC look. A young East Asian woman in her mid-20s with shoulder-length black hair and an oversized cream knit sweater sits at a wooden desk at night, laptop glow on her face, warm desk lamp. She looks into the camera with a dry, knowing look, raises one eyebrow, gives a tiny tired smile, holds up her phone showing a long notes list, then slumps back in her chair with a small sigh. She does not speak; her lips stay closed. Natural room tone. Photorealistic. No dialogue, no captions, no on-screen text, no logos, no music."
       }
     },
     {
