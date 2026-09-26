@@ -142,8 +142,62 @@ async function fetchProducts(marketplace: PulseMarketplace, asins: string[]): Pr
   }
 }
 
+function newPriceFromProduct(product: KeepaProduct): number | null {
+  const stats = productStats(product);
+  const current = stats?.current;
+  if (!Array.isArray(current)) return null;
+  const cents = positiveNumber(current[1]); // Keepa price type 1 is NEW.
+  return cents === null ? null : Number((cents / 100).toFixed(2));
+}
+
+export async function refreshOpenedDeal(admin: SupabaseClient, marketplace: PulseMarketplace, asin: string): Promise<void> {
+  const query = new URLSearchParams({
+    key: requiredKeepaKey(), domain: String(DOMAIN_IDS[marketplace]), asin,
+    stats: "90", update: "0", history: "1",
+  });
+  const body = await keepaFetch(`/product?${query.toString()}`, { headers: { accept: "application/json" } }, 20_000);
+  const product = productMap(body.products).get(asin);
+  if (!product) return;
+  const price = newPriceFromProduct(product);
+  const currentPrices = productStats(product)?.current;
+  const outOfStock = Array.isArray(currentPrices) && currentPrices[1] === -1;
+  const checkedAt = keepaDate(product.lastUpdate);
+  if ((price === null && !outOfStock) || checkedAt === null) return;
+
+  const existing = await admin.from("pulsedeals_deals")
+    .select("current_price,reference_price,is_prime,keepa_updated_at")
+    .eq("asin", asin).eq("marketplace", marketplace).maybeSingle();
+  if (existing.error) throw existing.error;
+  if (!existing.data || (existing.data.keepa_updated_at && Date.parse(existing.data.keepa_updated_at) > Date.parse(checkedAt))) return;
+
+  const reference = Number(existing.data.reference_price);
+  const isPrime = Boolean(existing.data.is_prime);
+  const discount = price !== null && reference > price ? Math.round(((reference - price) / reference) * 100) : 0;
+  const history = historyFromProduct(product);
+  const update = await admin.from("pulsedeals_deals").update({
+    current_price: price ?? Number(existing.data.current_price),
+    score: discount && price !== null ? score(price, reference, product, isPrime) : 0,
+    reasoning: outOfStock ? "Keepa found no current new offer for this product."
+      : discount ? `Keepa recorded a ${discount}% price drop for this deal.` : "The earlier deal price is no longer available.",
+    status: discount ? "live" : "burnedOut",
+    ...(history.length ? { price_history: history } : {}),
+    keepa_updated_at: checkedAt,
+    observed_at: new Date().toISOString(),
+    minutes_ago: 0,
+    updated_at: new Date().toISOString(),
+  }).eq("asin", asin).eq("marketplace", marketplace)
+    .or(`keepa_updated_at.is.null,keepa_updated_at.lte.${checkedAt}`);
+  if (update.error) throw update.error;
+}
+
 function currentPrice(deal: KeepaDeal, product: KeepaProduct | undefined): number | null {
   const stats = product?.stats as Record<string, unknown> | undefined;
+  const dealUpdated = Number(deal.lastUpdate ?? deal.lastChange ?? 0);
+  const productUpdated = Number(product?.lastUpdate ?? 0);
+  if (product && productUpdated >= dealUpdated) {
+    if (Array.isArray(stats?.current) && stats.current[1] === -1) return null;
+    return newPriceFromProduct(product) ?? priceFromKeepa(deal.current) ?? priceFromKeepa(deal.price);
+  }
   return priceFromKeepa(deal.current) ?? priceFromKeepa(deal.price) ?? priceFromKeepa(stats?.current);
 }
 
@@ -180,15 +234,14 @@ function historyFromProduct(product: KeepaProduct | undefined): Array<{ date: st
     if (normalized.length) return normalized;
   }
 
-  // Keepa's product endpoint commonly exposes history as alternating time/price
-  // values in csv[0] (the Amazon price series).
+  // Price type 1 (NEW) matches the price shown on PulseDeals cards.
   const csv = product?.csv;
-  const amazonSeries = Array.isArray(csv) && Array.isArray(csv[0]) ? csv[0] : null;
-  if (!amazonSeries) return [];
+  const newSeries = Array.isArray(csv) && Array.isArray(csv[1]) ? csv[1] : null;
+  if (!newSeries) return [];
   const points: Array<{ date: string; price: number }> = [];
-  for (let index = 0; index + 1 < amazonSeries.length; index += 2) {
-    const date = keepaDate(amazonSeries[index]);
-    const price = priceFromKeepa(amazonSeries[index + 1]);
+  for (let index = 0; index + 1 < newSeries.length; index += 2) {
+    const date = keepaDate(newSeries[index]);
+    const price = priceFromKeepa(newSeries[index + 1]);
     if (date && price !== null) points.push({ date, price: Number(price.toFixed(2)) });
   }
   return points.slice(-30);
@@ -231,9 +284,9 @@ function normalizeDeal(deal: KeepaDeal, product: KeepaProduct | undefined, marke
   const isFBA = Boolean(product?.isFBA ?? deal.isFBA ?? offer?.isFBA ?? product?.buyBoxIsFBA ?? /amazon/i.test(seller));
   const category = classify(title, typeof deal.categoryName === "string" ? deal.categoryName : undefined);
   const discount = reference > 0 ? ((reference - current) / reference) * 100 : 0;
-  const observedAt = keepaDate(deal.lastUpdate ?? deal.lastChange) ?? new Date().toISOString();
+  const observedAt = keepaDate(Math.max(Number(deal.lastUpdate ?? deal.lastChange ?? 0), Number(product?.lastUpdate ?? 0))) ?? new Date().toISOString();
   const avg90 = priceFromKeepa(stats?.avg90) ?? reference;
-  const scoreValue = score(current, avg90, product, isPrime);
+  const scoreValue = discount > 0 ? score(current, avg90, product, isPrime) : 0;
   const rawRating = Number(product?.rating ?? offer?.sellerRating ?? deal.rating ?? 0);
   const sellerRating = rawRating > 5 ? rawRating / 20 : rawRating;
   return {
@@ -246,13 +299,15 @@ function normalizeDeal(deal: KeepaDeal, product: KeepaProduct | undefined, marke
     average90_day_price: Number(avg90.toFixed(2)),
     score: scoreValue,
     confidence: Math.round(clamp(70 + (isPrime ? 15 : 0) + (product ? 10 : 0), 0, 100)),
-    reasoning: `Keepa recorded a ${Math.max(0, Math.round(discount))}% price drop for this ${category} deal.`,
+    reasoning: discount > 0
+      ? `Keepa recorded a ${Math.round(discount)}% price drop for this ${category} deal.`
+      : "The earlier deal price is no longer available.",
     minutes_ago: Math.max(0, Math.round((Date.now() - new Date(observedAt).getTime()) / 60_000)),
     seller: seller.slice(0, 160),
     seller_rating: Number(sellerRating.toFixed(2)),
     is_fba: isFBA,
     is_prime: isPrime,
-    status: "live",
+    status: discount > 0 ? "live" : "burnedOut",
     icon_name: CATEGORY_ICONS[category],
     image_url: typeof product?.imagesCSV === "string" && /^[A-Za-z0-9+_.%-]+\.(jpg|png)$/.test(product.imagesCSV.split(",")[0])
       ? `https://m.media-amazon.com/images/I/${product.imagesCSV.split(",")[0]}` : null,
@@ -279,8 +334,15 @@ export async function syncMarketplace(admin: SupabaseClient, marketplace: PulseM
       .map((deal) => normalizeDeal(deal, products.get(String(deal.asin)), marketplace))
       .filter((row): row is NonNullable<ReturnType<typeof normalizeDeal>> => Boolean(row));
     if (rows.length) {
-      const upsert = await admin.from("pulsedeals_deals").upsert(rows, { onConflict: "asin,marketplace" });
-      if (upsert.error) throw upsert.error;
+      const current = await admin.from("pulsedeals_deals").select("asin,keepa_updated_at")
+        .eq("marketplace", marketplace).in("asin", rows.map((row) => row.asin));
+      if (current.error) throw current.error;
+      const newest = new Map((current.data ?? []).map((row) => [row.asin, String(row.keepa_updated_at ?? "")]));
+      const freshRows = rows.filter((row) => Date.parse(row.keepa_updated_at) >= (Date.parse(newest.get(row.asin) ?? "") || 0));
+      if (freshRows.length) {
+        const upsert = await admin.from("pulsedeals_deals").upsert(freshRows, { onConflict: "asin,marketplace" });
+        if (upsert.error) throw upsert.error;
+      }
     }
     const staleBefore = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
     const stale = await admin

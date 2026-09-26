@@ -26,12 +26,13 @@
   }],
   "vars": {
     "LOCAL_LORE_IMAGE_DAILY_LIMIT": "250",
+    "NEXT_PUBLIC_META_PIXEL_ID": "1123966580581270",
     "TEMPLATES_AI_ENABLED": "true",
     "TEMPLATES_AI_MODEL": "gpt-6-luna",
     "TEMPLATES_AI_REASONING_EFFORT": "max",
-    "TEMPLATES_TRIAL_ENABLED": "true",
     "TEMPLATES_ICON_ENABLED": "true",
-    "TEMPLATES_ICON_MODEL": "gpt-image-2.5-flare-2026-09-08"
+    "TEMPLATES_ICON_MODEL": "gpt-image-2.5-flare-2026-09-08",
+    "TEMPLATES_TRIAL_ENABLED": "true"
   },
   // Enable Next.js <Image> optimization on Cloudflare.
   "images": {
