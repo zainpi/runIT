@@ -8,6 +8,7 @@ import { site } from "@/lib/site";
 import { TrialCode } from "./trial-code";
 import { ReferralCode, type AppliedReferral } from "./referral-code";
 import { loadDraft, saveDraft, saveReceipt } from "./browser-storage";
+import { metaTrack, metaValue } from "@/lib/meta-pixel";
 import shared from "./templates.module.css";
 import styles from "./store.module.css";
 
@@ -53,6 +54,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     const openTrial = () => { if (location.hash === "#free-trial") { setTrialCheckout(true); orderPanel.current?.scrollIntoView({ block: "start" }); } };
     openTrial();
     window.addEventListener("hashchange", openTrial);
+    metaTrack("ViewContent", { content_ids: templateCatalog.map((template) => template.id), content_type: "product_group", content_name: "AI build templates" });
     fetch("/api/templates/config/", { cache: "no-store" }).then((r) => r.json()).then(setCheckout).catch(() => setCheckout({ available: false, testMode: false }));
     return () => window.removeEventListener("hashchange", openTrial);
   }, []);
@@ -69,7 +71,10 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     return () => observer.disconnect();
   }, []);
   useEffect(() => { if (loaded) { try { saveDraft(details, mode, selected, subagents, skillTree, appIcon); } catch { /* Editing remains available without browser persistence. */ } } }, [details, mode, selected, subagents, skillTree, appIcon, loaded]);
-  function toggle(id: TemplateId) { setSelected((current) => current.includes(id) ? current.filter((v) => v !== id) : [...current, id]); setError(""); }
+  function toggle(id: TemplateId) {
+    if (!selected.includes(id)) metaTrack("AddToCart", { content_ids: [id], content_type: "product", ...metaValue(selected.length ? EXTRA_TEMPLATE_CENTS : FIRST_TEMPLATE_CENTS, currency) });
+    setSelected((current) => current.includes(id) ? current.filter((v) => v !== id) : [...current, id]); setError("");
+  }
   function closeTrial() {
     setTrialCheckout(false);
     if (location.hash === "#free-trial") history.replaceState(null, "", `${location.pathname}${location.search}#bundle`);
@@ -78,6 +83,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
     setBusy(true); setError("");
     try {
       const ids = parseTemplateIds(selected);
+      metaTrack("InitiateCheckout", { content_ids: ids, content_type: "product", num_items: ids.length, ...metaValue(total, currency) });
       // Persist before creating a payment so a closed tab never loses the access key.
       const cartKey = `${ids.join(",")}:currency=${currency}:subagents=${subagents}:skillTree=${skillTree}:appIcon=${appIcon}:referral=${referral?.code ?? "none"}`;
       const pending = JSON.parse(sessionStorage.getItem("runit-template-checkout") || "null");

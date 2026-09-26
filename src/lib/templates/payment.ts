@@ -12,12 +12,12 @@ export function tokenHash(token: string): string { return createHash("sha256").u
 export function validAccessToken(value: unknown): value is string { return typeof value === "string" && /^[a-f0-9]{64}$/.test(value); }
 export function validSessionId(value: unknown): value is string { return typeof value === "string" && /^cs_(test_|live_)?[A-Za-z0-9]{16,240}$/.test(value); }
 
-export function checkoutParameters(ids: TemplateId[], token: string, origin: string, subagents = false, skillTree = false, referral?: TemplateReferral, appIcon = false): Stripe.Checkout.SessionCreateParams {
+export function checkoutParameters(ids: TemplateId[], token: string, origin: string, subagents = false, skillTree = false, referral?: TemplateReferral, appIcon = false, attribution: { meta_fbp?: string; meta_fbc?: string } = {}): Stripe.Checkout.SessionCreateParams {
   const currency = templateCurrencyForHostname(new URL(origin).hostname);
   const discountPercent = referral?.discountPercent ?? 0;
   const discounted = (cents: number) => discountedCents(cents, discountPercent);
   const referralMetadata: Record<string, string> = referral ? { referral_founder: referral.founderSlug, referral_code_hash: referral.codeDigest, referral_discount_percent: String(referral.discountPercent) } : {};
-  const metadata = { store: TEMPLATE_STORE, version: TEMPLATE_VERSION, templates: ids.join(","), access_hash: tokenHash(token), subagents: String(subagents), skill_tree: String(skillTree), app_icon: String(appIcon), currency, pricing_origin: origin, ai_messages: "20", ai_overviews: "one_per_template", ...referralMetadata };
+  const metadata = { store: TEMPLATE_STORE, version: TEMPLATE_VERSION, templates: ids.join(","), access_hash: tokenHash(token), subagents: String(subagents), skill_tree: String(skillTree), app_icon: String(appIcon), currency, pricing_origin: origin, ai_messages: "20", ai_overviews: "one_per_template", ...referralMetadata, ...attribution };
   return {
     mode: "payment",
     // This store uses standard Checkout, including custom text and fixed totals.

@@ -1,3 +1,8 @@
+// The templates store loads the Meta Pixel only when a pixel ID is configured.
+const metaPixel = /^\d{5,20}$/.test(process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "");
+const metaScript = metaPixel ? " https://connect.facebook.net" : "";
+const metaBeacon = metaPixel ? " https://www.facebook.com" : "";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -23,7 +28,7 @@ const nextConfig = {
           { key: "Referrer-Policy", value: "no-referrer" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
-          { key: "Content-Security-Policy", value: `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com` },
+          { key: "Content-Security-Policy", value: `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}${metaScript}; style-src 'self' 'unsafe-inline'; img-src 'self' data:${metaBeacon}; font-src 'self'; connect-src 'self'${metaBeacon}${metaScript}; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com` },
         ],
       },
       {
