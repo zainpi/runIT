@@ -1,2 +1,0 @@
-// X/Twitter cards use the same artwork as the Open Graph preview.
-export { default, alt, size, contentType, generateStaticParams } from "./opengraph-image";

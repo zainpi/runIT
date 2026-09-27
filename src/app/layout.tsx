@@ -4,6 +4,7 @@ import "./globals.css";
 import { SiteFrame } from "@/components/layout/SiteFrame";
 import { ConsentManager } from "@/components/consent/ConsentManager";
 import { site, siteOpenGraph } from "@/lib/site";
+import { siteSocialImage } from "@/lib/social";
 import { organizationJsonLd } from "@/lib/structured-data";
 
 const inter = Inter({
@@ -66,11 +67,13 @@ export const metadata: Metadata = {
     url: site.url,
     title: `${site.name} — ${site.tagline}`,
     description: site.description,
+    images: [siteSocialImage],
   },
   twitter: {
     card: "summary_large_image",
     title: `${site.name} — ${site.tagline}`,
     description: site.description,
+    images: [siteSocialImage],
   },
   robots: {
     index: true,

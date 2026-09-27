@@ -82,6 +82,12 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      { source: "/opengraph-image", destination: "/social/runsit.png", permanent: true },
+      { source: "/twitter-image", destination: "/social/runsit.png", permanent: true },
+      { source: "/templates/opengraph-image", destination: "/social/templates.png", permanent: true },
+      { source: "/templates/twitter-image", destination: "/social/templates.png", permanent: true },
+      { source: "/:founder(zainpi|raishaikh|mikaelsid)/opengraph-image", destination: "/social/:founder.png", permanent: true },
+      { source: "/:founder(zainpi|raishaikh|mikaelsid)/twitter-image", destination: "/social/:founder.png", permanent: true },
       { source: "/services", destination: "/#products", permanent: true },
       { source: "/case-studies", destination: "/#products", permanent: true },
       { source: "/book", destination: "/contact/", permanent: true },

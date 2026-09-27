@@ -9,6 +9,7 @@ import { ArrowIcon } from "@/components/runsos/icons";
 import { StickyCta } from "@/components/site/StickyCta";
 import { founders, xProfileUrl } from "@/lib/company";
 import { site, siteOpenGraph } from "@/lib/site";
+import { founderSocialImage } from "@/lib/social";
 import os from "@/components/runsos/os.module.css";
 import styles from "../home.module.css";
 
@@ -26,12 +27,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!founder) notFound();
   const title = `${founder.name} — Portfolio`;
   const description = `${founder.name}, co-founder of runsIT. Explore the business software, consumer apps, and games our team is building.`;
+  const socialImage = founderSocialImage(slug);
   return {
     title,
     description,
     alternates: { canonical: founder.portfolioUrl },
-    openGraph: { ...siteOpenGraph, type: "profile", title: `${title} | runsIT`, description, url: founder.portfolioUrl },
-    twitter: { card: "summary_large_image", title: `${title} | runsIT`, description },
+    openGraph: { ...siteOpenGraph, type: "profile", title: `${title} | runsIT`, description, url: founder.portfolioUrl, images: [socialImage] },
+    twitter: { card: "summary_large_image", title: `${title} | runsIT`, description, images: [socialImage] },
   };
 }
 

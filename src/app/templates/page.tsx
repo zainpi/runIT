@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { DEFAULT_TEMPLATE_CURRENCY, templateCurrencyForHostname } from "@/lib/templates/catalog";
 import { siteOpenGraph } from "@/lib/site";
+import { templatesSocialImage } from "@/lib/social";
 import { TemplateStore } from "./store";
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: "/templates/" },
-    openGraph: { ...siteOpenGraph, title: `${title} | runsIT`, description, url: "/templates/" },
-    twitter: { card: "summary_large_image", title: `${title} | runsIT`, description },
+    openGraph: { ...siteOpenGraph, title: `${title} | runsIT`, description, url: "/templates/", images: [templatesSocialImage] },
+    twitter: { card: "summary_large_image", title: `${title} | runsIT`, description, images: [templatesSocialImage] },
   };
 }
 export default async function TemplatesPage() { return <TemplateStore initialCurrency={await requestCurrency()} />; }
