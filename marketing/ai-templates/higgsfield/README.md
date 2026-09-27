@@ -14,7 +14,7 @@ progress, and download an MP4. No site visitor can access the API key or jobs.
 2. Put `HF_API_KEY_ID` and `HF_API_KEY_SECRET` in the ignored
    `.env.higgsfield.local` file at the repository root, or export them in the
    trusted local agent shell. The CLI loads that file automatically. See
-   `.env.higgsfield.example` for names. Never use `NEXT_PUBLIC_` variables
+   `marketing/ai-templates/higgsfield/.env.higgsfield.example` for names. Never use `NEXT_PUBLIC_` variables
    or place credentials in agent prompts, screenshots, commits, or logs.
 3. Use Node.js 20 or later. Run commands from the repository root.
 

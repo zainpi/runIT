@@ -118,5 +118,8 @@ for its live API, saved progress, image limits, and update workflow.
 ## Higgsfield agent tool
 
 The local coding agent can create short AI-template video ads with Higgsfield.
-See [setup and commands](docs/higgsfield-agent.md). This tool is not exposed
+See [setup and commands](marketing/ai-templates/higgsfield/README.md). This tool is not exposed
 through the website and does not deploy with it.
+
+AI Templates campaign assets, copy, and research are organized in the
+[marketing folder](marketing/ai-templates/README.md).

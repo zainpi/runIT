@@ -4,7 +4,7 @@ import { mkdir, open, readFile, rename, writeFile } from "node:fs/promises";
 import { resolve, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const base = "https://api.higgsfield.ai";
 const model = "bytedance/seedance-2.0/text-to-video";
 const terminal = new Set(["completed", "failed", "nsfw", "canceled"]);

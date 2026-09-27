@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { submit, status, wait } from "../scripts/higgsfield.mjs";
+import { submit, status, wait } from "../marketing/ai-templates/higgsfield/higgsfield.mjs";
 
 const job = "c413143e-c5ce-44c3-a38e-93d127309dc1";
 const requestId = "38fd48e0-760c-465f-988e-f3ba57a5101f";
