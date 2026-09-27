@@ -194,7 +194,7 @@ def prepare_hook(raw, out, tmp):
     offset = 0.0
     if segs[-1][1] > HOOK_LEN - 0.08:
         # Only if the words would be cut: drop leading silence before the first word.
-        offset = max(0.0, segs[0][0] - 0.06)
+        offset = max(0.0, segs[0][0] - 0.04)
         if segs[-1][1] - offset > HOOK_LEN - 0.08:
             sys.exit(f"Hook speech ends at {segs[-1][1]:.2f}s; it cannot be trimmed to 8.00s without cutting words.")
     path = os.path.join(out, "runsit-car-hook.mp4")
@@ -357,10 +357,14 @@ def build(args):
 
     premix = os.path.join(tmp, "premix.wav")
     video = os.path.join(tmp, "video.mp4")
-    run(["-y", *inputs, "-filter_complex", graph, "-map", "[mix]", "-c:a", "pcm_s24le", premix,
-         "-map", "[v]", "-an", "-r", f"{FPS}", "-c:v", "libx264", "-preset", "slow",
-         "-b:v", "14M", "-maxrate", "20M", "-bufsize", "28M", "-profile:v", "high", "-pix_fmt", "yuv420p",
-         "-g", f"{FPS * 2}", "-frames:v", f"{int(TOTAL * FPS)}", video])
+    # Two-pass ABR so flat product graphics still reach the requested 12-20 Mbps.
+    passlog = os.path.join(tmp, "x264")
+    for n, target_file in ((1, os.devnull), (2, video)):
+        run(["-y", *inputs, "-filter_complex", graph, "-map", "[mix]", "-c:a", "pcm_s24le", premix,
+             "-map", "[v]", "-an", "-r", f"{FPS}", "-c:v", "libx264", "-preset", "slow",
+             "-b:v", "14M", "-maxrate", "20M", "-bufsize", "28M", "-profile:v", "high", "-pix_fmt", "yuv420p",
+             "-g", f"{FPS * 2}", "-frames:v", f"{int(TOTAL * FPS)}", "-pass", f"{n}", "-passlogfile", passlog,
+             *(["-f", "mp4"] if n == 1 else []), target_file])
 
     # Two-pass loudness normalisation to -14 LUFS, true peak below -1 dBTP.
     target = "I=-14:TP=-1.5:LRA=11"

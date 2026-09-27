@@ -52,3 +52,4 @@ next-env.d.ts
 
 # Rendered ad outputs
 marketing/**/out/
+__pycache__/

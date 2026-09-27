@@ -5,6 +5,33 @@ the supplied 22-second product section (`runsit-product-section-9x16.mp4`,
 used as-is), with off-screen narration, burned-in captions, ducked product
 audio and a -14 LUFS mix.
 
+## Delivered (2026-09-27)
+
+| File | Result |
+| --- | --- |
+| `deliverables/runsit-complete-ad-30s.mp4` | 30.00 s, 1080x1920, constant 30 fps, H.264 High, yuv420p, AAC 48 kHz stereo, fast start; -14.2 LUFS integrated, -1.4 dBTP |
+| `deliverables/runsit-car-hook.mp4` | 8.00 s opening; all words kept |
+| `deliverables/runsit-complete-ad-30s.srt` | Captions matching the burned-in chunks |
+| `deliverables/assembly-report.json` | Narration placements and loudness |
+| `generated/*-raw.mp4` | Untouched Seedance outputs, for re-assembly |
+
+Checks: a speech-to-text pass on the final mix recovered every scripted line
+("runs it dot C A" transcribes as "runsit.ca"). The hook's last word ended at
+8.24 s, so 0.33 s of silence before her first word was trimmed as well as the
+trailing pause. Median voice pitch is 205 Hz (hook) vs 191 and 200 Hz
+(narration takes); listen to confirm the voices match.
+
+Video averages about 8.5 Mbps (two-pass, 14 Mbps target). The hook section runs
+at about 22 Mbps. The supplied product section is about 1 Mbps and saturates at
+about 2.3 Mbps even near lossless, so 12–20 Mbps could only be reached with filler.
+
+Review before posting: the generated top shows more cleavage and midriff than
+"subtle", and the framing is wider than face and upper torso. Check it against
+each ad platform's policy on suggestive imagery, or regenerate the hook with a
+more modest top.
+
+## Files
+
 | File | Purpose |
 | --- | --- |
 | `prompts/01-car-hook.txt` | Seedance prompt for SHOT 1 (on-camera dialogue) |
@@ -48,7 +75,7 @@ python3 marketing/ai-templates/car-hook-ad-2026-09-27/assemble.py \
 
 Outputs land in `out/` (ignored): `runsit-car-hook.mp4`,
 `runsit-complete-ad-30s.mp4` (H.264 High, 1080x1920, constant 30 fps,
-yuv420p, ~14 Mbps, AAC 48 kHz stereo, fast start), `runsit-complete-ad-30s.srt`,
+yuv420p, two-pass 14 Mbps target, AAC 48 kHz stereo, fast start), `runsit-complete-ad-30s.srt`,
 plus `captions.ass`, `timings.json` and `report.json` (loudness and placements).
 
 - The script refuses a non-9:16 hook (no center-crop) and a hook whose words run past 8.00 s.
