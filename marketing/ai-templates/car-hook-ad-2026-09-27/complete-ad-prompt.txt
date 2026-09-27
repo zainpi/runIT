@@ -1,0 +1,64 @@
+Create a complete 30-second vertical ad for runsIT AI templates.
+
+INPUT ASSET
+Use the attached runsit-product-section-9x16.mp4 as the exact product demonstration and end card. It is 22.00 seconds, 1080 x 1920, 30 fps, and already contains the product animation, music, sound effects, and closing URL. Generate only the new creator footage for the opening. Preserve the supplied product visuals and their example/sample labels; do not ask a generative video model to recreate the website.
+
+THE CONCEPT
+Too many app ideas in Notes, no idea where to start. The solution is a beginner-friendly AI template, a personalized plan, a build guide, and a full prompt for a separate coding AI. The tone is relatable, specific, and easy to understand.
+
+SHOT 1 — GENERATE THE CAR HOOK (0:00–0:08)
+Photorealistic front-camera phone footage of a clearly adult, 25-year-old Asian woman with a slim athletic build, sitting in a parked car after the gym. Dark hair in a slightly messy ponytail, natural makeup, fitted scoop-neck workout top with subtle visible cleavage. Frame her face and upper torso at eye level. Natural afternoon window light, realistic skin, slight handheld movement, clean dialogue, quiet car ambience. Friendly and amused by her own indecision. This is a fictional creator skit, not a real customer testimonial.
+
+Start speaking immediately. Exact dialogue:
+“My Notes app has twenty app ideas. Actual apps? Zero. I had no idea where to start—until this.”
+
+Delivery:
+0:00–0:03: “My Notes app has twenty app ideas.” A small knowing smile.
+0:03–0:04.5: “Actual apps? Zero.” A brief self-aware eyebrow raise.
+0:04.5–0:08: “I had no idea where to start—until this.” She gestures toward the camera on “this,” motivated by showing the viewer the product.
+
+Natural English delivery; no caricatured accent. Believable lip sync and hands. No intro, beauty filter, dramatic camera movement, generated text, or fade to black. Keep the shot visually consistent throughout. Export this shot as runsit-car-hook.mp4. Trim only its trailing pause to exactly 8.00 seconds; keep all spoken words.
+
+ASSEMBLE THE COMPLETE AD
+Create a 1080 x 1920, 30 fps timeline. Place the generated hook at 0:00. Cut directly on her final gesture into the attached product-section MP4 at 0:08. Play the entire attached 22-second clip once at normal speed, ending at 0:30. No extra end card is necessary; the supplied clip already contains it. Do not center-crop a landscape video or shrink it into a tiny picture-in-picture.
+
+Continue with the same woman's voice as OFF-SCREEN NARRATION over the supplied product footage:
+
+0:08–0:11.8 — template selection:
+“runsIT has AI templates to help you get started.”
+
+0:11.8–0:16.6 — example plan and AI editor:
+“Pick your template, describe your idea, and shape your plan.”
+
+0:16.6–0:21.9 — complete guide and sample prototype:
+“Get a complete guide and a sample prototype.”
+
+0:21.9–0:26.2 — full build prompt and optional extras:
+“Then take your full prompt into your coding AI.”
+
+0:26.2–0:30 — existing orange CTA:
+“Find your template at runs it dot C A.”
+
+Pronounce runsIT as “runs it.” Keep narration relaxed and intelligible within each beat. Do not imply a finished, deployed app appears automatically. Preserve the fact that optional extras are optional. Do not invent testimonials, income results, prices, discounts, or urgency.
+
+CAPTIONS AND TEXT — ADD IN THE EDITOR
+During the opening, show “20 app ideas. No idea where to start.” in a bold, high-contrast style above her lower-third dialogue captions. Use short sentence-case caption chunks, with no more than two lines at once. Highlight only one key word per chunk in orange or yellow.
+
+Caption the spoken dialogue and narration accurately. In the product section, use the open area below the main product panels, approximately y=1660–1760 on the 1920-pixel canvas. Keep captions within x=90–900 to allow room for social controls. Use roughly 44–48 px text and a restrained dark backing for contrast. Never cover the product headings, example/sample labels, guide controls, or the closing URL. The last CTA can use the existing end-card text without an additional duplicate headline.
+
+SOUND
+Use clean car dialogue for the opening. The supplied product clip already has music and sound effects: lower its audio under the voiceover and avoid adding a second music bed. Start with roughly 10–14 dB attenuation under speech, then adjust by ear so every word is clear. Keep the ending natural and avoid a clipped final word. Aim for a balanced social mix around -14 LUFS integrated with peaks below -1 dBTP.
+
+DELIVERABLES
+1. runsit-car-hook.mp4 — the generated 8-second opening.
+2. runsit-complete-ad-30s.mp4 — the assembled 30-second ad, H.264 MP4, 1080 x 1920, constant 30 fps, yuv420p, AAC 48 kHz stereo, web fast-start enabled. Export at high quality around 12–20 Mbps.
+3. runsit-complete-ad-30s.srt — accurate captions for accessibility and reuse.
+
+If the selected Higgsfield workflow only generates individual shots, use SHOT 1 there, then follow ASSEMBLE THE COMPLETE AD in a video editor using the supplied MP4. The assembly instructions are not a prompt to hallucinate new product footage.
+
+PAID-AD / WEBSITE HANDOFF
+CTA button: Find your template.
+Destination: https://runsit.ca/templates/
+Suggested ad primary text: “Too many app ideas. No idea where to start? Pick an AI template, shape your plan, and get a clear starting point for your build.”
+Suggested headline: “Give your app idea a starting point.”
+For the website, place the finished ad near the template introduction with the same clickable CTA beneath it. Use a poster frame, captions, and user-initiated sound. Posting the ad, changing the website, and starting paid campaigns are separate steps from this export.
