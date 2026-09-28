@@ -87,6 +87,17 @@
   }
 }
 
+/* runsOS pages paint the whole canvas, including overscroll, as the desktop wallpaper. */
+body:has([data-os]) {
+  background: #ede4d3;
+  color: #1b1a17;
+}
+:root:has([data-os]) {
+  color-scheme: light;
+  scroll-padding-top: 64px;
+  scrollbar-color: #1b1a17 #ede4d3;
+}
+
 /* Faint dotted background helper used on hero/section accents */
 .bg-dotgrid {
   background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);

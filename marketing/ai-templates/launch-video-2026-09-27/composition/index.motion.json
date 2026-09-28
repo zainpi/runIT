@@ -1,0 +1,12 @@
+{
+  "duration": 24.8,
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#hook-question", "bySec": 0.8 },
+    { "kind": "appearsBy", "selector": "#store-heading", "bySec": 3.5 },
+    { "kind": "appearsBy", "selector": "#dashboard-heading", "bySec": 7.5 },
+    { "kind": "appearsBy", "selector": "#guide-heading", "bySec": 12.5 },
+    { "kind": "appearsBy", "selector": "#prompt-heading", "bySec": 17.5 },
+    { "kind": "appearsBy", "selector": "#outro-heading", "bySec": 22.0 },
+    { "kind": "staysInFrame", "selector": "#outro-heading" }
+  ]
+}

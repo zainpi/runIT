@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { site, footerNav } from "@/lib/site";
-import { MailIcon, PhoneIcon, MapPinIcon } from "@/components/icons";
+import { MailIcon } from "@/components/icons";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -24,19 +24,6 @@ export function Footer() {
                   <MailIcon className="h-4 w-4 text-brand-300" />
                   {site.email}
                 </a>
-              </li>
-              <li>
-                <a
-                  href={`tel:${site.phoneHref}`}
-                  className="inline-flex items-center gap-2.5 transition-colors hover:text-white"
-                >
-                  <PhoneIcon className="h-4 w-4 text-brand-300" />
-                  {site.phone}
-                </a>
-              </li>
-              <li className="inline-flex items-center gap-2.5">
-                <MapPinIcon className="h-4 w-4 text-brand-300" />
-                {site.location}
               </li>
             </ul>
           </div>
@@ -80,30 +67,12 @@ export function Footer() {
             © {year} {site.legalName}. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
-            <a
-              href={site.social.linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-white"
-            >
-              LinkedIn
-            </a>
-            <a
-              href={site.social.x}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-white"
-            >
-              X
-            </a>
-            <a
-              href={site.social.youtube}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-white"
-            >
-              YouTube
-            </a>
+            <Link href="/privacy/" className="transition-colors hover:text-white">
+              Privacy
+            </Link>
+            <Link href="/terms/" className="transition-colors hover:text-white">
+              Terms
+            </Link>
           </div>
         </div>
       </div>

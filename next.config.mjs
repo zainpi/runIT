@@ -19,6 +19,8 @@ const nextConfig = {
     ? { output: "standalone", experimental: { cpus: 1 } }
     : {}),
   poweredByHeader: false,
+  // Render metadata in <head> for every client, including crawlers that also run JavaScript.
+  htmlLimitedBots: /.*/,
   trailingSlash: true,
   async headers() {
     return [
@@ -66,6 +68,14 @@ const nextConfig = {
         destination: "/the-last-echo/index.html",
       },
       {
+        source: "/the-last-echo/redeem",
+        destination: "/the-last-echo/redeem/index.html",
+      },
+      {
+        source: "/the-last-echo/redeem/",
+        destination: "/the-last-echo/redeem/index.html",
+      },
+      {
         source: "/the-last-echo/guides",
         destination: "/the-last-echo/guides/index.html",
       },
@@ -77,19 +87,15 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      { source: "/opengraph-image", destination: "/social/runsit.png", permanent: true },
+      { source: "/twitter-image", destination: "/social/runsit.png", permanent: true },
+      { source: "/templates/opengraph-image", destination: "/social/templates.png", permanent: true },
+      { source: "/templates/twitter-image", destination: "/social/templates.png", permanent: true },
+      { source: "/:founder(zainpi|raishaikh|mikaelsid)/opengraph-image", destination: "/social/:founder.png", permanent: true },
+      { source: "/:founder(zainpi|raishaikh|mikaelsid)/twitter-image", destination: "/social/:founder.png", permanent: true },
       { source: "/services", destination: "/#products", permanent: true },
       { source: "/case-studies", destination: "/#products", permanent: true },
-      {
-        source: "/about",
-        destination: "/#company",
-        permanent: true,
-      },
-      {
-        source: "/contact",
-        destination: "/#contact",
-        permanent: true,
-      },
-      { source: "/book", destination: "/#contact", permanent: true },
+      { source: "/book", destination: "/contact/", permanent: true },
     ];
   },
 };

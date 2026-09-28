@@ -4,6 +4,8 @@ The PulseDeals API is deployed by the existing runsIT Cloudflare Worker. Both
 `https://runsit.ca` and `https://runs-it.com` route to that Worker; the iOS client uses
 `https://runsit.ca/pulsedeals/api/v1`.
 
+Opening a live Amazon deal calls authenticated `POST /deals/<ASIN>/refresh?marketplace=<country>` before the handoff. The route accepts only an existing deal in a country the member can access, limits each account to 30 requests per hour, and coalesces requests for the same product to one every five minutes. It acknowledges the request before asking Keepa for a fresh product (`update=0`); Keepa work runs with Next `after()` and updates the stored NEW price, history, and deal status when the returned observation is newer. The iOS app reloads the feed and opened deal when it becomes active again. This is a best-effort Keepa refresh, not a read of the Amazon app's displayed offer; the final price remains Amazon's.
+
 The public `runsit.ca` domain is attached to the `runit` Worker. The repository's
 `runsit-ca` Worker is a separate historical build target; configure production secrets and
 verify the release on `runit` (or through the Workers Build project that deploys `runit`).
