@@ -1,0 +1,179 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,follow">
+<link rel="icon" type="image/svg+xml" href="/the-last-echo/img/icon.svg">
+<style>
+@font-face{font-family:'Pixel';src:url('/the-last-echo/fonts/monogram.ttf?v=2') format('truetype');font-display:swap}
+:root{--parch:#f3e7c9;--parch2:#e8d3a8;--wood:#6b4423;--wood2:#8a5a2b;--wood-dark:#3f2812;--ink:#3a2410;--ink2:#5a3a1c;--gold:#c9a059;--gold-lt:#f0c870;--green:#5fa233;--green-dk:#36571f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;color:var(--ink);line-height:1.7;
+ background:#caa45e;background-image:radial-gradient(circle at 20% 0%,#e7cf9f 0,transparent 45%),linear-gradient(#e6cf9c,#d8bd84)}
+a{color:#3f7a24;text-decoration:none}a:hover{text-decoration:underline}
+.nav{position:sticky;top:0;z-index:9;background:linear-gradient(var(--wood2),var(--wood));border-bottom:4px solid var(--wood-dark);box-shadow:inset 0 2px 0 #a87b4c}
+.nav .in{max-width:900px;margin:0 auto;padding:0 22px;height:60px;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;color:#f3e7c9}
+.brand img{width:34px;height:34px;border:2px solid var(--wood-dark);border-radius:7px;background:#bfe0f0;image-rendering:pixelated}
+.brand b{font-family:'Pixel',monospace;font-size:21px;font-weight:400}
+.nav .in a.back{margin-left:auto;font-family:'Pixel',monospace;font-size:16px;color:#f3e7c9;padding:7px 14px;border:3px solid var(--wood-dark);border-radius:8px;background:linear-gradient(var(--parch),#e0c88e);color:var(--ink)}
+.page{max-width:860px;margin:34px auto;padding:0 22px}
+.card{background:linear-gradient(var(--parch),var(--parch2));border:4px solid var(--ink2);border-radius:16px;
+ box-shadow:inset 0 0 0 2px var(--gold),0 8px 0 rgba(40,22,8,.25);padding:40px 38px}
+.content h1{font-family:'Pixel',monospace;font-weight:400;font-size:40px;line-height:1.05;margin-bottom:6px;color:var(--ink)}
+.content h2{font-family:'Pixel',monospace;font-weight:400;font-size:25px;margin:30px 0 10px;color:var(--ink);border-bottom:3px solid var(--gold);padding-bottom:6px}
+.content h3{font-family:'Pixel',monospace;font-weight:400;font-size:20px;margin:20px 0 8px;color:var(--ink2)}
+.content p,.content li{font-size:16px;margin:10px 0}
+.content ul,.content ol{padding-left:22px}
+.content blockquote{border-left:4px solid var(--green);background:rgba(95,162,51,.12);padding:10px 16px;border-radius:6px;margin:14px 0;font-size:15px}
+.content hr{border:none;border-top:2px dashed #b8946a;margin:26px 0}
+.content code{background:#e7d6ab;border:1px solid #c9a059;border-radius:4px;padding:1px 6px;font-size:14px}
+.content table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;background:#fbf2dc;border-radius:8px;overflow:hidden}
+.content th{background:linear-gradient(var(--wood2),var(--wood));color:#f3e7c9;font-family:'Pixel',monospace;font-weight:400;text-align:left;padding:10px 12px}
+.content td{border-top:1px solid #d8c499;padding:9px 12px;vertical-align:top}
+.content tr:nth-child(even) td{background:#f3e7c9}
+footer{text-align:center;padding:30px 22px 50px;color:#5e482c;font-size:13px}
+footer a{color:#3f2812}
+</style>
+<title>利用規約／EULA — The Last Echo</title>
+<meta name="description" content="The Last Echoの利用規約およびEULA：アカウント、購入、ランダム型報酬の提供割合、チャット、サポートについて。">
+<meta property="og:type" content="website" />
+<meta property="og:title" content="利用規約／EULA — The Last Echo" />
+<meta property="og:description" content="The Last Echoの利用規約およびEULA：アカウント、購入、ランダム型報酬の提供割合、チャット、サポートについて。" />
+<meta property="og:url" content="https://runs-it.com/the-last-echo/ja/terms.html" />
+<meta property="og:image" content="https://runs-it.com/the-last-echo/img/og.png?v=2" />
+<link rel="canonical" href="https://runs-it.com/the-last-echo/ja/terms.html">
+<link rel="alternate" hreflang="en" href="https://runs-it.com/the-last-echo/terms.html">
+<link rel="alternate" hreflang="es" href="https://runs-it.com/the-last-echo/es/terms.html">
+<link rel="alternate" hreflang="ko" href="https://runs-it.com/the-last-echo/ko/terms.html">
+<link rel="alternate" hreflang="ja" href="https://runs-it.com/the-last-echo/ja/terms.html">
+<link rel="alternate" hreflang="x-default" href="https://runs-it.com/the-last-echo/terms.html">
+<style>
+.langs{position:relative;flex:none;font-family:'Pixel',monospace}
+.langs summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;color:#f3e7c9;font-size:17px;border:2px solid rgba(243,231,201,.35);line-height:1.2}
+.langs summary::-webkit-details-marker{display:none}
+.langs summary:hover,.langs[open] summary{background:rgba(255,255,255,.12)}
+.langs ul{position:absolute;right:0;top:calc(100% + 8px);list-style:none;margin:0;padding:6px;min-width:150px;background:linear-gradient(#f3e7c9,#e8d3a8);border:3px solid #3f2812;border-radius:10px;box-shadow:0 8px 18px rgba(40,22,8,.35);z-index:60}
+.langs li{margin:0}
+.langs ul a{display:block;padding:7px 12px;border-radius:6px;color:#3a2410;font-family:system-ui,'Segoe UI',sans-serif;font-size:15px;text-decoration:none}
+.langs ul a:hover{background:rgba(201,160,89,.25);text-decoration:none}
+.langs ul a[aria-current]{font-weight:700;background:rgba(201,160,89,.35)}
+@media(max-width:540px){.langs .lc{display:none}.nav .in a.back .bt{display:none}}
+</style>
+<style>
+@font-face{font-family:'Pixel';src:local('Hiragino Kaku Gothic ProN'),local('HiraKakuProN-W3'),local('Hiragino Sans'),local('Yu Gothic'),local('Meiryo'),local('Noto Sans JP'),local('Noto Sans CJK JP');unicode-range:U+3000-30FF,U+3400-4DBF,U+4E00-9FFF,U+FF00-FFEF;size-adjust:78%}
+body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
+</style>
+</head><body>
+<header class="nav"><div class="in">
+  <a class="brand" href="/the-last-echo/ja/"><img src="/the-last-echo/img/icon.svg" alt=""><b>The Last Echo</b></a>
+  <a class="back" href="/the-last-echo/ja/">←<span class="bt"> サイトに戻る</span></a>
+  <!-- l10n:langs --><details class="langs"><summary aria-label="言語: 日本語">🌐<span class="lc">JA</span></summary><ul><li><a href="/the-last-echo/terms.html" hreflang="en" lang="en">English</a></li><li><a href="/the-last-echo/es/terms.html" hreflang="es" lang="es">Español</a></li><li><a href="/the-last-echo/ko/terms.html" hreflang="ko" lang="ko">한국어</a></li><li><a href="/the-last-echo/ja/terms.html" hreflang="ja" lang="ja" aria-current="page">日本語</a></li></ul></details><script>document.addEventListener('click',function(e){document.querySelectorAll('details.langs[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})});</script>
+</div></header>
+<main class="page"><div class="card">
+<div class="content"><h1>利用規約／EULA — The Last Echo</h1>
+<blockquote>この翻訳は便宜のために提供するものです。<a href="/the-last-echo/terms.html" hreflang="en">英語版</a>との間に相違がある場合は、適用法令に別段の定めがない限り、英語版が優先します。</blockquote>
+<p><strong>施行日：</strong>2026年8月6日<br>
+<strong>最終更新日：</strong>2026年8月6日<br>
+<strong>アプリ：</strong>The Last Echo（以下「本ゲーム」）<br>
+<strong>提供者：</strong>runsIT（以下「当社」）<br>
+<strong>連絡先：</strong>info@runs-it.com</p>
+<p>The Last Echoをダウンロード、アクセス、またはプレイすることにより、お客様は本規約に同意したものとみなされます。同意しない場合は、本ゲームを利用しないでください。</p>
+<hr />
+<h2>1. ライセンス</h2>
+<p>当社は、本規約および該当するアプリストアの規約（Appleメディアサービス／Google Play）に従い、個人的かつ非商業的な娯楽を目的として
+The Last Echoをインストールしプレイするための、個人的、限定的、非独占的、譲渡不可、かつ取消可能なライセンスをお客様に付与します。</p>
+<hr />
+<h2>2. 利用資格</h2>
+<p>本ゲームをプレイするには、お住まいの地域の法律で定められた最低年齢に達している必要があります。本ゲームは13歳未満の子どもを対象としていません。未成年の方は、親権者または法定代理人の許可を得る必要があり、親権者または法定代理人がお客様に代わって本規約に同意するものとします。</p>
+<hr />
+<h2>3. アカウント</h2>
+<p>本ゲームは匿名のアカウントを自動的に作成します。任意でGoogleまたはAppleのログインを連携できます。お客様は、ご自身のアカウントで行われる行為に責任を負います。当社は、本規約に違反したアカウント、チートを行ったアカウント、または他のプレイヤーに迷惑行為を行ったアカウントを停止または削除することがあります。</p>
+<hr />
+<h2>4. 禁止行為</h2>
+<p>お客様は、以下の行為を行わないことに同意するものとします：チート、不具合の悪用、許可されていない第三者ツールの使用、本ゲームの改変やリバースエンジニアリング、セーブデータや通信の改ざん、他のプレイヤーへの嫌がらせ、チャットへの違法・差別的・有害なコンテンツの投稿、サービスの妨害。チャットはモデレーションされており、違反した場合はチャットの制限、アカウントの一時停止、または利用禁止となることがあります。</p>
+<hr />
+<h2>5. 仮想アイテムと仮想通貨</h2>
+<p>本ゲームには、仮想通貨（「ゴールド」「ジェム」など）と仮想アイテム（武器、防具、アビリティ、見た目を変えるアイテム）が含まれます。これらは<strong>現実の金銭的価値を持たず</strong>、現金と交換することはできず、お客様が所有するものではなく利用を許諾されるものです。当社は、通常のゲーム運営の一環として、仮想アイテムや仮想通貨を変更、調整、または削除することがあります。未使用の仮想アイテムは、アカウントの削除時または本ゲームのサービス終了時に失われることがありますが、お客様が放棄できない法的権利は妨げられません。</p>
+<hr />
+<h2>6. 購入と返金</h2>
+<p>プレミアム通貨（「ジェム」）は、Apple App StoreまたはGoogle Playを通じて購入できます。すべての購入は当社ではなくプラットフォームが処理し、法令またはプラットフォームの返金ポリシーで定められる場合を除き、確定したものとなります。返金のご依頼はApple／Googleが対応します。価格は地域によって異なる場合があり、変更されることがあります。購入したジェムは、プラットフォームがレシートを検証した後に付与されます。当社がサーバー側の検証なしに通貨を付与することはありません。</p>
+<hr />
+<p><a id="gacha"></a></p>
+<h2>7. ランダム型報酬（「ガチャ」）— 提供割合の表示</h2>
+<p>本ゲームは、任意で利用できるランダム型報酬の仕組みを提供しています。進行のために購入が<strong>必要になることはなく</strong>、すべてのゲームコンテンツは通常のプレイで入手できます。ランダム型の抽選に使用するプレミアム通貨も、ゲーム内で入手できます。</p>
+<h3>7.1 公開しているレアリティ別の提供割合（1回あたり）</h3>
+<p>通常のアビリティ召喚における各レアリティの基本確率は以下のとおりです。</p>
+<table>
+<thead>
+<tr>
+  <th>レアリティ</th>
+  <th>1回あたりの確率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>コモン</td>
+  <td>62.0%</td>
+</tr>
+<tr>
+  <td>アンコモン</td>
+  <td>26.0%</td>
+</tr>
+<tr>
+  <td>レア</td>
+  <td>9.0%</td>
+</tr>
+<tr>
+  <td>レジェンダリー</td>
+  <td>2.4%</td>
+</tr>
+<tr>
+  <td>ミシック</td>
+  <td>0.5%</td>
+</tr>
+<tr>
+  <td>トランセンデント</td>
+  <td>0.09%</td>
+</tr>
+<tr>
+  <td>ディバイン</td>
+  <td>0.01%</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>武器バナーの確率はバナーの投資レベルに応じて変化し、召喚する前に各バナーのゲーム内画面に必ず表示されます。ゲーム内に表示される確率が正式な実際の確率であり、本規約の内容と一致しています。</p>
+</blockquote>
+<h3>7.2 天井システム（確定の仕組み）</h3>
+<ul>
+<li><strong>ソフト天井：</strong>最高ランクの結果が出ないまま<strong>75</strong>回目に達すると、それ以降は最高レアリティの確率が<strong>1回ごとに2%</strong>ずつ上昇します。</li>
+<li><strong>ハード天井：</strong><strong>遅くとも100回目までに</strong>最高ランク（レジェンダリー以上）の報酬が<strong>確定</strong>します。天井カウンターはゲーム内に表示・保存され、アプリを再起動しても引き継がれます。カウンターがリセットされるのは、天井が発動したとき、または通常の抽選でレジェンダリー以上を引いたときだけです。</li>
+</ul>
+<h3>7.3 ピックアップ確定</h3>
+<p>ピックアップバナーでは、レジェンダリー以上の結果が出るたびに<strong>50%</strong>の確率でピックアップ対象になります。そのバナーで最初に出たレジェンダリー以上がピックアップ対象で<strong>なかった</strong>場合、<strong>次の</strong>レジェンダリー以上はピックアップ対象が<strong>確定</strong>します。この「確定の引き継ぎ」は、バナーの終了後も保持されます。</p>
+<p>当社は、各リリースの前に、実装した報酬の結果が公開している確率表と一致するかを自動シミュレーションで検証しています。特定のバナーで異なるルールが表示されている場合は、そのバナーのゲーム内表示が正式な情報となり、変更が採用された時点で本ページも更新します。</p>
+<hr />
+<h2>8. ユーザー生成コンテンツ（チャット）</h2>
+<p>お客様が投稿したメッセージの権利はお客様に帰属しますが、お客様は、本ゲームの運営のために当社がそれらをホスティング、表示、およびモデレーションするためのライセンスを当社に付与するものとします。お客様はご自身のコンテンツに責任を負います。当社は、第4条に違反するコンテンツを削除し、該当するアカウントに対して措置を講じることがあります。通報されたメッセージは確認され、繰り返しの違反や重大な違反はチャットの制限、アカウントの一時停止、または利用禁止につながります。</p>
+<hr />
+<h2>9. サービスの提供と変更</h2>
+<p>本ゲームの起動とオンライン機能の利用には、インターネット接続が必要です。当社は、いつでも本ゲームまたはその機能を更新、変更、一時停止、または終了することがあります。また、本ゲームを一時的に利用できなくなるメンテナンスを行うことがあります。当社は、一時的にサービスを利用できないことについて責任を負いません。</p>
+<hr />
+<h2>10. 保証の否認と責任の制限</h2>
+<p>本ゲームは、法律で認められる最大限の範囲において、いかなる種類の保証もなく「現状有姿」かつ「提供可能な範囲」で提供されます。法律で認められる範囲において、本ゲームに関するあらゆる請求に対する当社の責任の総額は、請求の前12か月間にお客様が当社に支払った金額を上限とします。本規約のいかなる内容も、法律上制限できない責任（お客様が放棄できない消費者としての権利を含む）を制限するものではありません。</p>
+<hr />
+<h2>11. 契約の終了</h2>
+<p>お客様は、いつでもプレイをやめてアカウントを削除できます（設定 → アカウント → アカウント削除）。当社は、本規約に違反した場合、お客様のアクセスを停止または終了することがあります。その性質上、終了後も存続すべき条項（例：第5条、第10条、第12条）は、終了後も効力を有します。</p>
+<hr />
+<h2>12. 準拠法と紛争</h2>
+<p>本規約は、抵触法の規定にかかわらず、提供者の主たる事業所の所在地で適用される法律に準拠します。紛争は、当事者または紛争について管轄権を有する裁判所に提起できます。本条のいかなる内容も、強行的な消費者保護上の権利や、現地の法律で定められた場所で請求を行う権利を排除するものではありません。</p>
+<hr />
+<h2>13. 本規約の変更</h2>
+<p>当社は本規約を変更することがあります。重要な変更はゲーム内またはストアページでお知らせし、「施行日」を更新します。変更後もプレイを続けた場合、変更後の規約に同意したものとみなされます。</p>
+<hr />
+<h2>14. お問い合わせ</h2>
+<p>runsIT（カナダ）<br>
+<a href="mailto:info@runs-it.com">info@runs-it.com</a></p>
+</div>
+</div></main>
+<footer>© 2026 The Last Echo · <a href="/the-last-echo/ja/privacy.html">プライバシー</a> · <a href="/the-last-echo/ja/terms.html">利用規約</a> · <a href="/the-last-echo/ja/support.html">サポート</a> · <a href="/the-last-echo/ja/">ホーム</a></footer>
+</body></html>

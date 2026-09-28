@@ -78,6 +78,22 @@ const nextConfig = {
         source: "/the-last-echo/guides/",
         destination: "/the-last-echo/guides/index.html",
       },
+      {
+        source: "/the-last-echo/:lang(es|ko|ja)",
+        destination: "/the-last-echo/:lang/index.html",
+      },
+      {
+        source: "/the-last-echo/:lang(es|ko|ja)/",
+        destination: "/the-last-echo/:lang/index.html",
+      },
+      {
+        source: "/the-last-echo/:lang(es|ko|ja)/redeem",
+        destination: "/the-last-echo/:lang/redeem/index.html",
+      },
+      {
+        source: "/the-last-echo/:lang(es|ko|ja)/redeem/",
+        destination: "/the-last-echo/:lang/redeem/index.html",
+      },
     ];
   },
   async redirects() {
