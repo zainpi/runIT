@@ -1,0 +1,61 @@
+{
+  "campaign": "notes-app-ideas",
+  "jobs": {
+    "hero": {
+      "status": "completed",
+      "model": "marketing-studio/image",
+      "input_hash": "bec9b3a914b5d092",
+      "estimated_usd": 0.213,
+      "price_source": "estimate",
+      "fallback": false,
+      "submitted_at": "2026-09-25T08:27:44.838Z",
+      "request_id": "4d6a1a46-49f4-4024-bd0d-d63e54f8246d",
+      "checked_at": "2026-09-25T08:29:14.325Z",
+      "media_url": "https://d3u0tzju9qaucj.cloudfront.net/a6c6243b-92bc-4167-bada-aa34811f061d/1123dce2-25ba-4072-aa74-f2b9b2486517.png",
+      "file": "keyframes/hero.png",
+      "bytes": 5643499
+    },
+    "hook": {
+      "status": "completed",
+      "model": "bytedance/seedance-2.5/image-to-video",
+      "input_hash": "2371759d5001141d",
+      "estimated_usd": 2.3112,
+      "price_source": "token formula",
+      "fallback": false,
+      "submitted_at": "2026-09-25T08:29:34.861Z",
+      "request_id": "40b21642-0d09-486d-8d6f-aa2a77b1046b",
+      "checked_at": "2026-09-25T08:35:01.988Z",
+      "media_url": "https://d3u0tzju9qaucj.cloudfront.net/a6c6243b-92bc-4167-bada-aa34811f061d/7a8b1b1b-73e7-4d91-a6ed-262427a68ff5.mp4",
+      "file": "clips/hook.mp4",
+      "bytes": 4188384
+    },
+    "montage": {
+      "status": "completed",
+      "model": "bytedance/seedance-2.5/text-to-video",
+      "input_hash": "c918611b7706758a",
+      "estimated_usd": 2.3112,
+      "price_source": "token formula",
+      "fallback": false,
+      "submitted_at": "2026-09-25T08:35:04.255Z",
+      "request_id": "5cc681ae-96cc-4981-98aa-2719117e4547",
+      "checked_at": "2026-09-25T08:38:53.501Z",
+      "media_url": "https://d3u0tzju9qaucj.cloudfront.net/a6c6243b-92bc-4167-bada-aa34811f061d/6ee36dca-66c6-4875-b72d-f9d40b73726c.mp4",
+      "file": "clips/montage.mp4",
+      "bytes": 4127974
+    },
+    "payoff": {
+      "status": "completed",
+      "model": "bytedance/seedance-2.5/image-to-video",
+      "input_hash": "1b7b85f36deb87e7",
+      "estimated_usd": 2.3112,
+      "price_source": "token formula",
+      "fallback": false,
+      "submitted_at": "2026-09-25T08:38:55.475Z",
+      "request_id": "18a37076-8e7b-4504-8efe-08427221bad3",
+      "checked_at": "2026-09-25T08:42:46.927Z",
+      "media_url": "https://d3u0tzju9qaucj.cloudfront.net/a6c6243b-92bc-4167-bada-aa34811f061d/4eb4be98-ab11-430c-90ab-c72ac3687a9b.mp4",
+      "file": "clips/payoff.mp4",
+      "bytes": 5278663
+    }
+  }
+}

@@ -4,6 +4,7 @@ import { referralForCode } from "@/lib/templates/referrals";
 import { assertSameOrigin, errorResponse, jsonResponse, readJson, stripeForStore } from "@/lib/templates/server";
 import { aiConfiguration } from "@/lib/templates/ai-service";
 import { iconConfiguration } from "@/lib/templates/icon-service";
+import { metaBrowserIds } from "@/lib/templates/meta-capi";
 export async function POST(request: Request) {
   try {
     const { stripe, origin } = await stripeForStore();
@@ -28,9 +29,10 @@ export async function POST(request: Request) {
       const icon = await iconConfiguration();
       if (!icon.enabled || !icon.orders) throw new StoreError("App icon creation is temporarily unavailable. Remove this add-on to continue, or try again later.", 503);
     }
-    const params = checkoutParameters(ids, data.accessToken, returnOrigin, subagents, skillTree, referral, appIcon);
+    const attribution = metaBrowserIds(request);
+    const params = checkoutParameters(ids, data.accessToken, returnOrigin, subagents, skillTree, referral, appIcon, attribution);
     // Include every add-on and version the request when Checkout parameters change.
-    const session = await stripe.checkout.sessions.create(params, { idempotencyKey: `templates-standard-v2-${tokenHash(`${data.accessToken}:${ids.join(",")}:${returnOrigin}:${params.metadata!.currency}:${subagents}:${skillTree}:${appIcon}:${referral?.codeDigest ?? "none"}`)}` });
+    const session = await stripe.checkout.sessions.create(params, { idempotencyKey: `templates-standard-v2-${tokenHash(`${data.accessToken}:${ids.join(",")}:${returnOrigin}:${params.metadata!.currency}:${subagents}:${skillTree}:${appIcon}:${referral?.codeDigest ?? "none"}:${attribution.meta_fbp ?? ""}:${attribution.meta_fbc ?? ""}`)}` });
     if (!session.url) throw new StoreError("Checkout could not be opened. Please retry.", 502);
     return jsonResponse({ url: session.url, sessionId: session.id });
   } catch (error) { return errorResponse(error); }

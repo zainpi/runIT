@@ -1,0 +1,42 @@
+{
+  "fps": 30,
+  "width": 1170,
+  "height": 2532,
+  "scenes": {
+    "store": {
+      "duration": 5.753,
+      "marks": {
+        "scroll-templates": 0.901,
+        "tap-mobile-app": 2.52,
+        "scroll-order": 3.449
+      }
+    },
+    "describe": {
+      "duration": 5.628,
+      "marks": {
+        "type-name": 0.528,
+        "type-idea": 1.506,
+        "tap-save": 4.907
+      }
+    },
+    "plan": {
+      "duration": 6.463,
+      "marks": {
+        "scroll-plan": 0.7,
+        "scroll-features": 2.517,
+        "tap-feature": 3.826,
+        "tap-feature-2": 5.146
+      }
+    },
+    "guide": {
+      "duration": 7.667,
+      "marks": {
+        "scroll-steps": 0.9,
+        "scroll-prototype": 2.915,
+        "tap-view": 4.62,
+        "tap-invite": 5.535,
+        "tap-accept": 6.352
+      }
+    }
+  }
+}

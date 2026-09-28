@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { fulfillOrder, StoreError, TEMPLATE_STORE } from "@/lib/templates/payment";
-import { errorResponse, jsonResponse, readBody, stripeForStore } from "@/lib/templates/server";
+import { environment, errorResponse, jsonResponse, readBody, stripeForStore } from "@/lib/templates/server";
+import { sendMetaPurchase } from "@/lib/templates/meta-capi";
 export async function POST(request: Request) {
   try {
     const { stripe, webhookSecret } = await stripeForStore();
@@ -13,8 +14,11 @@ export async function POST(request: Request) {
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object;
       if (session.metadata?.store === TEMPLATE_STORE && (session.payment_status === "paid" || session.payment_status === "no_payment_required")) {
-        try { await fulfillOrder(stripe, session.id); }
-        catch (error) {
+        try {
+          const order = await fulfillOrder(stripe, session.id);
+          // Meta dedupes retried deliveries by event_id (the Checkout Session ID).
+          await sendMetaPurchase(await environment(), order.session, event.created);
+        } catch (error) {
           // Already-refunded/disputed or obsolete orders must not cause endless retries.
           if (!(error instanceof StoreError && error.status === 403)) throw error;
         }
