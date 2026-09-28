@@ -21,8 +21,9 @@ test("stores request ID, prevents duplicate paid submission, and retrieves compl
         posts++;
         assert.equal(url, "https://api.higgsfield.ai/bytedance/seedance-2.0/text-to-video");
         assert.equal(JSON.parse(init.body).aspect_ratio, "9:16");
-        return response({ status: "queued", request_id: requestId, status_url: `https://api.higgsfield.ai/requests/${requestId}/status` });
+        return response({ status: "queued", request_id: requestId, status_url: `https://platform.higgsfield.ai/requests/${requestId}/status` });
       }
+      assert.equal(url, `https://api.higgsfield.ai/requests/${requestId}/status`);
       return response({ status: "completed", request_id: requestId, video: { url: "https://cdn.example.com/ad.mp4" } });
     };
     const submitted = await submit(flags, { dir, env, fetchImpl });

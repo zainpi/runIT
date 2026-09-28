@@ -49,3 +49,7 @@ next-env.d.ts
 
 # Local Cloudflare development state
 /.wrangler/
+
+# Rendered ad outputs
+marketing/**/out/
+__pycache__/

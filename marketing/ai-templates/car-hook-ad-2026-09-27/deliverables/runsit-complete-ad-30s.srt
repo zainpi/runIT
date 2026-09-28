@@ -1,0 +1,59 @@
+1
+00:00:00,000 --> 00:00:02,848
+My Notes app has 20 app ideas.
+
+2
+00:00:03,035 --> 00:00:05,087
+Actual apps? Zero.
+
+3
+00:00:05,235 --> 00:00:06,913
+I had no idea where to start—
+
+4
+00:00:07,067 --> 00:00:08,000
+until this.
+
+5
+00:00:08,200 --> 00:00:09,644
+runsIT has AI templates
+
+6
+00:00:09,644 --> 00:00:11,501
+to help you get started.
+
+7
+00:00:12,000 --> 00:00:13,208
+Pick your template,
+
+8
+00:00:13,208 --> 00:00:14,416
+describe your idea,
+
+9
+00:00:14,416 --> 00:00:16,038
+and shape your plan.
+
+10
+00:00:16,800 --> 00:00:17,918
+Get a complete guide
+
+11
+00:00:17,918 --> 00:00:19,554
+and a sample prototype.
+
+12
+00:00:22,100 --> 00:00:23,617
+Then take your full prompt
+
+13
+00:00:23,617 --> 00:00:25,134
+into your coding AI.
+
+14
+00:00:26,400 --> 00:00:28,129
+Find your template
+
+15
+00:00:28,129 --> 00:00:29,727
+at runsit.ca.

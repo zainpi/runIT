@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const base = "https://api.higgsfield.ai";
+const statusOrigins = new Set([base, "https://platform.higgsfield.ai"]);
 const model = "bytedance/seedance-2.0/text-to-video";
 const terminal = new Set(["completed", "failed", "nsfw", "canceled"]);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -20,8 +21,8 @@ function credentials(env = process.env) {
 }
 function requestUrl(value, id) {
   const url = new URL(value);
-  if (url.origin !== base || url.pathname !== `/requests/${id}/status` || url.search || url.hash) fail("Higgsfield returned an unexpected status URL.");
-  return url.href;
+  if (!statusOrigins.has(url.origin) || url.pathname !== `/requests/${id}/status` || url.search || url.hash) fail("Higgsfield returned an unexpected status URL.");
+  return `${base}${url.pathname}`;
 }
 function mediaUrl(value) {
   const url = new URL(value);
@@ -141,7 +142,7 @@ export async function status(id, options = {}) {
   record.checked_at = new Date().toISOString();
   if (data.status === "completed") {
     record.video_url = mediaUrl(data.video?.url);
-  } else if (data.status === "failed") record.message = "Generation failed. Check the Higgsfield dashboard with the request ID.";
+  } else if (data.status === "failed") record.message = typeof data.error === "string" && data.error.length <= 300 ? `Generation failed: ${data.error}` : "Generation failed. Check the Higgsfield dashboard with the request ID.";
   else if (data.status === "nsfw") record.message = "Higgsfield rejected the content.";
   else if (data.status === "canceled") record.message = "Generation was canceled.";
   await save(record, dir);
