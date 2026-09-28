@@ -1,0 +1,163 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,follow">
+<link rel="icon" type="image/svg+xml" href="/the-last-echo/img/icon.svg">
+<style>
+@font-face{font-family:'Pixel';src:url('/the-last-echo/fonts/monogram.ttf?v=2') format('truetype');font-display:swap}
+:root{--parch:#f3e7c9;--parch2:#e8d3a8;--wood:#6b4423;--wood2:#8a5a2b;--wood-dark:#3f2812;--ink:#3a2410;--ink2:#5a3a1c;--gold:#c9a059;--gold-lt:#f0c870;--green:#5fa233;--green-dk:#36571f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;color:var(--ink);line-height:1.7;
+ background:#caa45e;background-image:radial-gradient(circle at 20% 0%,#e7cf9f 0,transparent 45%),linear-gradient(#e6cf9c,#d8bd84)}
+a{color:#3f7a24;text-decoration:none}a:hover{text-decoration:underline}
+.nav{position:sticky;top:0;z-index:9;background:linear-gradient(var(--wood2),var(--wood));border-bottom:4px solid var(--wood-dark);box-shadow:inset 0 2px 0 #a87b4c}
+.nav .in{max-width:900px;margin:0 auto;padding:0 22px;height:60px;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;color:#f3e7c9}
+.brand img{width:34px;height:34px;border:2px solid var(--wood-dark);border-radius:7px;background:#bfe0f0;image-rendering:pixelated}
+.brand b{font-family:'Pixel',monospace;font-size:21px;font-weight:400}
+.nav .in a.back{margin-left:auto;font-family:'Pixel',monospace;font-size:16px;color:#f3e7c9;padding:7px 14px;border:3px solid var(--wood-dark);border-radius:8px;background:linear-gradient(var(--parch),#e0c88e);color:var(--ink)}
+.page{max-width:860px;margin:34px auto;padding:0 22px}
+.card{background:linear-gradient(var(--parch),var(--parch2));border:4px solid var(--ink2);border-radius:16px;
+ box-shadow:inset 0 0 0 2px var(--gold),0 8px 0 rgba(40,22,8,.25);padding:40px 38px}
+.content h1{font-family:'Pixel',monospace;font-weight:400;font-size:40px;line-height:1.05;margin-bottom:6px;color:var(--ink)}
+.content .lead{font-size:17px;margin:8px 0 4px;color:var(--ink2)}
+.content h2{font-family:'Pixel',monospace;font-weight:400;font-size:25px;margin:30px 0 10px;color:var(--ink);border-bottom:3px solid var(--gold);padding-bottom:6px}
+.content h3{font-family:'Pixel',monospace;font-weight:400;font-size:20px;margin:20px 0 8px;color:var(--ink2)}
+.content p,.content li{font-size:16px;margin:10px 0}
+.content ul,.content ol{padding-left:22px}
+.content blockquote{border-left:4px solid var(--green);background:rgba(95,162,51,.12);padding:10px 16px;border-radius:6px;margin:14px 0;font-size:15px}
+.content hr{border:none;border-top:2px dashed #b8946a;margin:26px 0}
+.content code{background:#e7d6ab;border:1px solid #c9a059;border-radius:4px;padding:1px 6px;font-size:14px}
+.contact-box{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 4px}
+.contact-box a{display:inline-flex;align-items:center;gap:8px;font-family:'Pixel',monospace;font-size:18px;
+ padding:12px 20px;border:3px solid var(--ink2);border-radius:10px;color:var(--ink);
+ background:linear-gradient(var(--parch),#e0c88e);box-shadow:inset 0 2px 0 rgba(255,255,255,.45),0 3px 0 var(--ink)}
+.contact-box a:hover{filter:brightness(1.05);text-decoration:none}
+details{background:#fbf2dc;border:2px solid #d8c499;border-radius:10px;margin:10px 0;overflow:hidden}
+details[open]{border-color:var(--gold)}
+summary{font-family:'Trebuchet MS','Segoe UI',sans-serif;font-weight:700;font-size:16px;cursor:pointer;padding:14px 18px;color:var(--ink);list-style:none;position:relative}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+';position:absolute;right:18px;font-family:'Pixel',monospace;font-size:22px;color:var(--wood2)}
+details[open] summary::after{content:'–'}
+details .body{padding:0 18px 16px;font-size:15.5px}
+footer{text-align:center;padding:30px 22px 50px;color:#5e482c;font-size:13px}
+footer a{color:#3f2812}
+</style>
+<title>고객 지원 — The Last Echo</title>
+<meta name="description" content="The Last Echo 고객 지원 및 도움말. 문의하기, 버그 제보, 결제 문제 해결, 진행 상황 복구, 계정 삭제 안내.">
+<meta property="og:type" content="website" />
+<meta property="og:title" content="고객 지원 — The Last Echo" />
+<meta property="og:description" content="The Last Echo 고객 지원 및 도움말. 문의하기, 버그 제보, 결제 문제 해결, 진행 상황 복구, 계정 삭제 안내." />
+<meta property="og:url" content="https://runs-it.com/the-last-echo/ko/support.html" />
+<meta property="og:image" content="https://runs-it.com/the-last-echo/img/og.png?v=2" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://runs-it.com/the-last-echo/img/og.png?v=2" />
+<link rel="canonical" href="https://runs-it.com/the-last-echo/ko/support.html">
+<link rel="alternate" hreflang="en" href="https://runs-it.com/the-last-echo/support.html">
+<link rel="alternate" hreflang="es" href="https://runs-it.com/the-last-echo/es/support.html">
+<link rel="alternate" hreflang="ko" href="https://runs-it.com/the-last-echo/ko/support.html">
+<link rel="alternate" hreflang="ja" href="https://runs-it.com/the-last-echo/ja/support.html">
+<link rel="alternate" hreflang="x-default" href="https://runs-it.com/the-last-echo/support.html">
+<style>
+.langs{position:relative;flex:none;font-family:'Pixel',monospace}
+.langs summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;color:#f3e7c9;font-size:17px;border:2px solid rgba(243,231,201,.35);line-height:1.2}
+.langs summary::-webkit-details-marker{display:none}
+.langs summary:hover,.langs[open] summary{background:rgba(255,255,255,.12)}
+.langs ul{position:absolute;right:0;top:calc(100% + 8px);list-style:none;margin:0;padding:6px;min-width:150px;background:linear-gradient(#f3e7c9,#e8d3a8);border:3px solid #3f2812;border-radius:10px;box-shadow:0 8px 18px rgba(40,22,8,.35);z-index:60}
+.langs li{margin:0}
+.langs ul a{display:block;padding:7px 12px;border-radius:6px;color:#3a2410;font-family:system-ui,'Segoe UI',sans-serif;font-size:15px;text-decoration:none}
+.langs ul a:hover{background:rgba(201,160,89,.25);text-decoration:none}
+.langs ul a[aria-current]{font-weight:700;background:rgba(201,160,89,.35)}
+@media(max-width:540px){.langs .lc{display:none}.nav .in a.back .bt{display:none}}
+</style>
+<style>
+@font-face{font-family:'Pixel';src:local('Apple SD Gothic Neo'),local('AppleSDGothicNeo-Regular'),local('Malgun Gothic'),local('Noto Sans KR'),local('Noto Sans CJK KR');unicode-range:U+1100-11FF,U+3000-303F,U+3130-318F,U+AC00-D7AF,U+FF00-FFEF;size-adjust:78%}
+body{word-break:keep-all;overflow-wrap:anywhere}
+</style>
+</head><body>
+<header class="nav"><div class="in">
+  <a class="brand" href="/the-last-echo/ko/"><img src="/the-last-echo/img/icon.svg" alt=""><b>The Last Echo</b></a>
+  <a class="back" href="/the-last-echo/ko/">←<span class="bt"> 사이트로 돌아가기</span></a>
+  <!-- l10n:langs --><details class="langs"><summary aria-label="언어: 한국어">🌐<span class="lc">KO</span></summary><ul><li><a href="/the-last-echo/support.html" hreflang="en" lang="en">English</a></li><li><a href="/the-last-echo/es/support.html" hreflang="es" lang="es">Español</a></li><li><a href="/the-last-echo/ko/support.html" hreflang="ko" lang="ko" aria-current="page">한국어</a></li><li><a href="/the-last-echo/ja/support.html" hreflang="ja" lang="ja">日本語</a></li></ul></details><script>document.addEventListener('click',function(e){document.querySelectorAll('details.langs[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})});</script>
+</div></header>
+<main class="page"><div class="card">
+  <div class="content">
+  <h1>고객 지원 및 도움말</h1>
+  <p class="lead"><strong>The Last Echo</strong>를 플레이하다 도움이 필요하신가요? 저희는 작은 스튜디오이며 모든 메시지를 직접 읽습니다. 연락 주시면 최대한 빨리, 보통 <strong>영업일 기준 2~3일</strong> 안에 답변드려요.</p>
+
+  <div class="contact-box">
+    <a href="mailto:info@runs-it.com">✉ info@runs-it.com</a>
+    <a href="/the-last-echo/ko/">🏰 게임 웹사이트</a>
+  </div>
+
+  <hr />
+
+  <h2>문의하기</h2>
+  <p>가장 빠르게 도움을 받는 방법은 이메일입니다: <a href="mailto:info@runs-it.com">info@runs-it.com</a>. 문제를 빠르게 해결할 수 있도록 다음 내용을 함께 보내 주세요.</p>
+  <ul>
+    <li><strong>기기 모델</strong>과 OS 버전 (예: Pixel 7, Android 14 / iPhone 12, iOS 17)</li>
+    <li>게임 내 <strong>닉네임</strong> (설정에서 <code>닉네임#xxxx</code> 형식으로 표시됩니다)</li>
+    <li>문제에 대한 자세한 설명과, 가능하다면 스크린샷</li>
+    <li>결제 문제의 경우: 대략적인 결제 날짜와 구매한 상품 (전체 결제 정보는 절대 보내지 마세요)</li>
+  </ul>
+
+  <hr />
+
+  <h2>자주 묻는 질문</h2>
+
+  <details><summary>오프라인 / 방치 보상은 어떻게 작동하나요?</summary>
+    <div class="body">자리를 비운 동안에도 파티는 계속 싸웁니다. 다시 돌아오면 그동안 얻었을 자원을 지급하며, 오프라인 보상은 최대 <strong>24시간</strong>까지 쌓입니다. 보상은 게임을 다시 여는 순간 계산되므로 게임을 켜 둘 필요가 없어요.</div>
+  </details>
+
+  <details><summary>소환(뽑기) 확률은 어떻게 되나요?</summary>
+    <div class="body">모든 획득 확률은 공개되어 있으며 실제 게임 내 확률과 같습니다. 모든 배너에는 <strong>천장 카운터</strong>가 표시되며, 천장에 도달하거나 그 전에 최고 등급 결과가 보장됩니다. 전체 확률은 게임 내와 <a href="/the-last-echo/ko/terms.html#gacha">서비스 이용약관</a>에서 확인할 수 있습니다.</div>
+  </details>
+
+  <details><summary>결제했는데 젬을 받지 못했어요</summary>
+    <div class="body">결제는 스토어(Google Play / App Store)를 통해 확인된 뒤 자동으로 지급되며, 1~2분 정도 걸릴 수 있습니다. 먼저 게임을 완전히 종료한 뒤 다시 실행해 보세요. 몇 분이 지나도 지급되지 않았다면 대략적인 결제 시간과 상품을 적어 <a href="mailto:info@runs-it.com">info@runs-it.com</a>으로 보내 주세요. 확인 후 지급해 드립니다. 같은 주문으로 두 번 청구되는 일은 없습니다.</div>
+  </details>
+
+  <details><summary>환불은 어떻게 요청하나요?</summary>
+    <div class="body">인앱 결제는 플랫폼에서 처리하므로 환불도 플랫폼을 통해 진행됩니다: <a href="https://support.google.com/googleplay/answer/2479637?hl=ko" rel="nofollow">Google Play 환불</a> 또는 <a href="https://support.apple.com/refunds" rel="nofollow">Apple / App Store 환불</a>. 결제한 상품이 지급되지 않았다면 먼저 이메일로 알려 주세요. 대부분 바로 지급해 드릴 수 있어요.</div>
+  </details>
+
+  <details><summary>새 기기로 진행 상황을 옮기려면 어떻게 하나요?</summary>
+    <div class="body">기존 기기에서 계정에 로그인(설정 → 계정)한 다음, 새 기기에서 같은 계정으로 로그인하면 클라우드 저장 데이터를 불러올 수 있습니다. 게스트 저장 데이터는 생성된 기기에만 저장되므로, 휴대폰을 바꾸기 전에 반드시 계정을 연동해 주세요.</div>
+  </details>
+
+  <details><summary>진행 상황이 사라졌거나 저장 데이터가 손상된 것 같아요</summary>
+    <div class="body">게임은 최근 저장 데이터를 순환 백업하며, 가능한 경우 자동으로 복원합니다. 계정을 연동했다면 로그인해서 클라우드 사본을 불러오세요. 그래도 해결되지 않으면 닉네임을 적어 이메일로 보내 주세요. 복구를 위해 최선을 다하겠습니다.</div>
+  </details>
+
+  <details><summary>로딩 화면에서 더 넘어가지 않아요</summary>
+    <div class="body">게임은 시작할 때 네트워크 연결을 확인합니다. 인터넷에 연결되어 있는지 확인한 뒤 다시 시도해 주세요. 문제가 계속되면 앱 업데이트를 확인하고, 기기를 재시작하고, 방화벽이나 VPN이 게임을 차단하고 있지 않은지 확인해 주세요. 그래도 안 된다면 기기 모델과 OS 버전을 이메일로 보내 주세요.</div>
+  </details>
+
+  <details><summary>쿠폰은 어떻게 사용하나요?</summary>
+    <div class="body"><a href="/the-last-echo/ko/redeem/">쿠폰 입력 페이지</a>를 방문하거나 게임 내 쿠폰 입력(설정)을 이용하세요. 쿠폰 코드는 대소문자를 구분하므로 표시된 그대로 입력해 주세요.</div>
+  </details>
+
+  <hr />
+
+  <h2>버그 제보</h2>
+  <p>문제가 있는 부분을 발견하셨나요? 제목을 <strong>“Bug report”</strong>로 하여 <a href="mailto:info@runs-it.com">info@runs-it.com</a>으로 이메일을 보내 주세요. 문제가 발생했을 때 무엇을 하고 있었는지, 원래 어떻게 되어야 했는지, 실제로 어떻게 되었는지 적어 주시고, 가능하다면 스크린샷이나 짧은 화면 녹화도 첨부해 주세요. 버그 제보는 정말 큰 도움이 됩니다. 감사합니다!</p>
+
+  <hr />
+
+  <h2>계정 및 데이터 삭제</h2>
+  <p>게임 내 <strong>설정 → 계정 → 계정 삭제</strong>에서 계정과 관련 데이터를 삭제할 수 있습니다. 데이터는 <strong>30일</strong> 이내에 익명화됩니다. 게임에 접속할 수 없다면 계정에 연동된 이메일 주소로 <a href="mailto:info@runs-it.com">info@runs-it.com</a>에 연락해 주세요. 대신 삭제를 처리해 드립니다. 저장하는 데이터와 이용자의 권리에 대한 자세한 내용은 <a href="/the-last-echo/ko/privacy.html">개인정보 처리방침</a>을 참고해 주세요.</p>
+
+  <hr />
+
+  <h2>유용한 링크</h2>
+  <ul>
+    <li><a href="/the-last-echo/ko/privacy.html">개인정보 처리방침</a></li>
+    <li><a href="/the-last-echo/ko/terms.html">서비스 이용약관</a></li>
+    <li><a href="/the-last-echo/ko/terms.html#gacha">뽑기 / 소환 확률 정보</a></li>
+    <li><a href="/the-last-echo/ko/redeem/">쿠폰 입력</a></li>
+  </ul>
+
+  <blockquote>찾는 내용이 없나요? <a href="mailto:info@runs-it.com">info@runs-it.com</a>으로 이메일을 보내 주세요. 실제 사람이 읽고 답변합니다.</blockquote>
+  </div>
+</div></main>
+<footer>© 2026 The Last Echo · <a href="/the-last-echo/ko/privacy.html">개인정보 처리방침</a> · <a href="/the-last-echo/ko/terms.html">이용약관</a> · <a href="/the-last-echo/ko/support.html">고객 지원</a> · <a href="/the-last-echo/ko/">홈</a></footer>
+</body></html>
