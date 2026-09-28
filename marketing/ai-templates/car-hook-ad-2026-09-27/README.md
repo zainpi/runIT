@@ -47,6 +47,19 @@ across two. Listen for voice consistency with the hook before publishing. If the
 voices differ noticeably, record the five lines (or use one voice for all of
 them) and pass that file to `--narration` instead.
 
+## Editable product section
+
+- `runsit-product-section-9x16.mp4`: 22-second portrait product section, including music, UI sound effects, and the CTA. The assembly uses it from 8–30 seconds at normal speed with its existing end card.
+- `complete-ad-prompt.txt`: complete Higgsfield hook prompt plus exact edit timeline, matching narration, captions, audio mixing, export settings, and website/ad handoff.
+- `runsit-portrait-master.mp4`: 24.8-second portrait adaptation of the original brag composition, including its original text opening.
+- `composition/`: editable HyperFrames source. The original landscape project is unchanged.
+
+The product-section MP4 does not include the generated car footage or the new narration; the final deliverables combine them.
+
+Derived from `../launch-video-2026-09-27/composition/`. Reflowed to 1080 × 1920; source text opening is removed at export (master in-point 2.8 seconds). The portrait composition uses HyperFrames 0.8.80, upgraded from the source project's 0.8.79. All assets are local.
+
+Product-section checks: HyperFrames runtime, layout, and contrast checks passed. Seven inherited composition-structure advisories remain; no lint errors. Visual frames were reviewed for all product scenes. MP4 properties and decode are recorded in `export-verification.json`.
+
 ## Generate (Higgsfield, paid)
 
 Rough cost from the account's token pricing: hook 9 s at 1080p ≈ $6.12,
