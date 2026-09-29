@@ -23,7 +23,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/the-last-echo/devlog/why-we-built-the-last-echo.html", priority: 0.7, frequency: "monthly" as const, modified: "2026-08-06" },
     { path: "/the-last-echo/about.html", priority: 0.6, frequency: "monthly" as const, modified: "2026-08-06" },
     { path: "/the-last-echo/support.html", priority: 0.4, frequency: "monthly" as const, modified: "2026-07-21" },
-    ...["es", "ko", "ja"].map((lang) => ({ path: `/the-last-echo/${lang}/`, priority: 0.9, frequency: "weekly" as const, modified: "2026-09-28" })),
+    ...["es", "fr", "de", "pt-br", "ru", "ja", "ko", "zh-hans"].map((lang) => ({ path: `/the-last-echo/${lang}/`, priority: 0.9, frequency: "weekly" as const, modified: "2026-09-30" })),
   ];
   return pages.map((page) => ({
     url: `${site.url}${page.path}`,

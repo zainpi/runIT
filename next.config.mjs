@@ -84,19 +84,19 @@ const nextConfig = {
         destination: "/the-last-echo/guides/index.html",
       },
       {
-        source: "/the-last-echo/:lang(es|ko|ja)",
+        source: "/the-last-echo/:lang(es|fr|de|pt-br|ru|ja|ko|zh-hans)",
         destination: "/the-last-echo/:lang/index.html",
       },
       {
-        source: "/the-last-echo/:lang(es|ko|ja)/",
+        source: "/the-last-echo/:lang(es|fr|de|pt-br|ru|ja|ko|zh-hans)/",
         destination: "/the-last-echo/:lang/index.html",
       },
       {
-        source: "/the-last-echo/:lang(es|ko|ja)/redeem",
+        source: "/the-last-echo/:lang(es|fr|de|pt-br|ru|ja|ko|zh-hans)/redeem",
         destination: "/the-last-echo/:lang/redeem/index.html",
       },
       {
-        source: "/the-last-echo/:lang(es|ko|ja)/redeem/",
+        source: "/the-last-echo/:lang(es|fr|de|pt-br|ru|ja|ko|zh-hans)/redeem/",
         destination: "/the-last-echo/:lang/redeem/index.html",
       },
     ];

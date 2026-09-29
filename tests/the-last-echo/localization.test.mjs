@@ -3,9 +3,16 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
+import { LOCALES as ALL_LOCALES } from "../../scripts/the-last-echo-l10n.mjs";
+
 const PUBLIC = join(import.meta.dirname, "../../public");
 const ORIGIN = "https://runs-it.com";
-const LOCALES = ["es", "ko", "ja"];
+// Every localized folder (the generator's list is the single source of truth).
+// L10N_ONLY=fr,de narrows the per-page checks while a language is being written.
+const LOCALE_DIRS = ALL_LOCALES.filter((l) => l.dir).map((l) => l.dir);
+const HREFLANG = Object.fromEntries(ALL_LOCALES.map((l) => [l.dir || "en", l.hreflang]));
+const ONLY = (process.env.L10N_ONLY || "").split(",").filter(Boolean);
+const LOCALES = ONLY.length ? LOCALE_DIRS.filter((lc) => ONLY.includes(lc)) : LOCALE_DIRS;
 const PAGES = {
   index: { en: "/the-last-echo/", local: (lc) => `/the-last-echo/${lc}/` },
   support: { en: "/the-last-echo/support.html", local: (lc) => `/the-last-echo/${lc}/support.html` },
@@ -30,11 +37,13 @@ for (const page of Object.keys(PAGES)) {
 
     test(`${url} declares its language, canonical URL and every alternate`, () => {
       const html = read(url);
-      assert.match(html, new RegExp(`<html lang="${lc}"`, "i"));
+      assert.match(html, new RegExp(`<html lang="${HREFLANG[lc]}"`, "i"));
       if (lc !== "en") assert.ok(html.includes(`<link rel="canonical" href="${ORIGIN}${url}">`));
       const alts = hreflangs(html);
-      assert.deepEqual(Object.keys(alts).sort(), ["en", "es", "ja", "ko", "x-default"]);
-      for (const alt of ["en", ...LOCALES]) assert.equal(alts[alt], `${ORIGIN}${urlFor(page, alt)}`);
+      if (!ONLY.length) {
+        assert.deepEqual(Object.keys(alts).sort(), [...Object.values(HREFLANG), "x-default"].sort());
+      }
+      for (const alt of ["en", ...LOCALES]) assert.equal(alts[HREFLANG[alt]], `${ORIGIN}${urlFor(page, alt)}`);
       assert.equal(alts["x-default"], `${ORIGIN}${urlFor(page, "en")}`);
       assert.equal((html.match(/<details class="langs">/g) || []).length, 1);
       assert.doesNotMatch(html, /\{\{[A-Z_]+\}\}/);
