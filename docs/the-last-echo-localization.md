@@ -83,5 +83,5 @@ signing in lives under Settings → Account.
 | Delete Account & All Data | Eliminar cuenta y todos los datos | Supprimer le compte et toutes les données | Konto & alle Daten löschen | Excluir Conta e Todos os Dados | Удалить аккаунт и все данные | アカウントとすべてのデータを削除 | 계정 및 모든 데이터 삭제 | 删除账号及所有数据 |
 | Mail | Correo | Courrier | Post | Correio | Почта | メール | 우편함 | 邮件 |
 | Claim | Reclamar | Récupérer | Abholen | Resgatar | Забрать | 受け取る | 받기 | 领取 |
-| Player ID | ID de jugador | ID joueur | Spieler-ID | ID do Jogador | ID игрока | プレイヤーID | 플레이어 ID |  |
-| Pity | Pity (suave / máximo) |  | Garantie | garantia |  | 天井 | 천장 (소프트 천장 / 하드 천장) | 保底 |
+| Player ID | ID de jugador | ID joueur | Spieler-ID | ID do Jogador | ID игрока | プレイヤーID | 플레이어 ID | 玩家ID |
+| Pity (soft / hard) | Pity (suave / máximo) | Garantie (douce / totale) | Garantie (weich / hart) | garantia (suave / total) | гарант (мягкий / жёсткий) | 天井（ソフト／ハード） | 천장 (소프트 / 하드) | 保底（软 / 硬） |
