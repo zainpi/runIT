@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/about/", priority: 0.8, frequency: "monthly" as const, modified: company.factsReviewed },
     { path: "/contact/", priority: 0.6, frequency: "yearly" as const, modified: "2026-09-25" },
     { path: "/privacy/", priority: 0.3, frequency: "yearly" as const, modified: "2026-09-25" },
+    { path: "/rememberme/privacy/", priority: 0.3, frequency: "yearly" as const, modified: "2026-09-30" },
     { path: "/terms/", priority: 0.3, frequency: "yearly" as const, modified: "2026-09-25" },
     ...founders.map((founder) => ({ path: founder.portfolioUrl, priority: 0.7, frequency: "monthly" as const, modified: "2026-09-24" })),
     { path: "/pulsedeals/", priority: 0.8, frequency: "monthly" as const, modified: "2026-09-10" },
