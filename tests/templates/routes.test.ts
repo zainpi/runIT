@@ -396,6 +396,30 @@ test("checkout validates app icon selection and separates changed carts while pr
   assert.equal(posted.get("line_items[3][price_data][unit_amount]"), null);
 });
 
+test("FREEICON validates server-side and checkout prices only the icon at zero", async () => {
+  const response = await referral.POST(jsonRequest("/api/templates/referral", { code: " freeicon " }));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await body(response), { discountPercent: 0, founder: "runsIT free icon", freeAppIcon: true });
+  const cart = { templates: ids, accessToken, subagents: true, skillTree: true, appIcon: true, referralCode: "freeicon" };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    assert.equal((await checkout.POST(jsonRequest("/api/templates/checkout", cart))).status, 200);
+  }
+  const posted = new URLSearchParams(stripeCalls.at(-1)!.body);
+  assert.deepEqual([0, 1, 2, 3, 4].map((index) => posted.get(`line_items[${index}][price_data][unit_amount]`)), ["999", "500", "500", "1000", "0"]);
+  assert.equal(posted.get("metadata[app_icon]"), "true");
+  assert.equal(posted.get("metadata[referral_discount_percent]"), "0");
+  assert.equal(posted.get("payment_intent_data[metadata][app_icon]"), "true");
+  const key = stripeCalls.at(-1)!.headers.get("idempotency-key");
+  assert.equal(key, stripeCalls.at(-2)!.headers.get("idempotency-key"));
+  assert.equal((await checkout.POST(jsonRequest("/api/templates/checkout", { ...cart, referralCode: "" }))).status, 200);
+  assert.notEqual(key, stripeCalls.at(-1)!.headers.get("idempotency-key"));
+  const ordinary = new URLSearchParams(stripeCalls.at(-1)!.body);
+  assert.equal(ordinary.get("line_items[4][price_data][unit_amount]"), "500");
+  assert.equal((await checkout.POST(jsonRequest("/api/templates/checkout", { ...cart, referralCode: "NOTFREEICON", freeAppIcon: true }))).status, 400);
+  Reflect.get(globalThis, Symbol.for("__cloudflare-context__")).env.TEMPLATES_ICON_ENABLED = "false";
+  assert.equal((await checkout.POST(jsonRequest("/api/templates/checkout", cart))).status, 503);
+});
+
 test("icon generation and downloads require a valid paid add-on and private token", async () => {
   for (const action of ["load", "generate", "download", "delete"]) {
     for (const access of [

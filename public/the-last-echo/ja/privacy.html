@@ -74,7 +74,7 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
   <div class="content"><h1>プライバシーポリシー — The Last Echo</h1>
 <blockquote>この翻訳は便宜のために提供するものです。<a href="/the-last-echo/privacy.html" hreflang="en">英語版</a>との間に相違がある場合は、適用法令に別段の定めがない限り、英語版が優先します。</blockquote>
 <p><strong>施行日：</strong>2026年7月10日 &nbsp;·&nbsp;
-<strong>最終更新日：</strong>2026年7月10日<br>
+<strong>最終更新日：</strong>2026年9月29日<br>
 <strong>アプリ：</strong>The Last Echo（以下「本ゲーム」「当社」）<br>
 <strong>提供者：</strong>runsIT（カナダ）<br>
 <strong>連絡先：</strong><a href="mailto:info@runs-it.com">info@runs-it.com</a></p>
@@ -116,7 +116,7 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
 <tr>
   <td><strong>購入取引ID</strong></td>
   <td>アプリ内課金の検証、不正や二重付与の防止のため</td>
-  <td><strong>7年間</strong>（法令・税務上の保存義務）</td>
+  <td>アカウントの存続中。削除後はアカウントとの紐付けを解除し、<strong>検証日から7年間</strong>まで保存</td>
 </tr>
 <tr>
   <td><strong>チャットメッセージ</strong></td>
@@ -130,7 +130,7 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
 </tr>
 <tr>
   <td><strong>連携アカウントの識別子（任意）</strong></td>
-  <td>メール、Google、またはAppleのログインを連携した場合のみ。メールアドレスは平文ではなく<strong>ハッシュ化して保存</strong></td>
+  <td>メール、Google、Appleのログインを連携すると、Supabaseはログイン、認証、アカウント復旧のためにメールアドレスを保存します。ハッシュだけを保存する仕組みではありません</td>
   <td>連携解除または削除まで</td>
 </tr>
 <tr>
@@ -140,12 +140,12 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
 </tr>
 <tr>
   <td><strong>広告データ（同意した場合のみ）</strong></td>
-  <td>お客様がリワード広告の視聴を選択し、広告のパーソナライズを有効にした場合、広告パートナーが端末の広告IDと広告の操作データにアクセスすることがあります</td>
+  <td>リワード広告の視聴を選択すると、広告パートナーは端末の識別子、IPから推定されるおおよその位置、診断情報、広告の操作データを処理する場合があります。パーソナライズは同意とプラットフォーム設定に従います</td>
   <td>広告パートナーの規定による。初期設定はオフ</td>
 </tr>
 </tbody>
 </table>
-<p>当社は、実名、平文のメールアドレス、正確または大まかな位置情報、連絡先、写真、マイク・カメラのデータを収集<strong>しません</strong>。パーソナライズされたリワード広告に同意しない限り、端末の広告ID（IDFA/GAID）を使用<strong>しません</strong>。</p>
+<p>正確な位置、連絡先、写真、マイク・カメラのデータは要求しません。任意の広告SDKは端末の識別子とIPから推定されるおおよその位置を処理する場合があります。広告のパーソナライズは同意とプラットフォーム設定に従います。</p>
 <hr />
 <h2>ウェブサイトの広告とCookie</h2>
 <p>本ウェブサイトはGoogle AdSenseを使用しています。Googleおよびそのパートナーは、お客様の地域と同意の設定に応じて、広告の配信、効果測定、パーソナライズのために、Cookie、端末の識別子、本ウェブサイトおよび他のウェブサイトへのアクセス情報を使用することがあります。Googleのサービスを使用するサイトの情報をGoogleがどのように使用するかは、<a href="https://policies.google.com/technologies/partner-sites?hl=ja">Googleのパートナーサイトに関するポリシー</a>で確認でき、広告の設定は<a href="https://myadcenter.google.com/?hl=ja">マイ アド センター</a>で管理できます。</p>
@@ -162,13 +162,14 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
 </tr>
 </thead>
 <tbody>
-<tr><td><strong>識別子</strong>（匿名のプレイヤーID、表示名、ハッシュ化した連携メールアドレス）</td><td>あり</td><td>あり</td><td>なし</td></tr>
+<tr><td><strong>識別子</strong>（匿名のプレイヤーID、表示名、連携メールアドレス）</td><td>あり</td><td>あり</td><td>なし</td></tr>
 <tr><td><strong>購入</strong>（取引ID）</td><td>あり</td><td>あり</td><td>なし</td></tr>
 <tr><td><strong>ユーザコンテンツ</strong>（チャットメッセージ）</td><td>あり</td><td>あり</td><td>なし</td></tr>
 <tr><td><strong>ゲームプレイ／アプリのアクティビティ</strong>（進行状況、順位、セッション時間）</td><td>あり</td><td>あり</td><td>なし</td></tr>
 <tr><td><strong>診断</strong>（クラッシュ・パフォーマンスデータ）</td><td>あり</td><td>なし</td><td>なし</td></tr>
-<tr><td><strong>広告データと端末の広告ID</strong></td><td>同意した場合のみ</td><td>なし</td><td>同意した場合のみ</td></tr>
-<tr><td>位置情報、連絡先、写真、健康、閲覧履歴、マイク、カメラ</td><td>なし</td><td>—</td><td>—</td></tr>
+<tr><td><strong>広告データと端末の広告ID</strong></td><td>同意した場合のみ</td><td>端末IDを介して紐付く場合あり</td><td>同意した場合のみ</td></tr>
+<tr><td><strong>IPから推定されるおおよその位置</strong>（任意の広告SDK）</td><td>広告を有効にした場合</td><td>端末IDを介して紐付く場合あり</td><td>同意と設定に従う</td></tr>
+<tr><td>正確な位置、連絡先、写真、健康、閲覧履歴、マイク、カメラ</td><td>なし</td><td>—</td><td>—</td></tr>
 </tbody>
 </table>
 <hr />
@@ -198,17 +199,19 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
 <p>当社のバックエンドは、Supabaseにより<strong>米国</strong>でホスティングされています。カナダ、EEA、英国、その他の地域から本ゲームを利用する場合、お客様のデータは適切な保護措置（必要に応じて標準契約条項など）のもとで米国で処理されることがあります。</p>
 <hr />
 <h2>8. セキュリティ</h2>
-<p>セーブデータは<strong>保存時に暗号化</strong>（AES-256）され、完全性が保護（HMAC-SHA256）されています。すべての通信には<strong>TLS 1.3</strong>を使用しています。当社は収集する個人データを最小限にとどめ、バックエンドにアクセス制御を適用しています。完全に安全なシステムは存在しませんが、当社はお客様のデータを保護するために、業界標準の合理的な措置を講じています。</p>
+<p>セーブデータは<strong>保存時に暗号化</strong>（AES-256）され、完全性が保護（HMAC-SHA256）されています。バックエンド通信には<strong>TLSによるHTTPSとWSS</strong>を使用しています。当社は収集する個人データを最小限にとどめ、バックエンドにアクセス制御を適用しています。完全に安全なシステムは存在しませんが、当社はお客様のデータを保護するために、業界標準の合理的な措置を講じています。</p>
 <hr />
 <h2>9. お客様の権利</h2>
 <p>お住まいの地域（カナダのPIPEDA、GDPR、英国GDPR、CCPA/CPRAなど）によって、お客様は以下の権利を有する場合があります。</p>
 <ul>
 <li>当社が保有するお客様のデータへの<strong>アクセス</strong>；</li>
-<li>アカウントと関連データの<strong>削除</strong> — ゲーム内の<strong>設定 → アカウント → アカウント削除</strong>から行え、データは<strong>30日</strong>以内に匿名化されます；</li>
+<li>ゲーム内の設定からアカウントと関連データを<strong>削除</strong>すること、またはアカウントを維持して選択したデータの削除を依頼すること；</li>
 <li>不正確なデータの<strong>訂正</strong>（例：表示名の変更）；</li>
 <li>特定の処理への<strong>異議申し立てまたは制限</strong>；</li>
 <li>任意の機能に対する<strong>同意の撤回</strong>。</li>
 </ul>
+<p><a href="/the-last-echo/delete-data.html" hreflang="en"><strong>アカウントまたは選択したデータの削除手順（英語）</strong></a>。ゲームのインストールや起動は不要です。info@runs-it.comに、件名「The Last Echo - Account Deletion」または「The Last Echo - Data Deletion」で、分かる場合はプレイヤーIDまたは表示名、ログイン方法、削除するデータをお知らせください。所有者を確認後、30日以内に対応します。パスワード、ワンタイムコード、トークンは送らないでください。</p>
+<p>アカウント削除により認証情報、プロフィール、クラウドのセーブ、チャット、ゲーム内メール、ギルド所属、関連記録を削除します。ローカルファイルは各端末のゲームまたは端末設定から削除してください。購入記録はアカウントとの紐付けを解除して検証日から7年間まで保存し、識別子のない集計統計は残ります。運用バックアップはバックエンドの保存期間に従って期限切れとなり、削除済みアカウントの復元には使いません。依頼の確認時に該当する期限を案内します。広告データについてはパートナーの削除手順を案内するか、依頼を転送します。</p>
 <p>権利を行使するには、ゲーム内の削除機能を使用するか、<a href="mailto:info@runs-it.com">info@runs-it.com</a>までご連絡ください。権利を行使したことを理由にお客様を差別することはありません。カリフォルニア州の居住者の方へ：当社は、CPRAで定義される意味での個人情報の「販売」または「共有」を行いません。カナダの居住者は、カナダ・プライバシーコミッショナー事務局に問い合わせることもできます。</p>
 <hr />
 <h2>10. 子どものプライバシー</h2>

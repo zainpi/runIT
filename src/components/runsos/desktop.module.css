@@ -8,6 +8,7 @@
 .slotFolder { grid-area: folder; }
 .slotApp { grid-area: app; margin-top: -8px; }
 .dragHandle { touch-action: auto; }
+.slot[data-active="false"] .dragHandle { background: color-mix(in srgb, var(--tone) 55%, #fffdf7); }
 @media (min-width: 1180px) and (pointer: fine) {
   .dragHandle { cursor: grab; touch-action: none; }
   .dragHandle:active { cursor: grabbing; }
@@ -15,11 +16,12 @@
 
 /* Desktop icons */
 .icons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 6px; }
-.icon { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 8px 2px; border: 0; border-radius: 12px; background: none; color: #1b1a17; cursor: pointer; }
+.icon { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 8px 2px; border: 2px solid transparent; border-radius: 12px; background: none; color: #1b1a17; cursor: pointer; }
 .iconImage, .iconSvg { display: block; width: 62px; height: 62px; transition: transform 140ms ease; }
 .iconImage { border: 2.5px solid #1b1a17; border-radius: 16px; object-fit: cover; box-shadow: 3px 3px 0 #1b1a17; }
 .iconLabel { max-width: 100%; padding: 2px 7px; border-radius: 6px; font-size: .8125rem; font-weight: 700; line-height: 1.25; text-align: center; overflow-wrap: break-word; }
 .icon:hover .iconImage, .icon:hover .iconSvg { transform: translateY(-3px) rotate(-3deg); }
+.icon[aria-pressed="true"] { border-color: #1b1a17; background: rgba(255, 210, 63, .3); }
 .icon[aria-pressed="true"] .iconLabel { background: #1b1a17; color: #fffdf7; }
 
 .note { margin: 28px 12px 0; padding: 18px 18px 20px; border: 2px solid #1b1a17; background: #ffe66b; box-shadow: 4px 5px 0 rgba(27, 26, 23, .85); transform: rotate(-3deg); font-family: var(--font-os-hand), cursive; font-size: 1.375rem; line-height: 1.3; }
@@ -31,6 +33,7 @@
 .readme { color: #6b4a3c; font-size: .875rem; }
 .welcomeTitle { font-size: clamp(2.4rem, 3.4vw, 3.05rem); font-weight: 900; line-height: 1; letter-spacing: -.045em; }
 .welcomeTitle span { display: block; margin-top: 10px; color: #b8361a; font-size: .52em; font-weight: 800; letter-spacing: -.03em; }
+.welcomeTitle:focus-visible { outline: 2px dashed #b8361a; outline-offset: 6px; box-shadow: none; }
 .welcomeText { color: #3d3a33; font-size: 1rem; line-height: 1.6; text-wrap: pretty; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
 
@@ -41,6 +44,12 @@
 .appName { font-size: 2.5rem; font-weight: 900; line-height: 1.05; letter-spacing: -.045em; }
 .appText { min-height: 4.7em; color: #3d3a33; font-size: 1.0625rem; line-height: 1.55; }
 .appNote { color: #5e594f; font-size: .9375rem; font-weight: 700; }
+.appProgress { height: 8px; overflow: hidden; border-top: 2px solid #1b1a17; background: #e5dccb; }
+.appProgressFill { display: block; width: 100%; height: 100%; background: var(--tone, #ffd23f); transform: scaleX(0); transform-origin: left; }
+.appControls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 8px 12px; border-top: 2px solid #1b1a17; background: #f6f0e2; font-size: .875rem; }
+.appControlButtons { display: flex; gap: 6px; margin-left: auto; }
+.appControlButtons button { min-width: 44px; min-height: 44px; padding: 0 10px; border: 2px solid #1b1a17; border-radius: 8px; background: #fffdf7; font-size: .8125rem; font-weight: 800; cursor: pointer; }
+.appControlButtons button:hover { background: #ffd23f; }
 
 /* Folder window */
 .tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 14px; border-bottom: 2px solid #1b1a17; background: #f6f0e2; }
@@ -81,7 +90,7 @@
   .desktop { min-height: 0; padding-top: 22px; }
   .stage { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "side side" "welcome app" "folder folder"; gap: 26px 24px; padding-inline: 24px; }
   .icons { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
-  .note, .optionalIcon { display: none; }
+  .note { display: none; }
   .slotApp { margin-top: 0; }
   .emptyDesktop { grid-column: 1 / -1; grid-row: 2; margin-top: 40px; }
 }

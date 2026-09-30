@@ -70,7 +70,7 @@ footer a{color:#3f2812}
   <div class="content"><h1>Política de privacidad — The Last Echo</h1>
 <blockquote>Esta traducción se ofrece para tu comodidad. Si hay alguna discrepancia con la <a href="/the-last-echo/privacy.html" hreflang="en">versión en inglés</a>, prevalecerá la versión en inglés, salvo que la ley aplicable disponga otra cosa.</blockquote>
 <p><strong>Fecha de entrada en vigor:</strong> 10 de julio de 2026 &nbsp;·&nbsp;
-<strong>Última actualización:</strong> 10 de julio de 2026<br>
+<strong>Última actualización:</strong> 29 de septiembre de 2026<br>
 <strong>App:</strong> The Last Echo («el Juego», «nosotros»)<br>
 <strong>Proveedor:</strong> runsIT (Canadá)<br>
 <strong>Contacto:</strong> <a href="mailto:info@runs-it.com">info@runs-it.com</a></p>
@@ -117,7 +117,7 @@ recogemos tu correo electrónico salvo que decidas vincular una cuenta.</p>
 <tr>
   <td><strong>ID de transacciones de compra</strong></td>
   <td>Validar las compras dentro de la app y evitar fraudes o entregas duplicadas</td>
-  <td><strong>7 años</strong> (conservación legal/fiscal)</td>
+  <td>Mientras exista la cuenta; tras eliminarla, registros sin vínculo a la cuenta hasta <strong>7 años desde la validación</strong></td>
 </tr>
 <tr>
   <td><strong>Mensajes de chat</strong></td>
@@ -131,7 +131,7 @@ recogemos tu correo electrónico salvo que decidas vincular una cuenta.</p>
 </tr>
 <tr>
   <td><strong>Identificador de cuenta vinculada (opcional)</strong></td>
-  <td>Solo si vinculas el inicio de sesión con correo, Google o Apple; el correo se <strong>guarda con hash</strong>, nunca en texto plano</td>
+  <td>Si vinculas el inicio de sesión con correo, Google o Apple, Supabase almacena tu correo para iniciar sesión, verificar la cuenta y recuperarla; no se almacena solo como hash</td>
   <td>Hasta que la desvincules o la elimines</td>
 </tr>
 <tr>
@@ -141,14 +141,12 @@ recogemos tu correo electrónico salvo que decidas vincular una cuenta.</p>
 </tr>
 <tr>
   <td><strong>Datos publicitarios (solo si das tu consentimiento)</strong></td>
-  <td>Si decides ver un anuncio con recompensa y activas la personalización de anuncios, nuestro socio publicitario puede acceder a un identificador publicitario del dispositivo y a datos de interacción con anuncios</td>
+  <td>Si decides ver un anuncio con recompensa, los socios publicitarios pueden tratar identificadores del dispositivo, ubicación aproximada derivada de la IP, diagnósticos e interacciones con anuncios. La personalización depende de tu consentimiento y de los ajustes de la plataforma</td>
   <td>Según las condiciones del socio publicitario; desactivado por defecto</td>
 </tr>
 </tbody>
 </table>
-<p><strong>No</strong> recogemos: tu nombre real, tu correo en texto plano, tu ubicación precisa o aproximada,
-tus contactos, tus fotos ni datos del micrófono o la cámara. <strong>No</strong> usamos un identificador
-publicitario del dispositivo (IDFA/GAID) salvo que aceptes los anuncios con recompensa personalizados.</p>
+<p>No solicitamos ubicación precisa, contactos, fotos ni datos del micrófono o la cámara. Los SDK publicitarios opcionales pueden tratar identificadores del dispositivo y ubicación aproximada derivada de la IP. La personalización depende de tu consentimiento y de los ajustes de la plataforma.</p>
 <hr />
 <h2>Publicidad y cookies del sitio web</h2>
 <p>Este sitio web utiliza Google AdSense. Google y sus socios pueden usar cookies, identificadores de
@@ -171,13 +169,14 @@ Juego. Rechazar la publicidad personalizada del sitio web no impide acceder al s
 </tr>
 </thead>
 <tbody>
-<tr><td><strong>Identificadores</strong> (ID de jugador anónimo, nombre visible, correo vinculado con hash)</td><td>Sí</td><td>Sí</td><td>No</td></tr>
+<tr><td><strong>Identificadores</strong> (ID de jugador anónimo, nombre visible, correo vinculado)</td><td>Sí</td><td>Sí</td><td>No</td></tr>
 <tr><td><strong>Compras</strong> (ID de transacciones)</td><td>Sí</td><td>Sí</td><td>No</td></tr>
 <tr><td><strong>Contenido del usuario</strong> (mensajes de chat)</td><td>Sí</td><td>Sí</td><td>No</td></tr>
 <tr><td><strong>Juego / actividad en la app</strong> (progreso, clasificaciones, horas de sesión)</td><td>Sí</td><td>Sí</td><td>No</td></tr>
 <tr><td><strong>Diagnóstico</strong> (datos de fallos y rendimiento)</td><td>Sí</td><td>No</td><td>No</td></tr>
-<tr><td><strong>Datos publicitarios e ID publicitario del dispositivo</strong></td><td>Solo con tu consentimiento</td><td>No</td><td>Solo con tu consentimiento</td></tr>
-<tr><td>Ubicación, contactos, fotos, salud, historial de navegación, micrófono, cámara</td><td>No</td><td>—</td><td>—</td></tr>
+<tr><td><strong>Datos publicitarios e ID publicitario del dispositivo</strong></td><td>Solo con tu consentimiento</td><td>Puede vincularse mediante el ID del dispositivo</td><td>Solo con tu consentimiento</td></tr>
+<tr><td><strong>Ubicación aproximada derivada de la IP</strong> (SDK publicitarios opcionales)</td><td>Cuando se activan los anuncios</td><td>Puede vincularse mediante el ID del dispositivo</td><td>Según tu consentimiento y los ajustes</td></tr>
+<tr><td>Ubicación precisa, contactos, fotos, salud, historial de navegación, micrófono, cámara</td><td>No</td><td>—</td><td>—</td></tr>
 </tbody>
 </table>
 <hr />
@@ -226,7 +225,7 @@ adecuadas (p. ej., cláusulas contractuales tipo cuando sea necesario).</p>
 <hr />
 <h2>8. Seguridad</h2>
 <p>Las partidas se <strong>cifran en reposo</strong> (AES-256) y se protege su integridad (HMAC-SHA256).
-Todas las comunicaciones de red usan <strong>TLS 1.3</strong>. Minimizamos los datos personales que
+Las comunicaciones del backend usan <strong>HTTPS y WSS con TLS</strong>. Minimizamos los datos personales que
 recogemos y aplicamos controles de acceso en el backend. Ningún sistema es totalmente seguro, pero tomamos
 medidas razonables y habituales en el sector para proteger tus datos.</p>
 <hr />
@@ -234,12 +233,13 @@ medidas razonables y habituales en el sector para proteger tus datos.</p>
 <p>Según tu región (PIPEDA de Canadá, RGPD, RGPD del Reino Unido, CCPA/CPRA y otras), puedes tener derecho a:</p>
 <ul>
 <li><strong>Acceder</strong> a los datos que tenemos sobre ti;</li>
-<li><strong>Eliminar</strong> tu cuenta y los datos asociados: en el Juego, en <strong>Ajustes → Cuenta →
-Eliminar cuenta</strong>, lo que anonimiza tus datos en un plazo de <strong>30 días</strong>;</li>
+<li><strong>Eliminar</strong> tu cuenta y los datos asociados desde los ajustes del Juego, o solicitar la eliminación de datos seleccionados conservando la cuenta;</li>
 <li><strong>Rectificar</strong> datos inexactos (p. ej., cambiar tu nombre visible);</li>
 <li><strong>Oponerte a</strong> determinados tratamientos o <strong>limitarlos</strong>;</li>
 <li><strong>Retirar tu consentimiento</strong> para cualquier función opcional.</li>
 </ul>
+<p><a href="/the-last-echo/delete-data.html" hreflang="en"><strong>Instrucciones para eliminar la cuenta o datos seleccionados (inglés)</strong></a>. No necesitas instalar ni abrir el Juego. Escribe a info@runs-it.com con el asunto «The Last Echo - Account Deletion» o «The Last Echo - Data Deletion», tu ID o nombre visible si lo conoces, el método de inicio de sesión y los datos que deseas eliminar. Verificamos la titularidad y completamos la solicitud en 30 días tras verificarla. Nunca envíes contraseñas, códigos de un solo uso ni tokens.</p>
+<p>La eliminación de la cuenta borra las credenciales, el perfil, las partidas en la nube, los mensajes, el correo del juego, las membresías y los registros vinculados. Los archivos locales deben eliminarse en cada dispositivo mediante el Juego o los ajustes del dispositivo. Los registros de compras conservados pierden el vínculo a la cuenta y se guardan hasta 7 años desde la validación; las estadísticas agregadas sin identificador permanecen. Las copias operativas caducan según la retención del backend y no se usan para restaurar cuentas eliminadas. Indicamos el vencimiento aplicable al confirmar la solicitud. Para datos publicitarios, proporcionamos el procedimiento del socio o le remitimos la solicitud.</p>
 <p>Para ejercer cualquier derecho, usa la opción de eliminación del Juego o escribe a
 <a href="mailto:info@runs-it.com">info@runs-it.com</a>. No te discriminaremos por ejercer estos derechos.
 Residentes en California: no «vendemos» ni «compartimos» información personal en el sentido que la CPRA da a

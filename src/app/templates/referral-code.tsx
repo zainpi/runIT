@@ -2,7 +2,7 @@
 import { useState } from "react";
 import styles from "./templates.module.css";
 
-export type AppliedReferral = { code: string; founder: string; discountPercent: number };
+export type AppliedReferral = { code: string; founder: string; discountPercent: number; freeAppIcon?: boolean };
 
 export function ReferralCode({ value, applied, disabled, onChange, onApplied }: {
   value: string;
@@ -30,9 +30,9 @@ export function ReferralCode({ value, applied, disabled, onChange, onApplied }: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: normalized }),
       });
-      const result = await response.json() as { founder?: unknown; discountPercent?: unknown; error?: string };
+      const result = await response.json() as { founder?: unknown; discountPercent?: unknown; freeAppIcon?: unknown; error?: string };
       if (!response.ok || typeof result.founder !== "string" || typeof result.discountPercent !== "number") throw new Error(result.error || "That discount code is not valid.");
-      onApplied({ code: normalized, founder: result.founder, discountPercent: result.discountPercent });
+      onApplied({ code: normalized, founder: result.founder, discountPercent: result.discountPercent, freeAppIcon: result.freeAppIcon === true });
     } catch (cause) {
       onApplied(null);
       setError(cause instanceof Error ? cause.message : "The discount code could not be checked. Try again.");
@@ -47,7 +47,7 @@ export function ReferralCode({ value, applied, disabled, onChange, onApplied }: 
       <input id="template-referral-code" aria-label="Discount code" value={value} disabled={disabled || busy} onChange={(event) => { onChange(event.target.value); setError(""); }} placeholder="Enter code" autoComplete="off" autoCapitalize="characters" spellCheck={false} />
       <button className={styles.secondary} type="button" disabled={disabled || busy || !normalized || alreadyApplied} onClick={() => void apply()}>{busy ? "Checking…" : alreadyApplied ? "Applied" : "Apply"}</button>
     </div>
-    {applied && alreadyApplied && <p className={styles.referralSuccess} role="status">{applied.discountPercent}% off applied</p>}
+    {applied && alreadyApplied && <p className={styles.referralSuccess} role="status">{applied.freeAppIcon ? "Free app icon offer applied" : `${applied.discountPercent}% off applied`}</p>}
     {error && <p className={styles.error} role="alert">{error}</p>}
   </div>;
 }

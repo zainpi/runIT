@@ -33,7 +33,7 @@ export function checkoutParameters(ids: TemplateId[], token: string, origin: str
         name: `${templateCatalog.find((item) => item.id === id)!.title} — AI build prompt`,
         description: index === 0 ? "First template in this order. Digital text download." : "Additional template in this order. Digital text download.",
       } },
-    })), ...(subagents ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(SUBAGENT_ADDON_CENTS), product_data: { name: "Subagent build workflow add-on", description: "One add-on for every template in this order. Digital text download." } } }] : []), ...(skillTree ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(SKILL_TREE_ADDON_CENTS), product_data: { name: "Skill tree setup add-on", description: "Skill source links and installation prompt for every template in this order. Digital text download." } } }] : []), ...(appIcon ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(APP_ICON_ADDON_CENTS), product_data: { name: "Create app icon add-on", description: "One app icon plus 3 updates per order. Browse every version and download 1024 × 1024 PNGs from your private purchase page." } } }] : [])],
+    })), ...(subagents ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(SUBAGENT_ADDON_CENTS), product_data: { name: "Subagent build workflow add-on", description: "One add-on for every template in this order. Digital text download." } } }] : []), ...(skillTree ? [{ quantity: 1, price_data: { currency, unit_amount: discounted(SKILL_TREE_ADDON_CENTS), product_data: { name: "Skill tree setup add-on", description: "Skill source links and installation prompt for every template in this order. Digital text download." } } }] : []), ...(appIcon ? [{ quantity: 1, price_data: { currency, unit_amount: referral?.freeAppIcon ? 0 : discounted(APP_ICON_ADDON_CENTS), product_data: { name: "Create app icon add-on", description: "One app icon plus 3 updates per order. Browse every version and download 1024 × 1024 PNGs from your private purchase page." } } }] : [])],
     metadata,
     ...(discountPercent === 100 ? {} : { payment_intent_data: { metadata: { store: TEMPLATE_STORE, templates: ids.join(","), subagents: String(subagents), skill_tree: String(skillTree), app_icon: String(appIcon), currency, pricing_origin: origin, ...referralMetadata } } }),
     custom_text: { submit: { message: "After payment, return to the website and save your unique purchase URL to access your prompts again. Includes free template overviews and 20 AI editing messages per purchase. Coding AI tools, hosting, and other service fees are separate." } },
@@ -72,7 +72,7 @@ export function purchasedIds(session: Stripe.Checkout.Session): TemplateId[] {
       if (metadata.currency !== currency) throw new Error();
     } catch { throw new StoreError("The payment amount could not be verified. Contact support.", 403); }
   }
-  const expectedTotal = discountedBundlePrice(ids.length, subagents, skillTree, referral?.discountPercent ?? 0, appIcon);
+  const expectedTotal = discountedBundlePrice(ids.length, subagents, skillTree, referral?.discountPercent ?? 0, appIcon, referral?.freeAppIcon);
   if (session.currency !== currency || session.amount_subtotal !== expectedTotal || session.amount_total !== expectedTotal) throw new StoreError("The payment amount could not be verified. Contact support.", 403);
   return ids;
 }

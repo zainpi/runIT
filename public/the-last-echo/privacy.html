@@ -79,7 +79,7 @@ footer a{color:#3f2812}
 <p>The Last Echo is a single-player idle RPG with optional online features (leaderboards, chat,
 guilds, mail, and in-app purchases) and optional rewarded ads. We collect the <strong>minimum</strong> data
 needed to run those features. We do <strong>not</strong> sell your data, we do <strong>not</strong> run
-behavioral ad tracking by default, and we do <strong>not</strong> collect your real name, precise location,
+behavioral ad tracking by default, and we do <strong>not</strong> request your precise location,
 contacts, photos, or microphone/camera data. We do <strong>not</strong> collect your email unless you choose
 to link an account.</p>
 <hr />
@@ -116,7 +116,7 @@ to link an account.</p>
 <tr>
   <td><strong>Purchase transaction IDs</strong></td>
   <td>Validate in-app purchases and prevent fraud/duplicate grants</td>
-  <td><strong>7 years</strong> (legal/tax retention)</td>
+  <td>While the account exists; after deletion, unlinked records kept until <strong>7 years from validation</strong></td>
 </tr>
 <tr>
   <td><strong>Chat messages</strong></td>
@@ -130,7 +130,7 @@ to link an account.</p>
 </tr>
 <tr>
   <td><strong>Linked account identifier (optional)</strong></td>
-  <td>Only if you link email, Google, or Apple sign-in; the email is <strong>stored hashed</strong>, never in plaintext</td>
+  <td>Only if you link email, Google, or Apple sign-in; Supabase Authentication stores the email address for sign-in, verification, recovery and account management; it is not stored only as a hash</td>
   <td>Until you unlink or delete</td>
 </tr>
 <tr>
@@ -140,14 +140,13 @@ to link an account.</p>
 </tr>
 <tr>
   <td><strong>Advertising data (only if you opt in)</strong></td>
-  <td>If you choose to watch a rewarded ad and enable ad personalisation, our ad partner may access a device advertising identifier and ad-interaction data</td>
+  <td>If you choose to watch a rewarded ad, our ad partner may access device identifiers, IP-derived approximate location, diagnostics and ad-interaction data</td>
   <td>Governed by the ad partner; off by default</td>
 </tr>
 </tbody>
 </table>
-<p>We do <strong>not</strong> collect: your real name, plaintext email, precise or coarse location,
-contacts, photos, or microphone/camera data. We do <strong>not</strong> use a device advertising
-identifier (IDFA/GAID) unless you opt in to personalised rewarded ads.</p>
+<p>We do <strong>not</strong> collect: your precise location,
+contacts, photos, or microphone/camera data. Optional ad SDKs may process device identifiers and IP-derived approximate location when enabled. Ad personalisation is governed by your consent and platform settings.</p>
 <hr />
 <h2>Website advertising and cookies</h2>
 <p>This website uses Google AdSense. Google and its partners may use cookies, device identifiers,
@@ -170,13 +169,14 @@ Declining personalised website advertising does not prevent access to the websit
 </tr>
 </thead>
 <tbody>
-<tr><td><strong>Identifiers</strong> (anonymous player ID, display name, hashed linked email)</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+<tr><td><strong>Identifiers</strong> (anonymous player ID, display name, linked email)</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td><strong>Purchases</strong> (transaction IDs)</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td><strong>User content</strong> (chat messages)</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td><strong>Gameplay / app activity</strong> (progress, rankings, session times)</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td><strong>Diagnostics</strong> (crash &amp; performance data)</td><td>Yes</td><td>No</td><td>No</td></tr>
-<tr><td><strong>Advertising data &amp; device advertising ID</strong></td><td>Only if you opt in</td><td>No</td><td>Only if you opt in</td></tr>
-<tr><td>Location, contacts, photos, health, browsing history, microphone, camera</td><td>No</td><td>—</td><td>—</td></tr>
+<tr><td><strong>Advertising data &amp; device advertising ID</strong></td><td>Only if you opt in</td><td>May be linked by device ID</td><td>Only if you opt in</td></tr>
+<tr><td><strong>Approximate location</strong> (IP-derived by optional ad partners)</td><td>When ads are enabled</td><td>Depends on partner</td><td>Depends on consent</td></tr>
+<tr><td>Precise location, contacts, photos, health, browsing history, microphone, camera</td><td>No</td><td>—</td><td>—</td></tr>
 </tbody>
 </table>
 <hr />
@@ -210,7 +210,7 @@ anti-cheat. These return an attestation result; they are not used to track you.<
 <li><strong>Unity LevelPlay (ironSource)</strong>, with <strong>AdMob, Unity Ads, and ironSource</strong>
 as ad-network adapters — powers optional rewarded ads. The ad SDK only initialises after you choose to
 watch an ad. If you have not opted in to ad personalisation, ads are requested in non-personalised mode.
-These partners may process a device advertising identifier and ad-interaction data subject to their own
+These partners may process device identifiers, IP-derived approximate location, diagnostics and ad-interaction data subject to their own
 privacy policies.</li>
 </ul>
 <p>We do <strong>not</strong> sell your personal information, and we do <strong>not</strong> share it with
@@ -223,26 +223,16 @@ safeguards (e.g., Standard Contractual Clauses where required).</p>
 <hr />
 <h2>8. Security</h2>
 <p>Saves are <strong>encrypted at rest</strong> (AES-256) and integrity-protected (HMAC-SHA256). All
-network communication uses <strong>TLS 1.3</strong>. We minimize the personal data we collect and apply
+backend communication uses <strong>HTTPS and WSS with TLS encryption</strong>. We minimize the personal data we collect and apply
 access controls on the backend. No system is perfectly secure, but we take reasonable, industry-standard
 measures to protect your data.</p>
 <hr />
-<h2>9. Your rights</h2>
-<p>Depending on your region (Canada's PIPEDA, GDPR, UK GDPR, CCPA/CPRA, and others), you may have the
-right to:</p>
-<ul>
-<li><strong>Access</strong> the data we hold about you;</li>
-<li><strong>Delete</strong> your account and associated data — in-Game via <strong>Settings → Account →
-Delete Account</strong>, which anonymizes your data within <strong>30 days</strong>;</li>
-<li><strong>Correct</strong> inaccurate data (e.g., change your display name);</li>
-<li><strong>Object to or restrict</strong> certain processing;</li>
-<li><strong>Withdraw consent</strong> for any optional feature.</li>
-</ul>
-<p>To exercise any right, use the in-Game deletion control or contact
-<a href="mailto:info@runs-it.com">info@runs-it.com</a>. We do not discriminate against you for exercising
-these rights. California residents: we do not &quot;sell&quot; or &quot;share&quot; personal information as
-those terms are defined under the CPRA. Canadian residents may also contact the Office of the Privacy
-Commissioner of Canada.</p>
+<h2 id="deletion">9. Your rights and deletion requests</h2>
+<p><a href="/the-last-echo/delete-data.html"><strong>Request account or selected-data deletion</strong></a>, including deletion while keeping your account. Email <a href="mailto:info@runs-it.com">info@runs-it.com</a>; the request page lists steps, ownership verification, removed data and retention. You do not need the Game installed.</p>
+<p>Requests are completed within <strong>30 days after ownership verification</strong>. In the Game, use <strong>Settings → Account &amp; Privacy → Delete Account</strong>. Account deletion removes your credentials, linked email, profile, cloud save, chat, mail, guild membership, rankings, sessions, raid participation and account-linked reward history. The in-Game action also removes this device's account saves and backups.</p>
+<p>Purchase transaction identities, product/platform and validation dates are kept while the account exists. After deletion, unlinked records are retained until <strong>7 years from validation</strong> for accounting and replay prevention, with the player-ID link removed. Unidentified aggregate statistics remain. Operational backups expire under the configured backend retention period and are not used to restore deleted accounts. We explain any legal exception when handling a request. We forward ad-partner requests or provide their deletion route.</p>
+<p>A website request cannot erase files on your devices: use the in-Game control or clear app storage on each device. Uninstalling alone does not delete your server account. Selected-data deletion keeps your account and data outside your request; continued play may create new data.</p>
+<p>You may also request access, correction, processing restrictions or consent withdrawal at <a href="mailto:info@runs-it.com">info@runs-it.com</a>. We do not discriminate against users exercising these rights.</p>
 <hr />
 <h2>10. Children's privacy</h2>
 <p>The Last Echo is intended for a <strong>general audience and is not directed to children

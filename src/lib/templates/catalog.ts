@@ -33,8 +33,8 @@ export function discountedCents(cents: number, discountPercent = 0): number {
   return Math.round(cents * (100 - discountPercent) / 100);
 }
 
-export function discountedBundlePrice(count: number, subagents = false, skillTree = false, discountPercent = 0, appIcon = false): number {
-  return discountedCents(bundlePrice(count, subagents, skillTree, appIcon), discountPercent);
+export function discountedBundlePrice(count: number, subagents = false, skillTree = false, discountPercent = 0, appIcon = false, freeAppIcon = false): number {
+  return discountedCents(bundlePrice(count, subagents, skillTree, appIcon && !freeAppIcon), discountPercent);
 }
 
 export function formatPrice(cents: number, currency: TemplateCurrency = DEFAULT_TEMPLATE_CURRENCY): string {

@@ -112,7 +112,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
   }
   const selectedTemplates = templateCatalog.filter((template) => selected.includes(template.id));
   const fullTotal = bundlePrice(selected.length, subagents, skillTree, appIcon);
-  const total = referral ? discountedBundlePrice(selected.length, subagents, skillTree, referral.discountPercent, appIcon) : fullTotal;
+  const total = referral ? discountedBundlePrice(selected.length, subagents, skillTree, referral.discountPercent, appIcon, referral.freeAppIcon) : fullTotal;
   const addOnCount = Number(subagents) + Number(skillTree) + Number(appIcon);
   const cartPrice = (cents: number) => formatPrice(referral ? discountedCents(cents, referral.discountPercent) : cents, currency);
   const descriptions: Record<TemplateId, string> = {
@@ -156,7 +156,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
             <div className={styles.addonList}>
               <label className={styles.addon} data-selected={appIcon}>
                 <input type="checkbox" aria-label="Create app icon" aria-describedby="icon-extra-description" checked={appIcon} disabled={busy || (!checkout?.appIconAvailable && !appIcon)} onChange={(event) => changeExtra(setAppIcon, event.target.checked)} />
-                <span><strong>App icon <b>+{cartPrice(APP_ICON_ADDON_CENTS)}</b></strong><small id="icon-extra-description">1 icon + 3 updates. Download every version.</small>{checkout && !checkout.appIconAvailable && <small>Temporarily unavailable{appIcon ? "; uncheck to continue" : ""}.</small>}</span>
+                <span><strong>App icon <b>{referral?.freeAppIcon ? "Free" : `+${cartPrice(APP_ICON_ADDON_CENTS)}`}</b></strong><small id="icon-extra-description">1 icon + 3 updates. Download every version.</small>{checkout && !checkout.appIconAvailable && <small>Temporarily unavailable{appIcon ? "; uncheck to continue" : ""}.</small>}</span>
               </label>
               <label className={styles.addon} data-selected={subagents}>
                 <input type="checkbox" aria-label="Add AI teamwork" aria-describedby="subagent-extra-description" checked={subagents} disabled={busy} onChange={(event) => changeExtra(setSubagents, event.target.checked)} />
@@ -169,12 +169,12 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
             </div>
           </fieldset>
           <div className={styles.total} aria-live="polite" aria-atomic="true"><div><span>{selected.length ? "Total" : "Starting at"}</span><small>One-time payment · {currencyLabel}</small></div><strong>{price(selected.length ? total : FIRST_TEMPLATE_CENTS)}</strong></div>
-          {referral && <p className={styles.discount}>{referral.discountPercent}% off applied to this order</p>}
+          {referral && <p className={styles.discount}>{referral.freeAppIcon ? appIcon ? "Free app icon included" : "Select App icon to use your free icon offer" : `${referral.discountPercent}% off applied to this order`}</p>}
           <button className={styles.checkoutButton} disabled={!selected.length || busy || !checkout?.available || (appIcon && !checkout.appIconAvailable)} onClick={buy}>{busy ? "Opening checkout…" : checkout === null ? "Loading…" : !checkout.available ? "Checkout coming soon" : appIcon && !checkout.appIconAvailable ? "App icon unavailable" : referral?.discountPercent === 100 ? "Complete free checkout →" : checkout.testMode ? "Try test checkout →" : "Continue to checkout →"}</button>
           <p className={styles.paymentNote}>{referral?.discountPercent === 100 ? "No card needed · Checkout with Stripe" : checkout?.testMode ? "Test mode · No real payment" : "Secure checkout with Stripe"}</p>
           {error && <p className={shared.error} role="alert">{error}</p>}
           <div className={styles.codeOptions}>
-            <details open={referralOpen} onToggle={(event) => setReferralOpen(event.currentTarget.open)}><summary>Add a discount code</summary><ReferralCode value={referralCode} applied={referral} disabled={busy} onChange={(value) => { setReferralCode(value); setReferral(null); }} onApplied={setReferral} /></details>
+            <details open={referralOpen} onToggle={(event) => setReferralOpen(event.currentTarget.open)}><summary>Add a discount code</summary><ReferralCode value={referralCode} applied={referral} disabled={busy} onChange={(value) => { setReferralCode(value); setReferral(null); }} onApplied={(value) => { setReferral(value); if (value?.freeAppIcon && checkout?.appIconAvailable) setAppIcon(true); }} /></details>
             <button type="button" disabled={busy} onClick={() => setTrialCheckout(true)}>Have a free-trial code?</button>
           </div>
           <p className={styles.saveNote}>Save your private link after checkout to return later.</p>

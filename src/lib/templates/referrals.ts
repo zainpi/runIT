@@ -17,12 +17,21 @@ const gift = {
   discountPercent: 100,
   active: true,
 } as const;
+const freeIcon = {
+  founderSlug: "free-icon",
+  founderName: "runsIT free icon",
+  codeDigest: "9a6c4f5bbd65e845eb8a5415094ab176c5b98e030cca83edbd4356a30e5f5c9d",
+  discountPercent: 0,
+  freeAppIcon: true,
+  active: true,
+} as const;
 
 export type TemplateReferral = {
-  founderSlug: (typeof referrals)[number]["founderSlug"] | typeof gift.founderSlug;
+  founderSlug: (typeof referrals)[number]["founderSlug"] | typeof gift.founderSlug | typeof freeIcon.founderSlug;
   founderName: string;
   codeDigest: string;
-  discountPercent: typeof TEMPLATE_REFERRAL_DISCOUNT_PERCENT | typeof gift.discountPercent;
+  discountPercent: typeof TEMPLATE_REFERRAL_DISCOUNT_PERCENT | typeof gift.discountPercent | typeof freeIcon.discountPercent;
+  freeAppIcon?: boolean;
 };
 
 export function normalizeReferralCode(value: unknown): string | null {
@@ -51,13 +60,16 @@ export function referralForCode(value: unknown): TemplateReferral | null {
     return expected.length === digest.length && timingSafeEqual(expected, digest);
   });
   if (entry) return withFounder(entry);
-  const expectedGift = Buffer.from(gift.codeDigest, "hex");
-  return gift.active && expectedGift.length === digest.length && timingSafeEqual(expectedGift, digest) ? gift : null;
+  return [gift, freeIcon].find((offer) => {
+    const expected = Buffer.from(offer.codeDigest, "hex");
+    return offer.active && expected.length === digest.length && timingSafeEqual(expected, digest);
+  }) ?? null;
 }
 
 export function referralForMetadata(founderSlug: unknown, codeDigest: unknown, discountPercent: unknown): TemplateReferral | null {
-  // Keep historical gift digests verifiable after deactivating new redemptions.
-  if (founderSlug === gift.founderSlug && codeDigest === gift.codeDigest && discountPercent === String(gift.discountPercent)) return gift;
+  // Keep historical offer digests verifiable after deactivating new redemptions.
+  const offer = [gift, freeIcon].find((candidate) => founderSlug === candidate.founderSlug && codeDigest === candidate.codeDigest && discountPercent === String(candidate.discountPercent));
+  if (offer) return offer;
   if (typeof founderSlug !== "string" || typeof codeDigest !== "string" || discountPercent !== String(TEMPLATE_REFERRAL_DISCOUNT_PERCENT)) return null;
   const entry = referrals.find((candidate) => candidate.founderSlug === founderSlug && candidate.codeDigest === codeDigest);
   return entry ? withFounder(entry) : null;

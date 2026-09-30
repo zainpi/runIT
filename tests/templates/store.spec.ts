@@ -277,6 +277,47 @@ test("founder referral code previews ten percent off and is sent to checkout", a
   expect(posted).toMatchObject({ templates: ["mobile-app"], referralCode: "ZAIN-RUNIT-10", appIcon: true });
 });
 
+for (const currency of ["cad", "usd"] as const) test(`FREEICON includes the icon free and preserves other prices in ${currency.toUpperCase()}`, async ({ page }) => {
+  await mockConfiguration(page, currency);
+  let posted: Record<string, unknown> | undefined;
+  // Exercise the real discount endpoint with Next dev's canonical localhost origin.
+  await page.route("**/api/templates/checkout/**", async (route) => {
+    posted = route.request().postDataJSON();
+    await route.fulfill({ json: { url: "https://checkout.stripe.com/c/pay/free-icon", sessionId } });
+  });
+  await page.route("https://checkout.stripe.com/**", (route) => route.fulfill({ contentType: "text/html", body: "<title>Mock Stripe Checkout</title>" }));
+  await page.goto("http://localhost:3102/templates/");
+  await expect(page.getByRole("button", { name: "Try test checkout" })).toBeVisible();
+  await page.getByLabel("Add Online store", { exact: true }).click();
+  const icon = page.getByLabel("Create app icon", { exact: true });
+  await expect(icon).not.toBeChecked();
+  await page.getByLabel("Add AI teamwork", { exact: true }).check();
+  await page.getByText("Add a discount code", { exact: true }).click();
+  const code = page.getByLabel("Discount code", { exact: true });
+  await code.fill(" freeicon ");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(icon).toBeChecked();
+  await expect(page.getByRole("status").filter({ hasText: "Free app icon offer applied" })).toBeVisible();
+  const order = page.locator("#bundle");
+  await expect(order.getByText("Free app icon included", { exact: true })).toBeVisible();
+  await expect(order.getByText("$24.99", { exact: true })).toBeVisible();
+  await expect(order).toContainText(`One-time payment · ${currency.toUpperCase()}`);
+  await expect(order).not.toContainText("No card needed");
+  await icon.uncheck();
+  await expect(order.getByText("$24.99", { exact: true })).toBeVisible();
+  await expect(order.getByText("Select App icon to use your free icon offer", { exact: true })).toBeVisible();
+  await icon.check();
+  await code.fill("");
+  await expect(order.getByText("$29.99", { exact: true })).toBeVisible();
+  await expect(order.getByText("Free app icon included", { exact: true })).toHaveCount(0);
+  await code.fill("FREEICON");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(order.getByText("$24.99", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Try test checkout" }).click();
+  await page.waitForURL("https://checkout.stripe.com/**");
+  expect(posted).toMatchObject({ templates: ["storefront"], referralCode: "FREEICON", appIcon: true, skillTree: true, subagents: true });
+});
+
 test("private gift code makes the selected bundle free before checkout", async ({ page }) => {
   await mockConfiguration(page);
   let posted: Record<string, unknown> | undefined;

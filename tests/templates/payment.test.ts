@@ -242,6 +242,50 @@ test("a completed zero-total gift checkout grants access without a payment inten
   assert.throws(() => purchasedIds(paidSession({ ...free, amount_total: 1 })), /amount could not be verified/);
 });
 
+test("FREEICON discounts only the selected icon across currencies and bundle sizes", async () => {
+  const referral = referralForCode(" freeicon ");
+  assert.ok(referral?.freeAppIcon);
+  assert.equal(referral.discountPercent, 0);
+  assert.deepEqual(referralForMetadata(referral.founderSlug, referral.codeDigest, "0"), referral);
+  for (const origin of ["https://runsit.ca", "https://runs-it.com"]) {
+    for (const count of [1, templateCatalog.length]) {
+      const selected = templateCatalog.slice(0, count).map((item) => item.id);
+      for (const subagents of [false, true]) for (const skillTree of [false, true]) for (const appIcon of [false, true]) {
+        const params = checkoutParameters(selected, accessToken, origin, subagents, skillTree, referral, appIcon);
+        const amounts = params.line_items!.map((line) => line.price_data!.unit_amount!);
+        assert.deepEqual(amounts, [999, ...Array(count - 1).fill(500), ...(subagents ? [500] : []), ...(skillTree ? [1000] : []), ...(appIcon ? [0] : [])]);
+        const total = amounts.reduce((sum, amount) => sum + amount, 0);
+        assert.equal(total, discountedBundlePrice(count, subagents, skillTree, 0, appIcon, true));
+        assert.equal(params.payment_intent_data?.metadata?.app_icon, String(appIcon));
+        const session = paidSession({ currency: params.metadata!.currency, metadata: params.metadata, amount_subtotal: total, amount_total: total });
+        const order = await verifyOrder(fakeStripe(session).stripe, session.id, accessToken);
+        assert.deepEqual(order.ids, selected);
+        assert.equal(order.appIcon, appIcon);
+      }
+    }
+  }
+  assert.equal(discountedBundlePrice(0, true, true, 0, true, true), 0);
+});
+
+test("FREEICON cannot grant a free bundle, bypass payment or use forged attribution", async () => {
+  const params = checkoutParameters(ids, accessToken, "https://runs-it.com", true, true, referralForCode("FREEICON")!, true);
+  const session = paidSession({ metadata: params.metadata, amount_subtotal: 2999, amount_total: 2999 });
+  for (const metadata of [
+    { ...session.metadata, referral_code_hash: "00".repeat(32) },
+    { ...session.metadata, referral_discount_percent: "100" },
+    { ...session.metadata, referral_founder: "gift" },
+  ]) assert.throws(() => purchasedIds(paidSession({ ...session, metadata })), /referral discount could not be verified/);
+  for (const total of [0, 2499, 3499]) {
+    assert.throws(() => purchasedIds(paidSession({ ...session, amount_subtotal: total, amount_total: total })), /amount could not be verified/);
+  }
+  for (const payment_status of ["unpaid", "no_payment_required"]) {
+    const unpaid = paidSession({ ...session, payment_status, payment_intent: null });
+    await rejectsStoreError(() => verifyOrder(fakeStripe(unpaid).stripe, unpaid.id, accessToken), 409, /not complete/);
+  }
+  const refunded = paidSession({ ...session, payment_intent: { latest_charge: { refunded: true, amount_refunded: 2999, disputed: false } } });
+  await rejectsStoreError(() => verifyOrder(fakeStripe(refunded).stripe, refunded.id, accessToken), 403, /refunded/);
+});
+
 test("subagent add-on is one separate fixed-price item for the whole order", () => {
   const params = checkoutParameters(ids, accessToken, "https://shop.example", true);
   const lines = params.line_items as Stripe.Checkout.SessionCreateParams.LineItem[];
