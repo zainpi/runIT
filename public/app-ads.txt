@@ -120,3 +120,4 @@ sharethrough.com, 5828, RESELLER, d53b998a7bd4ecd2
 sharethrough.com, 4568, RESELLER, d53b998a7bd4ecd2
 sharethrough.com, uvcax8il, RESELLER, d53b998a7bd4ecd12
 vidazoo.com, 6a3384a48eca8f6ddad62520, RESELLER, b6ada874b4d7d0b2
+google.com, pub-4586492209344293, DIRECT, f08c47fec0942fa0
