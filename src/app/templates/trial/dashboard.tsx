@@ -5,6 +5,7 @@ import { templateCatalog, type TemplateId } from "@/lib/templates/catalog";
 import { emptyPersonalization, type Personalization } from "@/lib/templates/compose";
 import { TRIAL_MESSAGE_LIMIT, type TrialAccess } from "@/lib/templates/trial-contract";
 import { PlanOverview } from "../plan-overview";
+import { PlanLoading } from "../plan-loading";
 import { downloadText, loadDraft, saveDraft } from "../browser-storage";
 import { useTrialProject } from "./use-trial-project";
 import { ManagedLaunch, hasManagedLaunch } from "../managed-launch";
@@ -137,7 +138,7 @@ export function TrialDashboard({ access, templateId, url }: { access: TrialAcces
           <div className={styles.planSymbol} aria-hidden="true">✦</div>
           <h3>{pending ? "Turning your idea into a plan" : "Your idea is ready to take shape"}</h3>
           <p>{pending ? "AI is mapping out your overview and features. This can take a couple of minutes. Your editing messages stay untouched." : overviewUsed ? "Your previous plan was deleted. Use a remaining chat message to create a new version." : "Create your free overview to see the features your app needs."}</p>
-          {pending ? <div className={styles.skeleton} aria-hidden="true"><span /><span /><span /></div> : !overviewUsed && <button className={styles.primary} disabled={!ai.available || !canUseAi} onClick={() => void ai.generate("overview", brief)}>Create free overview</button>}
+          {pending ? <><PlanLoading /><div className={styles.skeleton} aria-hidden="true"><span /><span /><span /></div></> : !overviewUsed && <button className={styles.primary} disabled={!ai.available || !canUseAi} onClick={() => void ai.generate("overview", brief)}>Create free overview</button>}
         </div>}
         {brief.idea.trim() && <details className={styles.originalBrief}><summary>Your original brief <span>View details</span></summary><p>{brief.idea}</p>{brief.features && <p><strong>Features & platforms</strong>{brief.features}</p>}{brief.style && <p><strong>Look & feel</strong>{brief.style}</p>}{(brief.budget || brief.decideBudget) && <p><strong>Running budget</strong>{brief.decideBudget ? "AI will recommend a starting budget" : brief.budget}</p>}</details>}
         <div className={styles.buildNext}><div><span className={styles.kicker}>When you’re ready</span><h3>Take your plan into the build.</h3><p>Get the full template and 20 editing messages with a purchase. Download this plan to keep your decisions.</p></div><Link onClick={preparePurchase} href="/templates/#bundle">Get the full template <span aria-hidden="true">↗</span></Link></div>

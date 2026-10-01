@@ -5,6 +5,7 @@ import { sameBrief, type AppPlan, type AiProject, type AiSnapshot } from "@/lib/
 import type { TemplateId } from "@/lib/templates/catalog";
 import type { Personalization } from "@/lib/templates/compose";
 import { PlanOverview } from "../plan-overview";
+import { PlanLoading } from "../plan-loading";
 import { BuildFileMap } from "./build-file-map";
 import type { Receipt } from "../browser-storage";
 import styles from "./ai-editor.module.css";
@@ -191,8 +192,8 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
         {project ? <PlanOverview plan={project.plan} templateId={templateId} name={project.brief.name} revision={project.revision} canRefine={(text) => !locked && remaining > 0 && draftWith(text).length <= 2000} onRefine={addToDraft} /> : <div className={dashboard.emptyPlan}>
           <div className={dashboard.planSymbol} aria-hidden="true">✦</div>
           <h3>{locked ? "Turning your idea into a plan" : "Your idea is ready to take shape"}</h3>
-          <p>{loading ? "Opening your saved workspace…" : state?.pending ? "AI is mapping out your overview and features. Your editing messages stay untouched." : !details.idea.trim() ? "Add your idea above, then create a free overview to see what your app will do." : freeOverview ? "Create your free overview to see the features your app needs." : "Your previous plan was deleted. Use a remaining chat message to create a new version."}</p>
-          {locked ? <div className={dashboard.skeleton} aria-hidden="true"><span /><span /><span /></div> : freeOverview && <><button className={dashboard.primary} disabled={!available || !consent || !details.idea.trim()} onClick={() => void act("overview")}>Create my free overview</button><label className={`${dashboard.consent} ${styles.overviewConsent}`}><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />Allow sending my app details and messages to OpenAI to tailor my prompt.</label></>}
+          <p>{loading ? "Opening your saved workspace…" : locked ? "AI is mapping out your overview and features. This can take a couple of minutes. Your editing messages stay untouched." : !details.idea.trim() ? "Add your idea above, then create a free overview to see what your app will do." : freeOverview ? "Create your free overview to see the features your app needs." : "Your previous plan was deleted. Use a remaining chat message to create a new version."}</p>
+          {locked ? <><PlanLoading label={loading ? "Loading your workspace…" : undefined} /><div className={dashboard.skeleton} aria-hidden="true"><span /><span /><span /></div></> : freeOverview && <><button className={dashboard.primary} disabled={!available || !consent || !details.idea.trim()} onClick={() => void act("overview")}>Create my free overview</button><label className={`${dashboard.consent} ${styles.overviewConsent}`}><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />Allow sending my app details and messages to OpenAI to tailor my prompt.</label></>}
         </div>}
         {project && appSettings}
         {stale && <p className={shared.notice}>Your app details differ from this saved overview. Send a message to update the plan, or <button className={styles.textButton} disabled={locked} onClick={() => callbacks.current.onRestoreBrief(project!.brief)}>restore the saved details</button>.</p>}

@@ -342,3 +342,111 @@ test("Luna Max configuration reaches Responses with reasoning headroom; invalid 
     assert.equal((await aiConfiguration()).reasoningEffort, "none");
   } finally { globalThis.fetch = original; Reflect.set(globalThis, contextKey, priorContext); }
 });
+
+test("temporary provider failures retry within one deadline and charge one customer message", async () => {
+  const original = globalThis.fetch, warn = console.warn;
+  const h = harness(), request = generation("message");
+  const signals: (AbortSignal | null | undefined)[] = [], logs: unknown[][] = [];
+  let calls = 0;
+  try {
+    console.warn = (...args) => { logs.push(args); };
+    globalThis.fetch = async (_input, init) => {
+      signals.push(init?.signal);
+      calls++;
+      return calls === 1 ? Response.json({ error: { message: "private provider detail" } }, { status: 503, headers: { "retry-after": "0", "x-request-id": "req_synthetic" } }) : providerReply();
+    };
+    h.deps.generate = async () => generateAppPlan({ key: "synthetic-secret", model: "synthetic-model" }, request, null);
+    const send = { ...request, action: request.kind, consent: true };
+    const response = await h.send(send);
+    assert.equal(response.status, 200);
+    const state = (await response.json()).state;
+    assert.equal(state.used, 1);
+    assert.equal(state.pending, false);
+    assert.equal(state.projects["mobile-app"].revision, 1);
+    assert.equal(state.projects["mobile-app"].history.length, 2);
+    assert.equal([...h.states.values()][0].attempts, 1);
+    assert.equal(calls, 2);
+    assert.equal(signals[0], signals[1]);
+    assert.equal((await h.send(send)).status, 200);
+    assert.equal(calls, 2, "replaying the saved request must not call the provider again");
+    assert.deepEqual(logs[0][0], "templates_ai_provider_failure");
+    assert.deepEqual(logs[0][1], { reason: "provider_unavailable", status: 503, providerRequestId: "req_synthetic", attempt: 1, elapsedMs: (logs[0][1] as { elapsedMs: number }).elapsedMs });
+    assert.doesNotMatch(JSON.stringify(logs), /private provider detail|synthetic-secret|BoulderMe|accessToken/);
+  } finally { globalThis.fetch = original; console.warn = warn; }
+});
+
+test("exhausted provider retries refund the reservation and do not expose provider errors", async () => {
+  const original = globalThis.fetch, warn = console.warn;
+  const h = harness(), request = generation("message");
+  let calls = 0;
+  try {
+    console.warn = () => {};
+    globalThis.fetch = async () => { calls++; return Response.json({ error: { message: "synthetic-private-provider-error" } }, { status: 503, headers: { "retry-after": "0" } }); };
+    h.deps.generate = async () => generateAppPlan({ key: "synthetic", model: "synthetic" }, request, null);
+    const response = await h.send({ ...request, action: request.kind, consent: true });
+    assert.equal(response.status, 502);
+    assert.match((await response.json()).error, /No message was deducted/);
+    assert.equal(calls, 2);
+    const state = (await (await h.send({ action: "load" })).json()).state;
+    assert.equal(state.used, 0);
+    assert.equal(state.pending, false);
+    assert.deepEqual(state.projects, {});
+  } finally { globalThis.fetch = original; console.warn = warn; }
+});
+
+test("configuration, quota and long rate limits fail promptly with safe diagnostics", async () => {
+  const original = globalThis.fetch, warn = console.warn;
+  const cases = [
+    { status: 401, code: "invalid_api_key", reason: "configuration", message: /contact support/ },
+    { status: 400, code: "invalid_request_error", reason: "configuration", message: /contact support/ },
+    { status: 429, code: "insufficient_quota", reason: "quota", message: /contact support/ },
+    { status: 429, code: "rate_limit_exceeded", reason: "rate_limit", message: /wait a minute/ },
+  ];
+  try {
+    for (const entry of cases) {
+      let calls = 0;
+      const logs: unknown[][] = [];
+      console.warn = (...args) => { logs.push(args); };
+      globalThis.fetch = async () => { calls++; return Response.json({ error: { code: entry.code, message: "private-key-and-brief" } }, { status: entry.status, headers: { "retry-after": "60", "x-request-id": "malicious-private-value" } }); };
+      await assert.rejects(generateAppPlan({ key: "synthetic", model: "synthetic" }, generation(), null), entry.message);
+      assert.equal(calls, 1);
+      assert.equal((logs[0][1] as { reason: string }).reason, entry.reason);
+      assert.doesNotMatch(JSON.stringify(logs), /private-key-and-brief|malicious-private-value|invalid_api_key/);
+    }
+  } finally { globalThis.fetch = original; console.warn = warn; }
+});
+
+test("invalid generated plans can recover once while missing moderation remains blocked", async () => {
+  const original = globalThis.fetch, warn = console.warn;
+  let calls = 0;
+  try {
+    console.warn = () => {};
+    globalThis.fetch = async () => {
+      calls++;
+      if (calls > 1) return providerReply();
+      const invalid = { disposition: "plan", ...reply, plan: { ...reply.plan, questionChoices: [{ question: reply.plan.questions[0], options: ["Yes", "No"] }] } };
+      return Response.json({ status: "completed", moderation: safeModeration, output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify(invalid) }] }] });
+    };
+    assert.deepEqual(await generateAppPlan({ key: "synthetic", model: "synthetic" }, generation(), null), reply);
+    assert.equal(calls, 2);
+    calls = 0;
+    globalThis.fetch = async () => { calls++; return providerReply("plan", null); };
+    await assert.rejects(generateAppPlan({ key: "synthetic", model: "synthetic" }, generation(), null), /No message was deducted/);
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = original; console.warn = warn; }
+});
+
+test("provider deadline reports a timeout and stops retries", async () => {
+  const original = globalThis.fetch, timeout = AbortSignal.timeout, warn = console.warn;
+  let calls = 0;
+  const logs: unknown[][] = [];
+  try {
+    console.warn = (...args) => { logs.push(args); };
+    AbortSignal.timeout = () => AbortSignal.abort(new DOMException("private timeout detail", "TimeoutError"));
+    globalThis.fetch = async (_input, init) => { calls++; init?.signal?.throwIfAborted(); return providerReply(); };
+    await assert.rejects(generateAppPlan({ key: "synthetic", model: "synthetic" }, generation(), null), (error: unknown) => error instanceof AiError && error.status === 504 && /took too long/.test(error.message));
+    assert.equal(calls, 1);
+    assert.equal((logs[0][1] as { reason: string }).reason, "timeout");
+    assert.doesNotMatch(JSON.stringify(logs), /private timeout detail/);
+  } finally { globalThis.fetch = original; AbortSignal.timeout = timeout; console.warn = warn; }
+});
