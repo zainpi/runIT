@@ -1,0 +1,92 @@
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 26px;
+}
+
+#download,
+.android-testing {
+  scroll-margin-top: 110px;
+}
+
+.android-testing {
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 2px solid rgba(243, 231, 201, 0.3);
+  text-align: left;
+}
+
+.android-testing h3,
+.testing-steps h4 {
+  font-family: "Pixel", monospace;
+  font-weight: 400;
+  color: var(--parch);
+}
+
+.android-testing h3 {
+  font-size: clamp(28px, 4vw, 36px);
+}
+
+.cta-box .android-testing p {
+  margin: 10px 0 22px;
+  max-width: none;
+  line-height: 1.5;
+}
+
+.testing-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.testing-steps li {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 22px;
+  background: rgba(29, 19, 8, 0.45);
+  border: 2px solid var(--wood-dark);
+  border-radius: 12px;
+}
+
+.testing-steps h4 {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.testing-steps .btn {
+  justify-content: center;
+  margin-top: auto;
+  padding: 12px 16px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.hero-actions .btn:focus-visible,
+.store:focus-visible,
+.testing-steps .btn:focus-visible {
+  outline: 3px solid var(--gold-lt);
+  outline-offset: 5px;
+}
+
+@media (max-width: 860px) {
+  .testing-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  .cta-box {
+    padding: 32px 18px;
+  }
+
+  .hero-actions .btn {
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+  }
+}

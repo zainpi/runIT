@@ -1,5 +1,5 @@
-.desktop { position: relative; overflow: clip; min-height: max(calc(100svh - 50px), 820px); padding: 26px 0 22px; border-bottom: 2.5px solid #1b1a17; }
-.wallpaperMark { position: absolute; right: 2.5vw; bottom: 110px; font-size: clamp(9rem, 17vw, 16rem); font-weight: 900; line-height: 1; letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 2.5px rgba(27, 26, 23, .13); pointer-events: none; user-select: none; }
+.desktop { position: relative; overflow: clip; min-height: max(calc(100svh - 50px), 820px); padding: 26px 0 22px; border-bottom: 2.5px solid var(--os-border); }
+.wallpaperMark { position: absolute; right: 2.5vw; bottom: 110px; font-size: clamp(9rem, 17vw, 16rem); font-weight: 900; line-height: 1; letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 2.5px var(--os-dots); pointer-events: none; user-select: none; }
 
 .stage { position: relative; display: grid; grid-template-columns: 216px minmax(0, 560px) minmax(0, 566px); grid-template-areas: "side welcome app" "side folder app"; align-items: start; justify-content: center; gap: 22px 32px; max-width: 1440px; margin-inline: auto; padding-inline: 18px 28px; }
 .sidebar { grid-area: side; }
@@ -8,7 +8,8 @@
 .slotFolder { grid-area: folder; }
 .slotApp { grid-area: app; margin-top: -8px; }
 .dragHandle { touch-action: auto; }
-.slot[data-active="false"] .dragHandle { background: color-mix(in srgb, var(--tone) 55%, #fffdf7); }
+.slot[data-active="false"] .dragHandle { background: color-mix(in srgb, var(--tone) 55%, var(--os-paper)); }
+:global(html[data-theme="dark"]) .slot[data-active="false"] .dragHandle { background: color-mix(in srgb, var(--tone) 18%, var(--os-paper)); }
 @media (min-width: 1180px) and (pointer: fine) {
   .dragHandle { cursor: grab; touch-action: none; }
   .dragHandle:active { cursor: grabbing; }
@@ -16,69 +17,69 @@
 
 /* Desktop icons */
 .icons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 6px; }
-.icon { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 8px 2px; border: 2px solid transparent; border-radius: 12px; background: none; color: #1b1a17; cursor: pointer; }
+.icon { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 8px 2px; border: 2px solid transparent; border-radius: 12px; background: none; color: var(--os-ink); cursor: pointer; }
 .iconImage, .iconSvg { display: block; width: 62px; height: 62px; transition: transform 140ms ease; }
-.iconImage { border: 2.5px solid #1b1a17; border-radius: 16px; object-fit: cover; box-shadow: 3px 3px 0 #1b1a17; }
+.iconImage { border: 2.5px solid var(--os-border); border-radius: 16px; object-fit: cover; box-shadow: 3px 3px 0 var(--os-shadow-color); }
 .iconLabel { max-width: 100%; padding: 2px 7px; border-radius: 6px; font-size: .8125rem; font-weight: 700; line-height: 1.25; text-align: center; overflow-wrap: break-word; }
 .icon:hover .iconImage, .icon:hover .iconSvg { transform: translateY(-3px) rotate(-3deg); }
-.icon[aria-pressed="true"] { border-color: #1b1a17; background: rgba(255, 210, 63, .3); }
-.icon[aria-pressed="true"] .iconLabel { background: #1b1a17; color: #fffdf7; }
+.icon[aria-pressed="true"] { border-color: var(--os-border); background: var(--os-yellow-wash); }
+.icon[aria-pressed="true"] .iconLabel { background: var(--os-inverse-bg); color: var(--os-inverse-ink); }
 
-.note { margin: 28px 12px 0; padding: 18px 18px 20px; border: 2px solid #1b1a17; background: #ffe66b; box-shadow: 4px 5px 0 rgba(27, 26, 23, .85); transform: rotate(-3deg); font-family: var(--font-os-hand), cursive; font-size: 1.375rem; line-height: 1.3; }
+.note { margin: 28px 12px 0; padding: 18px 18px 20px; border: 2px solid var(--os-border); background: var(--os-note); box-shadow: 4px 5px 0 var(--os-note-shadow); transform: rotate(-3deg); font-family: var(--font-os-hand), cursive; font-size: 1.375rem; line-height: 1.3; }
 .noteTitle { text-decoration: underline; }
 .note ol { margin: 0; padding-left: 1.4em; }
 
 /* welcome.txt */
 .welcomeBody { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px 28px 24px; }
-.readme { color: #6b4a3c; font-size: .875rem; }
+.readme { color: var(--os-kicker); font-size: .875rem; }
 .welcomeTitle { font-size: clamp(2.4rem, 3.4vw, 3.05rem); font-weight: 900; line-height: 1; letter-spacing: -.045em; }
-.welcomeTitle span { display: block; margin-top: 10px; color: #b8361a; font-size: .52em; font-weight: 800; letter-spacing: -.03em; }
-.welcomeTitle:focus-visible { outline: 2px dashed #b8361a; outline-offset: 6px; box-shadow: none; }
-.welcomeText { color: #3d3a33; font-size: 1rem; line-height: 1.6; text-wrap: pretty; }
+.welcomeTitle span { display: block; margin-top: 10px; color: var(--os-tomato-ink); font-size: .52em; font-weight: 800; letter-spacing: -.03em; }
+.welcomeTitle:focus-visible { outline: 2px dashed var(--os-tomato-ink); outline-offset: 6px; box-shadow: none; }
+.welcomeText { color: var(--os-copy); font-size: 1rem; line-height: 1.6; text-wrap: pretty; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
 
 /* Product window */
-.appArt { height: 260px; border-bottom: 2.5px solid #1b1a17; }
+.appArt { height: 260px; border-bottom: 2.5px solid var(--os-border); }
 .appImage { display: block; width: 100%; height: 100%; object-fit: cover; }
 .appBody { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 22px 26px 26px; }
 .appName { font-size: 2.5rem; font-weight: 900; line-height: 1.05; letter-spacing: -.045em; }
-.appText { min-height: 4.7em; color: #3d3a33; font-size: 1.0625rem; line-height: 1.55; }
-.appNote { color: #5e594f; font-size: .9375rem; font-weight: 700; }
-.appProgress { height: 8px; overflow: hidden; border-top: 2px solid #1b1a17; background: #e5dccb; }
-.appProgressFill { display: block; width: 100%; height: 100%; background: var(--tone, #ffd23f); transform: scaleX(0); transform-origin: left; }
-.appControls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 8px 12px; border-top: 2px solid #1b1a17; background: #f6f0e2; font-size: .875rem; }
+.appText { min-height: 4.7em; color: var(--os-copy); font-size: 1.0625rem; line-height: 1.55; }
+.appNote { color: var(--os-muted); font-size: .9375rem; font-weight: 700; }
+.appProgress { height: 8px; overflow: hidden; border-top: 2px solid var(--os-border); background: var(--os-progress-track); }
+.appProgressFill { display: block; width: 100%; height: 100%; background: var(--tone, var(--os-yellow-surface)); transform: scaleX(0); transform-origin: left; }
+.appControls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 8px 12px; border-top: 2px solid var(--os-border); background: var(--os-soft); font-size: .875rem; }
 .appControlButtons { display: flex; gap: 6px; margin-left: auto; }
-.appControlButtons button { min-width: 44px; min-height: 44px; padding: 0 10px; border: 2px solid #1b1a17; border-radius: 8px; background: #fffdf7; font-size: .8125rem; font-weight: 800; cursor: pointer; }
-.appControlButtons button:hover { background: #ffd23f; }
+.appControlButtons button { min-width: 44px; min-height: 44px; padding: 0 10px; border: 2px solid var(--os-border); border-radius: 8px; background: var(--os-paper); font-size: .8125rem; font-weight: 800; cursor: pointer; }
+.appControlButtons button:hover { background: var(--os-yellow-surface); }
 
 /* Folder window */
-.tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 14px; border-bottom: 2px solid #1b1a17; background: #f6f0e2; }
-.tab { min-height: 40px; padding: 0 16px; border: 2px solid #1b1a17; border-radius: 8px; background: #fffdf7; font-family: var(--font-os-pixel), ui-monospace, monospace !important; font-size: .9375rem; cursor: pointer; }
-.tab[aria-pressed="true"] { background: #1b1a17; color: #fffdf7; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 14px; border-bottom: 2px solid var(--os-border); background: var(--os-soft); }
+.tab { min-height: 40px; padding: 0 16px; border: 2px solid var(--os-border); border-radius: 8px; background: var(--os-paper); font-family: var(--font-os-pixel), ui-monospace, monospace !important; font-size: .9375rem; cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--os-inverse-bg); color: var(--os-inverse-ink); }
 .folderBody { min-height: 150px; padding: 12px 16px; }
 .files { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
 .file { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 44px; padding: 6px 2px; border-radius: 10px; font-size: .8125rem; font-weight: 700; line-height: 1.25; text-align: center; text-decoration: none; }
-.file:hover { background: rgba(255, 210, 63, .45); }
+.file:hover { background: var(--os-yellow-wash-hover); }
 .file svg { width: 44px; height: 52px; transition: transform 140ms ease; }
 .file:hover svg { transform: translateY(-3px) rotate(3deg); }
 .people { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .person { display: flex; align-items: center; gap: 12px; padding: 0 4px; }
-.avatar { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border: 2.5px solid #1b1a17; border-radius: 50%; font-size: .875rem; font-weight: 900; }
+.avatar { color: var(--os-accent-ink); display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border: 2.5px solid var(--os-border); border-radius: 50%; font-size: .875rem; font-weight: 900; }
 .personName { flex: 1; min-width: 0; font-size: 1.0625rem; font-weight: 800; }
-.personRole { color: #5e594f; font-size: .875rem; }
-.personLink { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border: 2px solid #1b1a17; border-radius: 8px; background: #fffdf7; font-size: .875rem; font-weight: 800; text-decoration: none; }
-.personLink:hover { background: #ffd23f; }
+.personRole { color: var(--os-muted); font-size: .875rem; }
+.personLink { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border: 2px solid var(--os-border); border-radius: 8px; background: var(--os-paper); font-size: .875rem; font-weight: 800; text-decoration: none; }
+.personLink:hover { background: var(--os-yellow-surface); }
 .contactPanel { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; font-size: 1.125rem; line-height: 1.5; }
 .emptyDesktop { grid-column: 2 / -1; grid-row: 1; align-self: center; justify-self: center; margin-top: 160px; font-size: 1.75rem; transform: rotate(-2deg); }
 
 /* Dock */
 /* The dock rides the bottom of the screen while the desktop is in view, then settles below the windows. */
-.dock { position: sticky; bottom: 18px; z-index: 20; display: flex; align-items: center; gap: 12px; width: fit-content; max-width: calc(100% - 28px); margin: 30px auto 0; padding: 10px 14px; border: 2.5px solid #1b1a17; border-radius: 22px; background: #fffdf7; box-shadow: 5px 5px 0 #1b1a17; }
+.dock { position: sticky; bottom: 18px; z-index: 20; display: flex; align-items: center; gap: 12px; width: fit-content; max-width: calc(100% - 28px); margin: 30px auto 0; padding: 10px 14px; border: 2.5px solid var(--os-border); border-radius: 22px; background: var(--os-paper); box-shadow: 5px 5px 0 var(--os-shadow-color); }
 .dockButton { position: relative; display: grid; place-items: center; width: 56px; height: 56px; padding: 0; border: 0; background: none; cursor: pointer; }
-.dockImage { display: block; width: 52px; height: 52px; border: 2px solid #1b1a17; border-radius: 13px; object-fit: cover; transition: transform 140ms ease; }
+.dockImage { display: block; width: 52px; height: 52px; border: 2px solid var(--os-border); border-radius: 13px; object-fit: cover; transition: transform 140ms ease; }
 .dockButton:hover .dockImage { transform: translateY(-8px) scale(1.08); }
-.dockButton[aria-pressed="true"]::after { content: ""; position: absolute; bottom: -8px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #1b1a17; }
-.dockDivider { width: 2px; height: 44px; background: #1b1a17; }
+.dockButton[aria-pressed="true"]::after { content: ""; position: absolute; bottom: -8px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--os-inverse-bg); }
+.dockDivider { width: 2px; height: 44px; background: var(--os-inverse-bg); }
 .dockBuild { min-height: 52px; white-space: nowrap; }
 
 /* On short screens the dock stays below the windows instead of floating over them. */

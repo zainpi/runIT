@@ -482,11 +482,9 @@ export async function hasActiveSubscription(admin: SupabaseClient, accountID: st
   return (await readMembership(admin, accountID)).tier !== "none";
 }
 
-export async function requireMarketplaceAccess(admin: SupabaseClient, accountID: string, marketplace: string): Promise<Membership> {
+// Authentication and rate limits stay at each route. Shopping access is free in every live market.
+export async function requireMarketplaceAccess(_admin: SupabaseClient, _accountID: string, marketplace: string): Promise<void> {
   if (!(PULSE_MARKETPLACES as readonly string[]).includes(marketplace)) throw new Error("Invalid marketplace");
-  const membership = await requireActiveSubscription(admin, accountID);
-  if (membership.tier !== "pro" && membership.primaryMarketplace !== marketplace) throw new Error("Your membership includes your selected country");
-  return membership;
 }
 
 export async function refreshDiscordMemberships(admin: SupabaseClient): Promise<void> {
@@ -1032,9 +1030,7 @@ export async function getDealVoteSummaries(
   const uniqueASINs = Array.from(
     new Set(asins.map((asin) => asin.trim().toUpperCase()).filter(Boolean)),
   ).slice(0, 50);
-  const membership = await requireActiveSubscription(admin, accountID);
   const allowedQuery = admin.from("pulsedeals_deals").select("asin").in("asin", uniqueASINs).in("marketplace", [...PULSE_MARKETPLACES]);
-  if (membership.tier !== "pro") allowedQuery.eq("marketplace", membership.primaryMarketplace ?? "unselected");
   const allowedResult = await allowedQuery;
   if (allowedResult.error) throw allowedResult.error;
   const allowed = new Set((allowedResult.data ?? []).map(row => row.asin));
@@ -1081,7 +1077,6 @@ export async function submitDealVote(
   if (!/^[A-Z0-9]{6,32}$/.test(normalizedASIN)) throw new Error("Invalid deal ASIN");
   if (!(PULSE_DEAL_VOTES as readonly string[]).includes(vote)) throw new Error("Invalid deal vote");
 
-  const membership = await requireActiveSubscription(admin, accountID);
   const dealQuery = admin
     .from("pulsedeals_deals")
     .select("asin")
@@ -1089,7 +1084,6 @@ export async function submitDealVote(
     .eq("status", "live")
     .in("marketplace", [...PULSE_MARKETPLACES])
     .limit(1);
-  if (membership.tier !== "pro") dealQuery.eq("marketplace", membership.primaryMarketplace ?? "unselected");
   const deal = await dealQuery;
   if (deal.error) throw deal.error;
   if (!deal.data?.length) throw new Error("Deal not found");

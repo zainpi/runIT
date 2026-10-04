@@ -3,6 +3,7 @@ import { site } from "./site";
 
 // Stable IDs let page-level JSON-LD refer to these entities instead of repeating them.
 export const organizationId = `${site.url}/#organization`;
+export const websiteId = `${site.url}/#website`;
 export const founderId = (founder: Founder) => `${site.url}${founder.portfolioUrl}#person`;
 
 export const organizationJsonLd = {
@@ -24,3 +25,29 @@ export const organizationJsonLd = {
     ...(founder.x ? { sameAs: [xProfileUrl(founder.x)] } : {}),
   })),
 };
+
+export const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": websiteId,
+  name: site.name,
+  url: `${site.url}/`,
+  description: site.description,
+  inLanguage: "en-CA",
+  publisher: { "@id": organizationId },
+};
+
+export function faqJsonLd(pageUrl: string, questions: readonly { question: string; answer: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "@id": `${pageUrl}#faq`,
+    url: `${pageUrl}#faq`,
+    isPartOf: { "@id": `${pageUrl}#webpage` },
+    mainEntity: questions.map(({ question, answer }) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: { "@type": "Answer", text: answer },
+    })),
+  };
+}

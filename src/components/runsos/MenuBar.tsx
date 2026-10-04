@@ -4,6 +4,7 @@ import { analyticsConfigured } from "@/lib/analytics";
 import { company } from "@/lib/company";
 import { BrandMark } from "./BrandMark";
 import { MenuLinks } from "./MenuLinks";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import os from "./os.module.css";
 
 export type MenuLink = { label: string; href: string };
@@ -28,6 +29,7 @@ export function MenuBar({ links = homeMenu, label = "Primary" }: { links?: MenuL
           <MenuLinks links={links} />
         </nav>
         <div className={os.menuRight}>
+          <ThemeToggle />
           <span className={os.menuPill}>Built in Canada</span>
           <Link className={os.menuCta} href="/contact/">Say hello</Link>
         </div>

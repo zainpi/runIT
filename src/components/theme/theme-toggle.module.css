@@ -1,0 +1,9 @@
+.toggle { display:inline-flex; align-items:center; justify-content:center; gap:8px; flex-shrink:0; min-width:44px; min-height:44px; padding:0 12px; border:2px solid var(--os-border); border-radius:8px; background:var(--os-paper); color:var(--os-ink); font:inherit; cursor:pointer; }
+.toggle:hover { background:var(--os-hover); }
+.sun,.lightLabel { display:none; }
+:global(html[data-theme="dark"]) .moon,:global(html[data-theme="dark"]) .darkLabel { display:none; }
+:global(html[data-theme="dark"]) .sun,:global(html[data-theme="dark"]) .lightLabel { display:block; }
+@media(max-width:760px) {
+  .toggle { padding:0 10px; }
+  :global(html[data-theme]) .toggle .darkLabel,:global(html[data-theme]) .toggle .lightLabel { display:none; }
+}

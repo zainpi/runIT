@@ -164,19 +164,6 @@
       .store[href]:hover {
         filter: brightness(1.12);
       }
-      .store .soon {
-        position: absolute;
-        top: -10px;
-        right: -8px;
-        background: var(--gold-lt);
-        color: #3a1f0a;
-        border: 2px solid var(--gold2);
-        font-family: "Pixel", monospace;
-        font-size: 11px;
-        padding: 1px 8px;
-        border-radius: 9px;
-        box-shadow: 0 2px 0 #9c6a18;
-      }
 
       /* ---------- nav ---------- */
       .nav {
@@ -654,9 +641,6 @@
         max-width: 34em;
         font-size: 17px;
       }
-      .hero-download {
-        margin-top: 26px;
-      }
       .cta .stores {
         justify-content: center;
         margin-top: 24px;
@@ -859,13 +843,13 @@
       </style></noscript
     >
   <title>The Last Echo: 마음을 담은 자동 전투 RPG</title>
-    <meta name="description" content="The Last Echo는 아기자기한 방치형 자동 전투 RPG입니다. 게임을 꺼 두어도 파티는 계속 싸웁니다. 천장이 보이는 공정하고 투명한 뽑기, 깊이 있는 성장, 환생, 던전, 월드 보스까지. 지금 iOS에서 플레이하세요. Android는 곧 출시됩니다." />
+    <meta name="description" content="The Last Echo는 아기자기한 방치형 자동 전투 RPG입니다. 게임을 꺼 두어도 파티는 계속 싸웁니다. 천장이 보이는 공정하고 투명한 뽑기, 깊이 있는 성장, 환생, 던전, 월드 보스까지. 지금 iOS에서 플레이하세요. Google Play에서 Android 테스트에 참여할 수 있습니다." />
     <meta name="author" content="The Last Echo 개발팀" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:url" content="https://runs-it.com/the-last-echo/ko/" />
     <meta property="og:title" content="The Last Echo: 마음을 담은 자동 전투 RPG" />
-    <meta property="og:description" content="게임을 꺼 두어도 파티는 계속 싸웁니다. 공정한 뽑기, 깊이 있는 성장, 진짜 오프라인 보상. 지금 iOS에서 플레이하세요. Android는 곧 출시됩니다." />
+    <meta property="og:description" content="게임을 꺼 두어도 파티는 계속 싸웁니다. 공정한 뽑기, 깊이 있는 성장, 진짜 오프라인 보상. 지금 iOS에서 플레이하세요. Google Play에서 Android 테스트에 참여할 수 있습니다." />
     <meta property="og:image" content="https://runs-it.com/the-last-echo/img/og.png?v=2" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="The Last Echo: 마음을 담은 자동 전투 RPG" />
@@ -893,6 +877,7 @@
 @font-face{font-family:'Pixel';src:local('Apple SD Gothic Neo'),local('AppleSDGothicNeo-Regular'),local('Malgun Gothic'),local('Noto Sans KR'),local('Noto Sans CJK KR');unicode-range:U+1100-11FF,U+3000-303F,U+3130-318F,U+AC00-D7AF,U+FF00-FFEF;size-adjust:78%}
 body{word-break:keep-all;overflow-wrap:anywhere}
 </style>
+    <link rel="stylesheet" href="/the-last-echo/testing.css" />
 </head>
   <body>
     <!-- ============ NAV ============ -->
@@ -918,11 +903,9 @@ body{word-break:keep-all;overflow-wrap:anywhere}
           <a href="/the-last-echo/ko/support.html">고객 지원</a>
           <a
             class="btn btn--green"
-            href="https://apps.apple.com/app/id6788888795"
-            target="_blank"
-            rel="noopener"
+            href="#download"
             onclick="closeMenu()"
-            >iOS에서 다운로드</a
+            >지금 플레이</a
           >
         </nav>
         <!-- l10n:langs --><details class="langs"><summary aria-label="언어: 한국어">🌐<span class="lc">KO</span></summary><ul><li><a href="/the-last-echo/" hreflang="en" lang="en">English</a></li><li><a href="/the-last-echo/es/" hreflang="es" lang="es">Español</a></li><li><a href="/the-last-echo/ko/" hreflang="ko" lang="ko" aria-current="page">한국어</a></li><li><a href="/the-last-echo/ja/" hreflang="ja" lang="ja">日本語</a></li></ul></details><script>document.addEventListener('click',function(e){document.querySelectorAll('details.langs[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})});</script>
@@ -943,13 +926,16 @@ body{word-break:keep-all;overflow-wrap:anywhere}
             전리품을 챙기세요. 당신의 시간과 지갑을 존중하도록 만든, 포근하고
             독창적인 세계입니다.
           </p>
-          <a
-            class="btn btn--green hero-download"
-            href="https://apps.apple.com/app/id6788888795"
-            target="_blank"
-            rel="noopener"
-            >App Store에서 다운로드</a
-          >
+          <div class="hero-actions">
+            <a
+              class="btn btn--green"
+              href="https://apps.apple.com/app/id6788888795"
+              target="_blank"
+              rel="noopener"
+              >App Store에서 다운로드</a
+            >
+            <a class="btn" href="#android-testing">Android 테스트 참여</a>
+          </div>
           <div class="stores">
             <a
               class="store"
@@ -965,15 +951,18 @@ body{word-break:keep-all;overflow-wrap:anywhere}
               </svg>
               <span><small>다운로드</small><b>App Store</b></span>
             </a>
-            <span class="store"
-              ><span class="soon">출시 예정</span>
+            <a
+              class="store"
+              href="#android-testing"
+              aria-label="Google Play에서 The Last Echo Android 테스트 참여"
+              >
               <svg viewBox="0 0 512 512">
                 <path
                   d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"
                 />
               </svg>
-              <span><small>출시 예정</small><b>Google Play</b></span>
-            </span>
+              <span><small>테스트 진행 중</small><b>Google Play</b></span>
+            </a>
           </div>
           <div class="byline">
             <img src="/the-last-echo/img/icons/Heart.png" alt="" />2인 인디
@@ -1151,8 +1140,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
         <div class="cta-box reveal">
           <h2>지금 The Last Echo를 플레이하세요</h2>
           <p>
-            The Last Echo는 지금 App Store에서 만나 볼 수 있습니다. 게임을
-            다운로드하고 오늘 바로 파티를 꾸려 보세요.
+            The Last Echo는 지금 iOS에서 플레이할 수 있으며, Google Play에서 Android 테스트에도 참여할 수 있습니다. 플랫폼을 선택하고 오늘 바로 파티를 꾸려 보세요.
           </p>
           <a
             class="btn btn--green"
@@ -1176,15 +1164,39 @@ body{word-break:keep-all;overflow-wrap:anywhere}
               </svg>
               <span><small>다운로드</small><b>App Store</b></span>
             </a>
-            <span class="store"
-              ><span class="soon">출시 예정</span>
+            <a
+              class="store"
+              href="#android-testing"
+              aria-label="Google Play에서 The Last Echo Android 테스트 참여"
+              >
               <svg viewBox="0 0 512 512">
                 <path
                   d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"
                 />
               </svg>
-              <span><small>출시 예정</small><b>Google Play</b></span>
-            </span>
+              <span><small>테스트 진행 중</small><b>Google Play</b></span>
+            </a>
+          </div>
+          <div class="android-testing" id="android-testing">
+            <h3>Android 테스트가 시작되었습니다</h3>
+            <p>세 단계 모두 같은 Google 계정을 사용해 순서대로 진행하세요.</p>
+            <ol class="testing-steps" role="list">
+              <li>
+                <h4><span aria-hidden="true">1.</span> Google 그룹 가입</h4>
+                <p>The Last Echo Testers 그룹에 가입해 Android 테스트 참여 자격을 얻으세요.</p>
+                <a class="btn" href="https://groups.google.com/g/the-last-echo-testers" target="_blank" rel="noopener">그룹 가입</a>
+              </li>
+              <li>
+                <h4><span aria-hidden="true">2.</span> 테스터 등록</h4>
+                <p>웹 참여 페이지를 열고 “Become a tester”(테스터 되기)를 선택하세요.</p>
+                <a class="btn" href="https://play.google.com/apps/testing/com.runsit.thelastecho" target="_blank" rel="noopener">테스터 등록</a>
+              </li>
+              <li>
+                <h4><span aria-hidden="true">3.</span> Google Play에서 다운로드</h4>
+                <p>테스터로 등록한 뒤 Google Play에서 The Last Echo를 설치하세요.</p>
+                <a class="btn btn--green" href="https://play.google.com/store/apps/details?id=com.runsit.thelastecho" target="_blank" rel="noopener">Google Play에서 다운로드</a>
+              </li>
+            </ol>
           </div>
         </div>
       </div>
@@ -1203,7 +1215,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
             <p>
               공정하고 투명한 뽑기와 몇 주 동안 최적화할 수 있는 깊이 있는
               성장을 갖춘 포근한 방치형 자동 전투 RPG. 지금 iOS에서 플레이할
-              수 있으며, Android는 곧 출시됩니다.
+              수 있으며, Google Play에서 Android 테스트에 참여할 수 있습니다.
             </p>
           </div>
           <div class="fcol">
@@ -1216,6 +1228,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
               rel="noopener"
               >App Store에서 다운로드</a
             >
+            <a href="#android-testing">Android 테스트</a>
             <a href="/the-last-echo/ko/redeem/">쿠폰 입력</a>
             <a href="/the-last-echo/guides/" hreflang="en">가이드 (영어)</a>
             <a href="/the-last-echo/gallery.html" hreflang="en">갤러리 (영어)</a>

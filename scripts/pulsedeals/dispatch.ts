@@ -5,9 +5,9 @@ import { pathToFileURL } from "node:url";
 import { sendPush, type PushRequest, type PushResult } from "./apns";
 
 type Row = Record<string, any>; // Supabase rows are validated against current database state below.
-export function stillMatches(delivery: Row, device: Row | null, alert: Row | null, deal: Row | null, entitled: boolean, now = Date.now()): boolean {
+export function stillMatches(delivery: Row, device: Row | null, alert: Row | null, deal: Row | null, now = Date.now()): boolean {
   if (!device?.enabled || device.account_id !== delivery.account_id || !alert?.is_enabled ||
-      alert.account_id !== delivery.account_id || !entitled || !deal || !(PULSE_MARKETPLACES as readonly string[]).includes(deal.marketplace) || deal.status !== "live" ||
+      alert.account_id !== delivery.account_id || !deal || !(PULSE_MARKETPLACES as readonly string[]).includes(deal.marketplace) || deal.status !== "live" ||
       new Date(delivery.expires_at).getTime() <= now || Number(deal.current_price) !== Number(delivery.price)) return false;
   const price = Number(deal.current_price), reference = Number(deal.reference_price);
   const source = `${deal.title} ${deal.category} ${deal.asin}`.toLowerCase();
@@ -32,17 +32,14 @@ export async function dispatchOnce(admin: SupabaseClient, sender: (request: Push
       if (result.error) throw result.error;
     };
     try {
-      const [deviceResult, alertResult, dealResult, entitlementResult] = await Promise.all([
+      const [deviceResult, alertResult, dealResult] = await Promise.all([
         admin.from("pulsedeals_push_devices").select("*").eq("id", delivery.device_id).maybeSingle(),
         admin.from("pulsedeals_alerts").select("*").eq("id", delivery.alert_id).maybeSingle(),
         admin.from("pulsedeals_deals").select("*").eq("id", delivery.deal_id).maybeSingle(),
-        admin.rpc("pulsedeals_membership", { p_account_id: delivery.account_id }),
       ]);
-      for (const result of [deviceResult, alertResult, dealResult, entitlementResult]) if (result.error) throw result.error;
+      for (const result of [deviceResult, alertResult, dealResult]) if (result.error) throw result.error;
       const device = deviceResult.data;
-      const membership = entitlementResult.data?.[0];
-      const allowed = membership?.tier === "pro" || (membership?.tier === "standard" && membership.primary_marketplace === dealResult.data?.marketplace);
-      if (!stillMatches(delivery, device, alertResult.data, dealResult.data, allowed)) {
+      if (!stillMatches(delivery, device, alertResult.data, dealResult.data)) {
         await update({ state: "cancelled", last_error: "no_longer_matches", lease_until: null });
         continue;
       }

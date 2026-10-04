@@ -11,7 +11,7 @@ import { StickyCta } from "@/components/site/StickyCta";
 import { company, founders, products, xProfileUrl, type ProductId } from "@/lib/company";
 import { site } from "@/lib/site";
 import { siteSocialImage } from "@/lib/social";
-import { organizationId } from "@/lib/structured-data";
+import { faqJsonLd, organizationId } from "@/lib/structured-data";
 import { AI_MESSAGE_LIMIT } from "@/lib/templates/ai-contract";
 import { templateCatalog } from "@/lib/templates/catalog";
 import { templateDemos } from "@/lib/templates/demos";
@@ -48,8 +48,8 @@ const productDetails: Record<ProductId, { platform: string; status?: string; bod
     ],
   },
   "the-last-echo": {
-    platform: "Mobile game · iOS",
-    status: "On the App Store · Android coming soon",
+    platform: "Mobile game · iOS & Android",
+    status: "On the App Store · Google Play testing",
     body: [
       "The Last Echo is an idle auto-battle RPG: your party keeps fighting while you’re away, and you choose the gear, skills and upgrades.",
       "It’s built for players who like RPG decisions without constant check-ins. Odds are published, pity is visible, and free players can clear the core game.",
@@ -439,7 +439,7 @@ export default function AboutPage() {
           </div>
         </Window>
 
-        <Window as="section" title="faq.txt" tone="#7fd8c3" labelledBy="faq-heading">
+        <Window as="section" id="faq" title="faq.txt" tone="#7fd8c3" labelledBy="faq-heading">
           <div className={home.windowBody}>
             <WindowHeading id="faq-heading" title="Frequently asked questions" />
             <div className={styles.faqs}>
@@ -469,6 +469,7 @@ export default function AboutPage() {
       <StickyCta href="/templates/" label="Browse AI templates" after="hero-cta" until="next-steps" />
       <Taskbar backHref="#about" />
       <JsonLd data={aboutPageJsonLd} />
+      <JsonLd data={faqJsonLd(pageUrl, faqs)} />
     </div>
   );
 }

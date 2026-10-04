@@ -1,8 +1,8 @@
-.guide { margin:24px 0; padding:26px; border:2px solid #1b1a17; border-radius:12px; background:#fffdf7; }
+.guide { margin:24px 0; padding:26px; border:2px solid var(--os-border); border-radius:12px; background:var(--os-paper); }
 .guide h2 { font-size:1.35rem; font-weight:800; letter-spacing:-.025em; margin:6px 0 14px; }
-.guide>p { color:#5e594f; font-size:.8rem; line-height:1.75; margin-bottom:14px; }
+.guide>p { color:var(--os-muted); font-size:.8rem; line-height:1.75; margin-bottom:14px; }
 .guide>div { margin-block:18px; flex-wrap:wrap; }
-.preview { display: block; width: 100%; height: 760px; margin-top: 1.5rem; border:2px solid #1b1a17; border-radius: .75rem; background: #faf8f2; }
+.preview { display: block; width: 100%; height: 760px; margin-top: 1.5rem; border:2px solid var(--os-border); border-radius: .75rem; background: var(--os-shimmer); }
 @media (max-width: 760px) { .guide { padding:20px 17px; } .preview { height:650px; } }
 
-.guide { border:2.5px solid #1b1a17; border-radius:14px; box-shadow:6px 6px 0 #1b1a17; background:linear-gradient(#fffdf7,#fffdf7) 16px 10px/10px 10px no-repeat,linear-gradient(#1b1a17,#1b1a17) 14px 8px/14px 14px no-repeat,linear-gradient(#fffdf7,#fffdf7) 36px 10px/10px 10px no-repeat,linear-gradient(#1b1a17,#1b1a17) 34px 8px/14px 14px no-repeat,linear-gradient(#fffdf7,#fffdf7) 56px 10px/10px 10px no-repeat,linear-gradient(#1b1a17,#1b1a17) 54px 8px/14px 14px no-repeat,linear-gradient(#ffd23f 0 31px,#1b1a17 31px 33px,#fffdf7 33px) no-repeat; background-color:#fffdf7; padding-top:58px; }
+.guide { border:2.5px solid var(--os-border); border-radius:14px; box-shadow:6px 6px 0 var(--os-shadow-color); background:linear-gradient(var(--os-paper),var(--os-paper)) 16px 10px/10px 10px no-repeat,linear-gradient(var(--os-border),var(--os-border)) 14px 8px/14px 14px no-repeat,linear-gradient(var(--os-paper),var(--os-paper)) 36px 10px/10px 10px no-repeat,linear-gradient(var(--os-border),var(--os-border)) 34px 8px/14px 14px no-repeat,linear-gradient(var(--os-paper),var(--os-paper)) 56px 10px/10px 10px no-repeat,linear-gradient(var(--os-border),var(--os-border)) 54px 8px/14px 14px no-repeat,linear-gradient(var(--os-yellow-surface) 0 31px,var(--os-border) 31px 33px,var(--os-paper) 33px) no-repeat; background-color:var(--os-paper); padding-top:58px; }

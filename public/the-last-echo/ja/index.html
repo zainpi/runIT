@@ -164,19 +164,6 @@
       .store[href]:hover {
         filter: brightness(1.12);
       }
-      .store .soon {
-        position: absolute;
-        top: -10px;
-        right: -8px;
-        background: var(--gold-lt);
-        color: #3a1f0a;
-        border: 2px solid var(--gold2);
-        font-family: "Pixel", monospace;
-        font-size: 11px;
-        padding: 1px 8px;
-        border-radius: 9px;
-        box-shadow: 0 2px 0 #9c6a18;
-      }
 
       /* ---------- nav ---------- */
       .nav {
@@ -654,9 +641,6 @@
         max-width: 34em;
         font-size: 17px;
       }
-      .hero-download {
-        margin-top: 26px;
-      }
       .cta .stores {
         justify-content: center;
         margin-top: 24px;
@@ -859,13 +843,13 @@
       </style></noscript
     >
   <title>The Last Echo：心をこめたオートバトルRPG</title>
-    <meta name="description" content="The Last Echoは、かわいい放置系オートバトルRPG。アプリを閉じていてもパーティーは戦い続けます。天井が見える公正で透明なガチャ、やり込める育成、転生、ダンジョン、ワールドボス。iOSで配信中、Androidは近日配信予定です。" />
+    <meta name="description" content="The Last Echoは、かわいい放置系オートバトルRPG。アプリを閉じていてもパーティーは戦い続けます。天井が見える公正で透明なガチャ、やり込める育成、転生、ダンジョン、ワールドボス。iOSで配信中、Google PlayでAndroidテストに参加できます。" />
     <meta name="author" content="The Last Echo 開発チーム" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ja_JP" />
     <meta property="og:url" content="https://runs-it.com/the-last-echo/ja/" />
     <meta property="og:title" content="The Last Echo：心をこめたオートバトルRPG" />
-    <meta property="og:description" content="アプリを閉じていてもパーティーは戦い続けます。公正なガチャ、やり込める育成、本物の放置報酬。iOSで配信中、Androidは近日配信予定です。" />
+    <meta property="og:description" content="アプリを閉じていてもパーティーは戦い続けます。公正なガチャ、やり込める育成、本物の放置報酬。iOSで配信中、Google PlayでAndroidテストに参加できます。" />
     <meta property="og:image" content="https://runs-it.com/the-last-echo/img/og.png?v=2" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="The Last Echo：心をこめたオートバトルRPG" />
@@ -893,6 +877,7 @@
 @font-face{font-family:'Pixel';src:local('Hiragino Kaku Gothic ProN'),local('HiraKakuProN-W3'),local('Hiragino Sans'),local('Yu Gothic'),local('Meiryo'),local('Noto Sans JP'),local('Noto Sans CJK JP');unicode-range:U+3000-30FF,U+3400-4DBF,U+4E00-9FFF,U+FF00-FFEF;size-adjust:78%}
 body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
 </style>
+    <link rel="stylesheet" href="/the-last-echo/testing.css" />
 </head>
   <body>
     <!-- ============ NAV ============ -->
@@ -918,11 +903,9 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
           <a href="/the-last-echo/ja/support.html">サポート</a>
           <a
             class="btn btn--green"
-            href="https://apps.apple.com/app/id6788888795"
-            target="_blank"
-            rel="noopener"
+            href="#download"
             onclick="closeMenu()"
-            >iOS版をダウンロード</a
+            >今すぐプレイ</a
           >
         </nav>
         <!-- l10n:langs --><details class="langs"><summary aria-label="言語: 日本語">🌐<span class="lc">JA</span></summary><ul><li><a href="/the-last-echo/" hreflang="en" lang="en">English</a></li><li><a href="/the-last-echo/es/" hreflang="es" lang="es">Español</a></li><li><a href="/the-last-echo/ko/" hreflang="ko" lang="ko">한국어</a></li><li><a href="/the-last-echo/ja/" hreflang="ja" lang="ja" aria-current="page">日本語</a></li></ul></details><script>document.addEventListener('click',function(e){document.querySelectorAll('details.langs[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})});</script>
@@ -936,13 +919,16 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
           <h1>The Last <span class="l2">Echo</span></h1>
           <p class="tagline">放置で栄光をつかめ。心をこめたオートバトルRPG。</p>
           <p class="lede">アプリを閉じていてもパーティーは戦い続けます。強力な装備を引き当て、スキルツリーを極め、ワールドボスのランキングを駆け上がり、戻ってきたら山ほどの戦利品を受け取りましょう。あなたの時間とお財布を大切にする、温かくオリジナルな世界です。</p>
-          <a
-            class="btn btn--green hero-download"
-            href="https://apps.apple.com/app/id6788888795"
-            target="_blank"
-            rel="noopener"
-            >App Storeでダウンロード</a
-          >
+          <div class="hero-actions">
+            <a
+              class="btn btn--green"
+              href="https://apps.apple.com/app/id6788888795"
+              target="_blank"
+              rel="noopener"
+              >App Storeでダウンロード</a
+            >
+            <a class="btn" href="#android-testing">Androidテストに参加</a>
+          </div>
           <div class="stores">
             <a
               class="store"
@@ -958,15 +944,18 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
               </svg>
               <span><small>ダウンロード</small><b>App Store</b></span>
             </a>
-            <span class="store"
-              ><span class="soon">近日</span>
+            <a
+              class="store"
+              href="#android-testing"
+              aria-label="Google PlayでThe Last EchoのAndroidテストに参加"
+              >
               <svg viewBox="0 0 512 512">
                 <path
                   d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"
                 />
               </svg>
-              <span><small>近日配信</small><b>Google Play</b></span>
-            </span>
+              <span><small>テスト実施中</small><b>Google Play</b></span>
+            </a>
           </div>
           <div class="byline">
             <img src="/the-last-echo/img/icons/Heart.png" alt="" />2人のインディースタジオが手作りで開発しています。</div>
@@ -1133,7 +1122,8 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
         <div class="cta-box reveal">
           <h2>The Last Echoを今すぐプレイ</h2>
           <p>
-            The Last EchoはApp Storeで配信中です。ダウンロードして、今日からパーティーを結成しましょう。</p>
+            The Last EchoはiOSで配信中です。Google PlayではAndroidテストに参加できます。プラットフォームを選んで、今日からパーティーを結成しましょう。
+          </p>
           <a
             class="btn btn--green"
             href="https://apps.apple.com/app/id6788888795"
@@ -1156,15 +1146,39 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
               </svg>
               <span><small>ダウンロード</small><b>App Store</b></span>
             </a>
-            <span class="store"
-              ><span class="soon">近日</span>
+            <a
+              class="store"
+              href="#android-testing"
+              aria-label="Google PlayでThe Last EchoのAndroidテストに参加"
+              >
               <svg viewBox="0 0 512 512">
                 <path
                   d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"
                 />
               </svg>
-              <span><small>近日配信</small><b>Google Play</b></span>
-            </span>
+              <span><small>テスト実施中</small><b>Google Play</b></span>
+            </a>
+          </div>
+          <div class="android-testing" id="android-testing">
+            <h3>Androidテストの参加受付が始まりました</h3>
+            <p>3つの手順すべてで同じGoogleアカウントを使い、順番に進めてください。</p>
+            <ol class="testing-steps" role="list">
+              <li>
+                <h4><span aria-hidden="true">1.</span> Googleグループに参加</h4>
+                <p>The Last Echo Testersグループに参加して、Androidテストへのアクセスを取得しましょう。</p>
+                <a class="btn" href="https://groups.google.com/g/the-last-echo-testers" target="_blank" rel="noopener">グループに参加</a>
+              </li>
+              <li>
+                <h4><span aria-hidden="true">2.</span> テスターとして登録</h4>
+                <p>ウェブの参加登録ページを開き、「Become a tester」（テスターになる）を選択してください。</p>
+                <a class="btn" href="https://play.google.com/apps/testing/com.runsit.thelastecho" target="_blank" rel="noopener">テスターとして登録</a>
+              </li>
+              <li>
+                <h4><span aria-hidden="true">3.</span> Google Playでダウンロード</h4>
+                <p>参加登録が完了したら、Google PlayからThe Last Echoをインストールしてください。</p>
+                <a class="btn btn--green" href="https://play.google.com/store/apps/details?id=com.runsit.thelastecho" target="_blank" rel="noopener">Google Playでダウンロード</a>
+              </li>
+            </ol>
           </div>
         </div>
       </div>
@@ -1180,7 +1194,7 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
                 >The Last Echo</b
               ></a
             >
-            <p>公正で透明なガチャと、何週間でも最適化を楽しめる奥深い育成を備えた、温かみのある放置系オートバトルRPG。iOSで配信中、Androidは近日配信予定です。</p>
+            <p>公正で透明なガチャと、何週間でも最適化を楽しめる奥深い育成を備えた、温かみのある放置系オートバトルRPG。iOSで配信中、Google PlayでAndroidテストに参加できます。</p>
           </div>
           <div class="fcol">
             <h4>ゲーム</h4>
@@ -1192,6 +1206,7 @@ body{line-break:strict;word-break:auto-phrase;overflow-wrap:anywhere}
               rel="noopener"
               >App Storeでダウンロード</a
             >
+            <a href="#android-testing">Androidテスト</a>
             <a href="/the-last-echo/ja/redeem/">コード入力</a>
             <a href="/the-last-echo/guides/" hreflang="en">ガイド（英語）</a>
             <a href="/the-last-echo/gallery.html" hreflang="en">ギャラリー（英語）</a>

@@ -7,7 +7,6 @@ import {
   getClientKey,
   getDealVoteSummaries,
   handleApiError,
-  requireActiveSubscription,
   requireSession,
   submitDealVote,
 } from "@/lib/pulsedeals/server";
@@ -50,7 +49,6 @@ export async function GET(request: Request) {
 
     const session = await requireSession(request);
     const admin = getAdminClient();
-    await requireActiveSubscription(admin, session.sub);
     const accountLimit = await enforceRateLimit(request, admin, `votes:read:account:${session.sub}`, 900, 3_600);
     if (accountLimit) return accountLimit;
     const deviceLimit = await enforceRateLimit(request, admin, `votes:read:client:${getClientKey(request, session.sub)}`, 1_200, 3_600);
@@ -85,7 +83,6 @@ export async function POST(request: Request) {
 
     const session = await requireSession(request);
     const admin = getAdminClient();
-    await requireActiveSubscription(admin, session.sub);
     const accountLimit = await enforceRateLimit(request, admin, `votes:write:account:${session.sub}`, 180, 3_600);
     if (accountLimit) return accountLimit;
     const deviceLimit = await enforceRateLimit(request, admin, `votes:write:client:${getClientKey(request, session.sub)}`, 240, 3_600);

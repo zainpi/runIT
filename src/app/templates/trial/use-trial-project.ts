@@ -10,6 +10,7 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [activity, setActivity] = useState<"overview" | "message" | "choices" | null>(null);
   const [generatingChoices, setGeneratingChoices] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -65,6 +66,7 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
   const generate = useCallback(async (kind: "overview" | "message" | "choices", brief: Personalization, text = "", automatic = false) => {
     if (sending.current || !state || state.pending) return;
     sending.current = true; setBusy(true); setError(""); setStatus("");
+    setActivity(kind);
     if (kind === "choices") setGeneratingChoices(true);
     const revision = state.projects[templateId]?.revision ?? 0;
     const payload = { kind, templateId, brief, message: text.trim(), revision };
@@ -85,7 +87,7 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
       if (result && !result.state.pending) attempt.current = null;
     } finally {
       sending.current = false;
-      if (mounted.current) { setBusy(false); setGeneratingChoices(false); }
+      if (mounted.current) { setBusy(false); setGeneratingChoices(false); setActivity(null); }
     }
   }, [state, templateId, access.sessionId, request, accept, refresh]);
 
@@ -115,5 +117,5 @@ export function useTrialProject(access: TrialAccess, templateId: TemplateId) {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete your saved content. Try again."); }
     finally { sending.current = false; if (mounted.current) setBusy(false); }
   }
-  return { state, available, loading, busy, generatingChoices, error, status, message, setMessage, generate, refresh, clear };
+  return { state, available, loading, busy, activity, generatingChoices, error, status, message, setMessage, generate, refresh, clear };
 }

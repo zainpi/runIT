@@ -1,6 +1,14 @@
-.loading { width:min(100%,320px); margin:24px auto 0; }
-.track { height:12px; overflow:hidden; border:2px solid #1b1a17; border-radius:999px; background:#f6f0e2; }
-.fill { display:block; width:40%; height:100%; border-radius:999px; background:#ff5a36; animation:loadingSlide 1.8s ease-in-out infinite; }
-.label { display:block; margin-top:10px; color:#5e594f; font-size:.72rem; line-height:1.6; text-align:center; }
+.screen { position:fixed; inset:0; width:100%; height:100%; height:100dvh; max-width:none; max-height:none; margin:0; padding:24px; border:0; color:var(--os-ink); background:var(--os-paper); font-family:var(--font-os-sans),system-ui,sans-serif; opacity:0; transition:opacity 240ms ease; }
+.screen[open] { display:grid; place-items:center; }
+.screen[open][data-active="true"] { opacity:1; animation:screenEnter 180ms ease-out; }
+.screen::backdrop { background:transparent; }
+.loading { position:relative; width:min(100%,480px); text-align:center; }
+.heading { position:absolute; bottom:calc(100% + 32px); width:100%; }
+.eyebrow { margin:0 0 16px; color:var(--os-muted); font-family:var(--font-os-pixel),ui-monospace,monospace; font-size:.9rem; }
+.title { margin:0; font-size:clamp(1.4rem,4vw,2rem); font-weight:900; line-height:1.3; text-wrap:balance; }
+.track { height:24px; overflow:hidden; border:2.5px solid var(--os-border); border-radius:999px; background:var(--os-soft); box-shadow:3px 3px 0 var(--os-shadow-color); }
+.fill { display:block; width:40%; height:100%; border-radius:999px; background:var(--os-tomato); animation:loadingSlide 1.8s ease-in-out infinite; }
+.description { position:absolute; top:calc(100% + 24px); left:50%; width:100%; max-width:360px; margin:0; transform:translateX(-50%); color:var(--os-muted); font-size:.82rem; line-height:1.7; text-wrap:balance; }
+@keyframes screenEnter { from { opacity:0; } to { opacity:1; } }
 @keyframes loadingSlide { from { transform:translateX(-110%); } to { transform:translateX(260%); } }
-@media (prefers-reduced-motion:reduce) { .fill { width:60%; animation:none; } }
+@media (prefers-reduced-motion:reduce) { .screen,.screen[open][data-active="true"] { animation:none; transition:none; } .fill { width:60%; animation:none; } }

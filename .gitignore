@@ -46,6 +46,7 @@ next-env.d.ts
 /.next-neutronium-test/
 /.next-neutronium-release/
 /.next-templates-test/
+/.next-aeo-*/
 
 # Local Cloudflare development state
 /.wrangler/

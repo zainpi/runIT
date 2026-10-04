@@ -5,7 +5,7 @@ import { sameBrief, type AppPlan, type AiProject, type AiSnapshot } from "@/lib/
 import type { TemplateId } from "@/lib/templates/catalog";
 import type { Personalization } from "@/lib/templates/compose";
 import { PlanOverview } from "../plan-overview";
-import { PlanLoading } from "../plan-loading";
+import { usePlanLoading } from "../plan-loading";
 import { BuildFileMap } from "./build-file-map";
 import type { Receipt } from "../browser-storage";
 import styles from "./ai-editor.module.css";
@@ -40,6 +40,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [activity, setActivity] = useState<"overview" | "message" | "guide" | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [message, setMessage] = useState("");
@@ -106,6 +107,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
   async function act(action: "overview" | "message" | "guide" | "choices" | "apply" | "load" | "clear") {
     if (sending.current) return;
     sending.current = true; setBusy(true); setError(""); setNotice("");
+    setActivity(action === "overview" || action === "message" || action === "guide" ? action : null);
     const generate = action === "overview" || action === "message" || action === "guide" || action === "choices";
     const body = { action, revision: project?.revision ?? 0, ...(generate ? { brief: action === "choices" ? project?.brief : details, message: action === "choices" ? "" : message, consent } : {}) };
     const fingerprint = JSON.stringify(body);
@@ -135,9 +137,14 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
           pending.current = null;
         }
       } catch { /* Keep the request ID for a safe retry. */ }
-    } finally { sending.current = false; if (alive.current) { setBusy(false); setLoading(false); } }
+    } finally { sending.current = false; if (alive.current) { setBusy(false); setLoading(false); setActivity(null); } }
   }
   const locked = loading || busy || !!state?.pending;
+  const generating = activity ?? (state?.pending && state.pendingKind !== "choices" ? state.pendingKind ?? "overview" : null);
+  usePlanLoading(loading || (!!generating && !error), {
+    title: loading ? "Opening your workspace…" : generating === "guide" ? "Creating your complete build guide…" : project ? "Updating your app plan…" : "Turning your idea into a plan",
+    description: loading ? "Getting your saved project ready." : generating === "guide" ? "Preparing your build steps, files and prototype. Your guide will appear here when it’s ready." : "This can take a couple of minutes. Your updated plan will appear here when it’s ready.",
+  });
   const remaining = state?.remaining ?? allowance;
   const canSend = !locked && available && consent && !!details.idea.trim() && remaining > 0 && (!!project || !freeOverview);
   const unansweredQuestions = project?.plan.questions.filter((question) => !hasDecisionAnswer(message, question) && !project.history.some((entry) => entry.role === "user" && hasDecisionAnswer(entry.text, question))) ?? [];
@@ -178,7 +185,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
   return <section className={styles.editor} aria-label="Shape your app with AI" aria-busy={busy || loading}>
     <div className={dashboard.projectMeta}><span><i aria-hidden="true" />{locked ? "Preparing your workspace" : project ? "Plan saved" : "Workspace ready"}</span><span>{project ? `${project.plan.features.length} features` : "Free overview included"}</span><span>{project ? `Version ${project.revision}` : "Personalized feature plan"}</span><span className={dashboard.checkoutStatus}>Full template · {allowance} editing messages included</span></div>
     <div className={dashboard.mobileSwitch} role="group" aria-label="Dashboard view"><button aria-pressed={view === "plan"} onClick={() => switchView("plan")}>Workspace</button><button aria-pressed={view === "chat"} onClick={() => switchView("chat")}>AI chat · {remaining} left</button></div>
-    {error && view === "plan" && <div className={dashboard.mobileError}><p role="alert">{error}</p><button disabled={locked} onClick={() => void act("load")}>Refresh conversation</button></div>}
+    {error && view === "plan" && <div className={dashboard.mobileError}><p role="alert">{error}</p><button disabled={busy || loading} onClick={() => void act("load")}>Refresh conversation</button></div>}
     <div className={styles.tabs} role="tablist" aria-label="Project sections">{workspaceTabs.map((tab, index) => <button key={tab.id} id={`workspace-tab-${tab.id}`} type="button" role="tab" aria-selected={activeTab === tab.id} aria-controls={`workspace-panel-${tab.id}`} tabIndex={activeTab === tab.id ? 0 : -1} onClick={() => selectTab(tab.id)} onKeyDown={(event) => {
       const next = event.key === "ArrowRight" ? (index + 1) % workspaceTabs.length : event.key === "ArrowLeft" ? (index + workspaceTabs.length - 1) % workspaceTabs.length : event.key === "Home" ? 0 : event.key === "End" ? workspaceTabs.length - 1 : -1;
       if (next < 0) return;
@@ -193,7 +200,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
           <div className={dashboard.planSymbol} aria-hidden="true">✦</div>
           <h3>{locked ? "Turning your idea into a plan" : "Your idea is ready to take shape"}</h3>
           <p>{loading ? "Opening your saved workspace…" : locked ? "AI is mapping out your overview and features. This can take a couple of minutes. Your editing messages stay untouched." : !details.idea.trim() ? "Add your idea above, then create a free overview to see what your app will do." : freeOverview ? "Create your free overview to see the features your app needs." : "Your previous plan was deleted. Use a remaining chat message to create a new version."}</p>
-          {locked ? <><PlanLoading label={loading ? "Loading your workspace…" : undefined} /><div className={dashboard.skeleton} aria-hidden="true"><span /><span /><span /></div></> : freeOverview && <><button className={dashboard.primary} disabled={!available || !consent || !details.idea.trim()} onClick={() => void act("overview")}>Create my free overview</button><label className={`${dashboard.consent} ${styles.overviewConsent}`}><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />Allow sending my app details and messages to OpenAI to tailor my prompt.</label></>}
+          {!locked && freeOverview && <><button className={dashboard.primary} disabled={!available || !consent || !details.idea.trim()} onClick={() => void act("overview")}>Create my free overview</button><label className={`${dashboard.consent} ${styles.overviewConsent}`}><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />Allow sending my app details and messages to OpenAI to tailor my prompt.</label></>}
         </div>}
         {project && appSettings}
         {stale && <p className={shared.notice}>Your app details differ from this saved overview. Send a message to update the plan, or <button className={styles.textButton} disabled={locked} onClick={() => callbacks.current.onRestoreBrief(project!.brief)}>restore the saved details</button>.</p>}

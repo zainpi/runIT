@@ -7,6 +7,7 @@ import { parseBuildGuide } from "../../src/lib/templates/guide-contract";
 import { buildGuideHtml } from "../../src/lib/templates/guide-html";
 
 test("paid customer generates, restores, previews and downloads a working offline guide without leaking purchase credentials", async ({ page, context }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const token = "ab".repeat(32), order = "cs_test_1234567890abcdef";
   const project: AiProject = { brief: fixture.brief, plan: fixture.plan, revision: 1, appliedRevision: null, appliedBrief: null, appliedPlan: null, history: [] };
   const state: AiSnapshot = { used: 0, remaining: 20, limit: 20, pending: false, projects: { "mobile-app": project }, overviewUsed: ["mobile-app"], guideUsed: [] };
@@ -29,7 +30,9 @@ test("paid customer generates, restores, previews and downloads a working offlin
   await expect(page.getByRole("button", { name: "Create my complete build guide", exact: true })).toBeDisabled();
   await page.getByLabel("Send my app details and messages to OpenAI").check();
   await page.getByRole("button", { name: "Create my complete build guide", exact: true }).click();
-  await expect(page.getByText("Your complete guide is being prepared.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Creating your complete build guide…" })).toBeVisible();
+  expect(await page.getByRole("dialog").getByRole("progressbar").locator("span").evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Download complete HTML guide" })).toBeVisible({ timeout: 12_000 });
   await expect(page.locator("#full-prompt")).toContainText("DETAILED BUILD GUIDE");
   await expect(page.getByText("20 of 20 messages left")).toBeVisible();

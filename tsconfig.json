@@ -35,7 +35,9 @@
     ".next/types/**/*.ts",
     "next-env.d.ts",
     ".next-neutronium-release/types/**/*.ts",
-    ".next-templates-test/types/**/*.ts"
+    ".next-templates-test/types/**/*.ts",
+    ".next-aeo-test/types/**/*.ts",
+    ".next-aeo-build/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

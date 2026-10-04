@@ -1,12 +1,15 @@
 import type { MetadataRoute } from "next";
 import { site } from "@/lib/site";
-import { company, founders } from "@/lib/company";
+import { founders } from "@/lib/company";
+import { templateCatalog } from "@/lib/templates/catalog";
+import { templatePagePath } from "@/lib/templates/public-content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = [
-    { path: "/templates/", priority: 0.9, frequency: "monthly" as const, modified: "2026-09-24" },
-    { path: "/", priority: 1, frequency: "monthly" as const, modified: "2026-09-24" },
-    { path: "/about/", priority: 0.8, frequency: "monthly" as const, modified: company.factsReviewed },
+    { path: "/templates/", priority: 0.9, frequency: "monthly" as const, modified: "2026-10-01" },
+    ...templateCatalog.map((template) => ({ path: templatePagePath(template.id), priority: 0.8, frequency: "monthly" as const, modified: "2026-10-01" })),
+    { path: "/", priority: 1, frequency: "monthly" as const, modified: "2026-10-01" },
+    { path: "/about/", priority: 0.8, frequency: "monthly" as const, modified: "2026-10-01" },
     { path: "/contact/", priority: 0.6, frequency: "yearly" as const, modified: "2026-09-25" },
     { path: "/privacy/", priority: 0.3, frequency: "yearly" as const, modified: "2026-09-25" },
     { path: "/rememberme/privacy/", priority: 0.3, frequency: "yearly" as const, modified: "2026-09-30" },

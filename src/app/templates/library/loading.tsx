@@ -1,6 +1,7 @@
-import styles from "./loading.module.css";
+import styles from "../loading.module.css";
 
-// Shown while the store renders on the server (prices depend on the site's currency).
+// Route loading belongs to private workspaces. A loading boundary above the
+// public store/guides would hide their server HTML until JavaScript reveals it.
 export default function TemplatesLoading() {
   return (
     <div className={styles.loading} role="status" aria-live="polite">

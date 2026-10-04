@@ -89,13 +89,13 @@
 
 /* runsOS pages paint the whole canvas, including overscroll, as the desktop wallpaper. */
 body:has([data-os]) {
-  background: #ede4d3;
-  color: #1b1a17;
+  background: var(--os-wall);
+  color: var(--os-ink);
 }
 :root:has([data-os]) {
-  color-scheme: light;
+  color-scheme: var(--os-color-scheme);
   scroll-padding-top: 64px;
-  scrollbar-color: #1b1a17 #ede4d3;
+  scrollbar-color: var(--os-border) var(--os-wall);
 }
 
 /* Faint dotted background helper used on hero/section accents */

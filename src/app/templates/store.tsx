@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { APP_ICON_ADDON_CENTS, bundlePrice, discountedCents, discountedBundlePrice, DEFAULT_TEMPLATE_CURRENCY, EXTRA_TEMPLATE_CENTS, FIRST_TEMPLATE_CENTS, formatPrice, parseTemplateIds, SKILL_TREE_ADDON_CENTS, SUBAGENT_ADDON_CENTS, templateCatalog, type BuildMode, type TemplateCurrency, type TemplateId } from "@/lib/templates/catalog";
 import { emptyPersonalization, type Personalization } from "@/lib/templates/compose";
 import { templateDemos } from "@/lib/templates/demos";
+import { templatePagePath } from "@/lib/templates/public-content";
 import { site } from "@/lib/site";
 import { TrialCode } from "./trial-code";
 import { ReferralCode, type AppliedReferral } from "./referral-code";
@@ -123,7 +124,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
   return <div className={styles.store}>
     <section className={styles.intro}>
       <p className={styles.eyebrow}>AI BUILD TEMPLATES</p>
-      <h1>Your idea. <span>A head start.</span></h1>
+      <h1>AI templates for <span>your next app or game.</span></h1>
       <p>Choose a template. Turn your idea into a complete build guide, a clickable HTML prototype, and a prompt for your coding AI.</p>
       <div className={styles.startingPrice}><strong>{price(FIRST_TEMPLATE_CENTS)} {currencyLabel}</strong><span>first template · {price(EXTRA_TEMPLATE_CENTS)} each extra</span></div>
     </section>
@@ -139,6 +140,7 @@ export function TemplateStore({ initialCurrency = DEFAULT_TEMPLATE_CURRENCY }: {
               <strong>{template.title}</strong><span className={styles.description}>{descriptions[template.id]}</span>
             </button>
             <details className={styles.templateDetails}><summary>Details <span aria-hidden="true">⌄</span></summary><div><p>{template.description}</p><ul>{template.includes.map((item) => <li key={item}>{item}</li>)}</ul>{templateDemos[template.id].map((demo) => <a key={demo.url} href={demo.url} target="_blank" rel="noopener noreferrer">View {demo.name} demo ↗</a>)}</div></details>
+            <div className={styles.templateDetails}><Link href={templatePagePath(template.id)}>Explore the {template.title.toLowerCase()} template →</Link></div>
           </article>;
         })}</div>
         <p className={styles.included}><span aria-hidden="true">✓</span> Every order includes an AI plan, 20 edits, a complete HTML build guide with a simulated prototype, and downloadable build prompts.</p>

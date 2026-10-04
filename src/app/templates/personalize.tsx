@@ -12,7 +12,7 @@ export function Personalize({ details, mode, onDetails, onMode, compact = false,
       <p className={styles.small}>Computer control requires an AI tool that supports it. This website gives you the prompt; it does not control your device.</p>
       <aside id="model-guide" className={styles.modelGuide} aria-labelledby="model-guide-heading">
         <p className={styles.eyebrow}>Our recommended setup</p>
-        <h3 id="model-guide-heading">Works best with GPT-6 Astra</h3>
+        <h3 id="model-guide-heading">Works best with GPT-6.1 Sol</h3>
         <p>Start with <strong>High thinking</strong> for your first build. It is our recommended starting point for planning how your app fits together, writing its code and checking the result.</p>
         <details><summary>Which thinking level should I use?</summary>
           <p>The thinking level controls how much effort the AI spends working through a task.</p>
@@ -22,8 +22,8 @@ export function Personalize({ details, mode, onDetails, onMode, compact = false,
             <li><strong>Extra High or Max — difficult problems.</strong> Try a higher level for stubborn bugs or complicated changes that need deeper investigation.</li>
           </ul>
           <p>Higher levels can take longer and use more tokens, which may use more of your AI allowance or API budget. Start with High and adjust to the task.</p>
-          <p>Before pasting your prompt, choose GPT-6 Astra and the thinking or reasoning level in your AI tool. Use the options available on your account; the prompt itself does not change these settings. AI access is purchased separately.</p>
-          <p className={styles.small}>Learn more in the official OpenAI documentation: <a href="https://developers.openai.com/api/docs/models/gpt-6-astra" target="_blank" rel="noopener noreferrer">GPT-6 Astra</a> and <a href="https://learn.chatgpt.com/docs/agent-configuration/subagents#choosing-models-and-reasoning" target="_blank" rel="noopener noreferrer">thinking levels</a>.</p>
+          <p>Before pasting your prompt, choose GPT-6.1 Sol and the thinking or reasoning level in your AI tool. Use the options available on your account; the prompt itself does not change these settings. AI access is purchased separately.</p>
+          <p className={styles.small}>Learn more in the official OpenAI documentation: <a href="https://developers.openai.com/api/docs/models" target="_blank" rel="noopener noreferrer">OpenAI models</a> and <a href="https://learn.chatgpt.com/docs/agent-configuration/subagents#choosing-models-and-reasoning" target="_blank" rel="noopener noreferrer">thinking levels</a>.</p>
         </details>
       </aside>
     </div>;

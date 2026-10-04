@@ -7,6 +7,9 @@ import { Window } from "@/components/runsos/Window";
 import { desktopApps, founderCards, templateFiles } from "@/components/runsos/apps";
 import { ArrowIcon, PromptFileIcon } from "@/components/runsos/icons";
 import { StickyCta } from "@/components/site/StickyCta";
+import { JsonLd } from "@/components/JsonLd";
+import { websiteJsonLd } from "@/lib/structured-data";
+import { templatePagePath } from "@/lib/templates/public-content";
 import { FIRST_TEMPLATE_CENTS, formatPrice } from "@/lib/templates/catalog";
 import { site } from "@/lib/site";
 import os from "@/components/runsos/os.module.css";
@@ -78,7 +81,7 @@ export default function HomePage() {
               <ul className={styles.templateGrid}>
                 {templateFiles.map((template) => (
                   <li key={template.id}>
-                    <Link className={styles.templateCard} href={`/templates/#${template.id}`} style={{ "--tone": template.tone } as CSSProperties}>
+                    <Link className={styles.templateCard} href={templatePagePath(template.id)} style={{ "--tone": template.tone } as CSSProperties}>
                       <span className={styles.templateTop}>
                         <PromptFileIcon tone={template.tone} />
                         <span className={os.pixel}>{template.file}</span>
@@ -87,7 +90,7 @@ export default function HomePage() {
                       <span className={styles.templateCategory}>{template.category}</span>
                       <span className={styles.templateDescription}>{template.description}</span>
                       {template.demos.length > 0 && <span className={styles.templateDemo}>Live example: {template.demos.map((demo) => demo.name).join(", ")}</span>}
-                      <span className={styles.templateAction}>Make it yours <ArrowIcon /></span>
+                      <span className={styles.templateAction}>Explore this template <ArrowIcon /></span>
                     </Link>
                   </li>
                 ))}
@@ -186,6 +189,7 @@ export default function HomePage() {
 
       <StickyCta href="/templates/" label="Build with a template" after="company" until="contact" />
       <Taskbar backHref="#company" />
+      <JsonLd data={websiteJsonLd} />
     </div>
   );
 }

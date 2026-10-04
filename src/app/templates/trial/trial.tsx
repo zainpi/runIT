@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { templateCatalog, type TemplateId } from "@/lib/templates/catalog";
 import { validTrialId, type TrialAccess } from "@/lib/templates/trial-contract";
 import { TrialDashboard } from "./dashboard";
+import { usePlanLoading } from "../plan-loading";
 import styles from "../templates.module.css";
 
 export function TemplateTrial() {
@@ -12,6 +13,7 @@ export function TemplateTrial() {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  usePlanLoading(loading, { title: "Opening your workspace…", description: "Getting your saved project ready." });
   useEffect(() => {
     let generation = 0;
     async function open() {
@@ -35,7 +37,6 @@ export function TemplateTrial() {
     return () => { generation++; window.removeEventListener("hashchange", open); };
   }, []);
   return <>
-    {loading && <section className={styles.libraryHero}><p className={styles.eyebrow}>Project dashboard</p><h1>Your workspace.</h1><p role="status">Opening your trial…</p></section>}
     {error && <section className={styles.libraryHero}><h1>Let’s get you back in.</h1><p role="alert" className={styles.notice}>{error} <Link href="/templates/#free-trial">Enter a trial code →</Link></p><button className={styles.secondary} onClick={() => window.dispatchEvent(new Event("hashchange"))}>Retry opening trial</button></section>}
     {access && templateId && <TrialDashboard key={`${access.sessionId}:${access.accessToken}`} access={access} templateId={templateId} url={url} />}
   </>;

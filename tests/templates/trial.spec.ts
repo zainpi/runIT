@@ -138,6 +138,7 @@ test("dashboard keeps the plan beside chat, updates it, restores on a clean brow
     await page.getByRole("button", { name: "Send changes" }).click();
     await expect(page.getByText(`${2 - i} of 3 editing messages left`)).toBeVisible();
     await expect(page.getByRole("region", { name: "Your project plan" })).toContainText("Your revised climbing app includes small group sessions.");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   }
   await expect(chat.getByText("I’ve shaped your brief into a first plan.", { exact: false })).toBeVisible();
   await expect(chat.getByText(`About “${plan.questions[0]}”: Let people join small group sessions.`)).toBeVisible();
@@ -217,6 +218,7 @@ test("decisions show three at a time and collect seven answers in one message", 
   await expect(cards).toHaveCount(3);
   await expect(decisions).toContainText("7 left");
   await expect(decisions).not.toContainText(questions[3]);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await composer.fill("Keep the interface welcoming.");
 
   await cards.filter({ hasText: questions[0] }).getByRole("button", { name: /Write my (own )?answer/ }).click();
@@ -297,6 +299,12 @@ for (const mode of ["legacy", "pending", "exhausted"] as const) {
     initial.projects["mobile-app"] = { brief, plan: { ...plan, questionChoices: mode === "legacy" ? undefined : plan.questionChoices }, revision: 1, appliedRevision: null, appliedPlan: null, appliedBrief: null, history: [] };
     const workspace = await mockWorkspace(page, initial);
     await page.goto(trialUrl);
+    if (mode === "pending") {
+      await expect(page.getByRole("dialog", { name: "Updating your app plan…" })).toBeVisible();
+      const decisions = page.getByRole("region", { name: "Decisions to make", includeHidden: true });
+      for (const button of await decisions.getByRole("button", { includeHidden: true }).all()) await expect(button).toBeDisabled();
+      return;
+    }
     const decisions = page.getByRole("region", { name: "Decisions to make" });
     await expect(decisions).toBeVisible();
     if (mode !== "legacy") {
@@ -372,6 +380,7 @@ test("a lost message response recovers the saved reply and clears the composer w
   const workspace = await mockWorkspace(page, fresh(), false, true);
   await page.goto(trialUrl);
   await expect(page.getByRole("list", { name: /Features for/ })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByLabel("Ask for a change").fill("Add small group sessions");
   await page.getByRole("button", { name: "Send changes" }).click();
   await expect(page.getByText("2 of 3 editing messages left")).toBeVisible();
@@ -383,6 +392,8 @@ test("a lost message response recovers the saved reply and clears the composer w
 test("existing private links without a checkout brief have a compact setup", async ({ page }) => {
   await mockWorkspace(page, { used: 0, remaining: 3, limit: 3, pending: false, projects: {}, overviewUsed: [] });
   await page.goto(trialUrl);
+  await expect(page.getByRole("button", { name: "Save idea", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByLabel("Project name").fill(brief.name);
   await page.getByLabel("Project description").fill(brief.idea);
   await page.getByRole("button", { name: "Save idea", exact: true }).click();
@@ -423,12 +434,111 @@ test("reopening a pending overview polls the saved result without starting anoth
     return route.fulfill({ json: { available: true, state } });
   });
   await page.goto(trialUrl);
-  await expect(page.getByRole("heading", { name: "Turning your idea into a plan" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Turning your idea into a plan" })).toBeVisible();
   ready = true;
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("list", { name: /Features for/ })).toBeVisible();
   expect(loads).toBeGreaterThan(1);
   expect(generations).toBe(0);
   await expect(page.getByText("3 of 3 editing messages left")).toBeVisible();
+});
+
+for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+  test(`loading stays centered through opening, creation and updates at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ colorScheme: "dark" });
+    let openTrial!: () => void, openSaved!: () => void;
+    const trialGate = new Promise<void>((resolve) => { openTrial = resolve; });
+    const savedGate = new Promise<void>((resolve) => { openSaved = resolve; });
+    let state = fresh(), firstLoad = true, savedOpened = false, complete = false, generations = 0;
+    await page.route("**/api/templates/trial/**", async (route) => {
+      await trialGate;
+      await route.fulfill({ json: { templateId: "mobile-app", messageLimit: 3 } });
+    });
+    await page.route("**/api/templates/ai/**", async (route) => {
+      const data = route.request().postDataJSON();
+      if (data.action === "load" && !savedOpened) { firstLoad = false; await savedGate; }
+      if (data.action === "overview" || data.action === "message") {
+        generations++;
+        state = { ...state, pending: true, pendingKind: data.action, canStartOverview: false };
+      }
+      if (data.action === "load" && complete) {
+        const updating = !!state.projects["mobile-app"];
+        state = { ...state, pending: false, pendingKind: undefined, overviewUsed: ["mobile-app"], used: updating ? 1 : 0, remaining: updating ? 2 : 3, projects: { "mobile-app": { brief, plan: updating ? { ...plan, overview: "Your updated climbing plan is ready." } : plan, revision: updating ? 2 : 1, appliedRevision: null, appliedBrief: null, appliedPlan: null, history: [] } } };
+        complete = false;
+      }
+      await route.fulfill({ status: state.pending ? 202 : 200, json: { available: true, state } });
+    });
+    await page.goto(trialUrl);
+    const screen = page.getByRole("dialog");
+    await expect(screen).toHaveAccessibleName("Opening your workspace…");
+    await expect(screen).toHaveCSS("background-color", "rgb(36, 37, 43)");
+    await page.evaluate(() => {
+      const dialog = document.querySelector("dialog")!;
+      const transitions: boolean[] = [];
+      (window as unknown as { loadingTransitions: boolean[] }).loadingTransitions = transitions;
+      new MutationObserver(() => transitions.push(dialog.open)).observe(dialog, { attributes: true, attributeFilter: ["open"] });
+    });
+    openTrial();
+    await expect.poll(() => firstLoad).toBe(false);
+    await expect(screen).toHaveAccessibleName("Opening your workspace…");
+    savedOpened = true; openSaved();
+    await expect(screen).toHaveAccessibleName("Turning your idea into a plan");
+    await expect(screen).toHaveAttribute("data-active", "true");
+    expect(await page.evaluate(() => (window as unknown as { loadingTransitions: boolean[] }).loadingTransitions)).not.toContain(false);
+    const bar = screen.getByRole("progressbar");
+    const box = (await bar.boundingBox())!;
+    expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThan(2);
+    expect(Math.abs(box.y + box.height / 2 - viewport.height / 2)).toBeLessThan(2);
+    expect(box.height).toBeGreaterThanOrEqual(24);
+    await expect.poll(() => page.evaluate(() => document.activeElement?.closest("dialog") !== null)).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(screen).toBeVisible();
+    await page.screenshot({ path: `/tmp/runit-template-loading-${viewport.width}.png` });
+    complete = true;
+    await expect(screen).toHaveCount(0);
+    await expect(page.getByRole("list", { name: /Features for/ })).toContainText("Find climbers");
+    await page.evaluate(() => { (window as unknown as { savedHeading: Element | null }).savedHeading = document.querySelector("header h1"); });
+    if (viewport.width < 760) await page.getByRole("button", { name: "AI chat" }).click();
+    await page.getByLabel("Ask for a change").fill("Update my climbing plan");
+    await page.getByRole("button", { name: "Send changes" }).click();
+    await expect(screen).toHaveAccessibleName("Updating your app plan…");
+    complete = true;
+    await expect(screen).toHaveCount(0);
+    if (viewport.width < 760) await page.getByRole("button", { name: "Your plan", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Your project plan" })).toContainText("Your updated climbing plan is ready.");
+    expect(await page.evaluate(() => (window as unknown as { savedHeading: Element | null }).savedHeading === document.querySelector("header h1"))).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe("");
+    expect(generations).toBe(2);
+    await page.screenshot({ path: `/tmp/runit-template-ready-${viewport.width}.png`, fullPage: true });
+  });
+}
+
+test("a failed status check dismisses the loading screen and leaves mobile recovery available", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let failStatus = false, recover = false;
+  await page.route("**/api/templates/trial/**", (route) => route.fulfill({ json: { templateId: "mobile-app", messageLimit: 3 } }));
+  await page.route("**/api/templates/ai/**", (route) => {
+    if (failStatus && !recover) return route.fulfill({ status: 503, json: { error: "Could not check your saved plan. Refresh to try again." } });
+    const state: AiSnapshot = { ...fresh(), canStartOverview: false, pending: !recover, pendingKind: recover ? undefined : "overview" };
+    if (recover) {
+      state.overviewUsed = ["mobile-app"];
+      state.projects["mobile-app"] = { brief, plan, revision: 1, appliedRevision: null, appliedPlan: null, appliedBrief: null, history: [] };
+    }
+    return route.fulfill({ json: { available: true, state } });
+  });
+  await page.goto(trialUrl);
+  await expect(page.getByRole("dialog", { name: "Turning your idea into a plan" })).toBeVisible();
+  failStatus = true;
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("Refresh to try again");
+  const refresh = page.getByRole("button", { name: "Refresh conversation", exact: true });
+  await expect(refresh).toBeEnabled();
+  recover = true;
+  await refresh.click();
+  await expect(page.getByRole("list", { name: /Features for/ })).toContainText("Find climbers");
+  await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe("");
 });
 
 test("mobile overview failure remains visible on the plan tab", async ({ page }) => {

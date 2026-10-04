@@ -1,21 +1,14 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { DEFAULT_TEMPLATE_CURRENCY, templateCurrencyForHostname } from "@/lib/templates/catalog";
+import { requestTemplateCurrency } from "@/lib/templates/request-currency";
 import { siteOpenGraph } from "@/lib/site";
 import { templatesSocialImage } from "@/lib/social";
 import { TemplateStore } from "./store";
 export const dynamic = "force-dynamic";
 
-async function requestCurrency() {
-  const host = (await headers()).get("host");
-  try { return templateCurrencyForHostname(new URL(`https://${host}`).hostname); }
-  catch { return DEFAULT_TEMPLATE_CURRENCY; }
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-  const currency = (await requestCurrency()).toUpperCase();
-  const title = "AI templates — build your own app";
-  const description = `Build your own app with beginner-friendly AI templates and simple, guided steps. No coding experience needed to get started. From $9.99 ${currency}.`;
+  const currency = (await requestTemplateCurrency()).toUpperCase();
+  const title = "AI app and game templates — build your own with guided prompts";
+  const description = `Build an iPhone app, Discord bot, Roblox game, mobile game, online store or browser game with runsIT AI templates. Guided prompts and build plans from $9.99 ${currency}.`;
   return {
     title,
     description,
@@ -24,4 +17,4 @@ export async function generateMetadata(): Promise<Metadata> {
     twitter: { card: "summary_large_image", title: `${title} | runsIT`, description, images: [templatesSocialImage] },
   };
 }
-export default async function TemplatesPage() { return <TemplateStore initialCurrency={await requestCurrency()} />; }
+export default async function TemplatesPage() { return <TemplateStore initialCurrency={await requestTemplateCurrency()} />; }

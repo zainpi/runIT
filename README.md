@@ -91,7 +91,29 @@ your provider's embed (Calendly / Cal.com).
 - Per-page metadata, canonical URLs, Open Graph + Twitter cards.
 - Dynamically generated OG image (`src/app/opengraph-image.tsx`).
 - `sitemap.xml` and `robots.txt` (generated).
-- JSON-LD: `Organization` (global).
+- JSON-LD: `Organization` (global), `WebSite` (home), and visible FAQ, product,
+  offer and breadcrumb data on public template pages.
+- Each catalog template has a public `/templates/<id>/` page, linked from the
+  homepage and store and listed in the sitemap. Paid prompts and private plans
+  stay in the authenticated purchase flow.
+- Route loading screens are scoped to the private library and trial. Public
+  pages render without a streaming loading boundary so their text and links
+  are visible without JavaScript, and invalid template URLs return HTTP 404.
+- Verify search access and content with
+  `npx playwright test --config tests/search/playwright.config.ts`; the checks
+  include HTML without JavaScript, visible/schema price agreement in CAD/USD,
+  sitemap discovery, private-route exclusions and unknown-template 404s.
+  To check the production version, first build with
+  `NEUTRONIUM_DIST_DIR=.next-aeo-build npm run build`, then run the same test
+  command with `SEARCH_TEST_PRODUCTION=true`.
+- After an explicitly requested deployment, submit `https://runsit.ca/sitemap.xml`
+  in Google Search Console and Bing Webmaster Tools and inspect the new URLs.
+  Check CDN/WAF logs for successful crawler requests; robots.txt permission
+  alone does not establish access through bot protection. Track AI referrals
+  and a consistent set of relevant queries over time. Recommendations and
+  citations are not guaranteed by these changes. See
+  [Google AI search guidance](https://developers.google.com/search/docs/appearance/ai-features)
+  and [OpenAI search crawler guidance](https://developers.openai.com/api/docs/bots).
 - **Set the production domain in `src/lib/site.ts` (`url`)** so absolute URLs,
   sitemap, and structured data are correct.
 - Analytics-ready: drop your snippet into `src/app/layout.tsx` (e.g.

@@ -1,3 +1,5 @@
+> October 1, 2026: the matching app now offers free deals, countries, votes, and alerts. Deploy the free-access route/dispatcher changes and apply `20261001000000_pulsedeals_free_access.sql` before the app release. New monthly/lifetime purchases remove ads locally through verified StoreKit and do not grant historical content tiers. Production deployment has not been performed by this local change.
+
 # PulseDeals backend deployment
 
 The PulseDeals API is deployed by the existing runsIT Cloudflare Worker. Both

@@ -11,6 +11,7 @@ import { AppIconGenerator } from "./app-icon-generator";
 import { ManagedLaunch, hasManagedLaunch } from "../managed-launch";
 import { sameBrief, type AppPlan, type AiProject } from "@/lib/templates/ai-contract";
 import { BuildGuide } from "./build-guide";
+import { usePlanLoading } from "../plan-loading";
 import styles from "../templates.module.css";
 import dashboard from "../trial/dashboard.module.css";
 import library from "./library.module.css";
@@ -32,6 +33,7 @@ export function TemplateLibrary() {
   const [status, setStatus] = useState("");
   const [applied, setApplied] = useState<Partial<Record<TemplateId, { plan: AppPlan; brief: Personalization }>>>({});
   const [projects, setProjects] = useState<Partial<Record<TemplateId, AiProject>>>({});
+  usePlanLoading(!loaded || busy, { title: "Opening your workspace…", description: "Verifying your purchase and getting your templates ready." });
   const orderRequest = useRef({ generation: 0 });
 
   const rememberNames = useCallback((receipt: Receipt, names: ReceiptProjectNames, overwrite = true) => {
@@ -185,7 +187,6 @@ export function TemplateLibrary() {
       </div>
     </header>
     {(receipts.length > 1 || (receipts.length > 0 && (!active || !!error))) && <div className={styles.orderPicker}><label htmlFor="order">Saved orders on this browser</label><select id="order" value={active?.sessionId ?? ""} disabled={busy} onChange={(event) => { const receipt = receipts.find((r) => r.sessionId === event.target.value); if (receipt) void openOrder(receipt); }}><option value="" disabled>Choose an app</option>{receipts.map((r) => <option key={r.sessionId} value={r.sessionId}>{receiptName(r)}</option>)}</select></div>}
-    {busy && <p className={styles.notice} role="status">Verifying your payment and opening your templates…</p>}
     {error && <div className={styles.notice} role="alert"><p>{error}</p>{active && <button className={styles.secondary} disabled={busy} onClick={() => void openOrder(active)}>Check payment again</button>}<p className={styles.small}>If your bank is still processing the payment, come back to this saved order later. Need help? Email <a href={`mailto:${site.email}`}>{site.email}</a> with your Stripe receipt.</p></div>}
     {loaded && !receipts.length && !active && !error && <div className={styles.empty}><h2>Your templates will live here.</h2><p>After checkout, come back here to copy or download. If you purchased on another device, open your saved private access link.</p><Link className={styles.primary} href="/templates/">Explore templates →</Link><p className={styles.small}>Lost your link? Email <a href={`mailto:${site.email}`}>{site.email}</a> with your payment receipt for help.</p></div>}
     <p className={`${styles.status} ${library.status}`} role="status" aria-label="Template library status" aria-live="polite">{status}</p>

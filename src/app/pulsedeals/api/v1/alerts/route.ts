@@ -6,7 +6,6 @@ import {
   enforceRateLimit,
   getAdminClient,
   handleApiError,
-  requireActiveSubscription,
   requireMarketplaceAccess,
   requireSession,
 } from "@/lib/pulsedeals/server";
@@ -20,7 +19,6 @@ export async function POST(request: Request) {
   try {
     const session = await requireSession(request);
     const admin = getAdminClient();
-    await requireActiveSubscription(admin, session.sub);
     const limit = await enforceRateLimit(request, admin, `alerts:${session.sub}`, 10, 3_600);
     if (limit) return limit;
     if (!(await claimIdempotency(admin, session.sub, "alerts", request))) {

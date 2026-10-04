@@ -28,6 +28,7 @@ async function setup(page: Page, initial = emptyState()) {
   await page.goto(`/templates/library/#session_id=${order}&access=${token}`);
   await expect(page.getByRole("region", { name: "Shape your app with AI", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Refresh conversation" })).toBeEnabled();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   return { requests, setState(value: AiSnapshot) { state = value; } };
 }
 
@@ -141,6 +142,7 @@ test("workspace tabs keep chat and drafts intact with two-column feature cards",
   const chat = page.getByRole("complementary", { name: "AI editing chat" });
   const composer = page.getByLabel("What would you like to change?");
   await expect(composer).toBeEnabled();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await composer.fill("Keep this draft while I review my files.");
   await page.getByLabel("Send my app details and messages to OpenAI").check();
   for (const name of ["Build files", "Add-ons", "Plan"]) {

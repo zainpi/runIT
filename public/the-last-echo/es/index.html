@@ -164,19 +164,6 @@
       .store[href]:hover {
         filter: brightness(1.12);
       }
-      .store .soon {
-        position: absolute;
-        top: -10px;
-        right: -8px;
-        background: var(--gold-lt);
-        color: #3a1f0a;
-        border: 2px solid var(--gold2);
-        font-family: "Pixel", monospace;
-        font-size: 11px;
-        padding: 1px 8px;
-        border-radius: 9px;
-        box-shadow: 0 2px 0 #9c6a18;
-      }
 
       /* ---------- nav ---------- */
       .nav {
@@ -654,9 +641,6 @@
         max-width: 34em;
         font-size: 17px;
       }
-      .hero-download {
-        margin-top: 26px;
-      }
       .cta .stores {
         justify-content: center;
         margin-top: 24px;
@@ -859,13 +843,13 @@
       </style></noscript
     >
   <title>The Last Echo: RPG de combate automático con corazón</title>
-    <meta name="description" content="The Last Echo es un encantador RPG idle de combate automático. Tu grupo sigue luchando aunque no estés jugando. Gacha justo y transparente con pity visible, progresión profunda, prestigio, mazmorras y jefes mundiales. Ya disponible en iOS; pronto en Android." />
+    <meta name="description" content="The Last Echo es un encantador RPG idle de combate automático. Tu grupo sigue luchando aunque no estés jugando. Gacha justo y transparente con pity visible, progresión profunda, prestigio, mazmorras y jefes mundiales. Ya disponible en iOS; prueba de Android disponible en Google Play." />
     <meta name="author" content="Equipo de desarrollo de The Last Echo" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_ES" />
     <meta property="og:url" content="https://runs-it.com/the-last-echo/es/" />
     <meta property="og:title" content="The Last Echo: RPG de combate automático con corazón" />
-    <meta property="og:description" content="Tu grupo sigue luchando aunque no estés jugando. Gacha justo, progresión profunda y progreso real sin conexión. Ya disponible en iOS; pronto en Android." />
+    <meta property="og:description" content="Tu grupo sigue luchando aunque no estés jugando. Gacha justo, progresión profunda y progreso real sin conexión. Ya disponible en iOS; prueba de Android disponible en Google Play." />
     <meta property="og:image" content="https://runs-it.com/the-last-echo/img/og.png?v=2" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="The Last Echo: RPG de combate automático con corazón" />
@@ -889,6 +873,7 @@
 .langs ul a[aria-current]{font-weight:700;background:rgba(201,160,89,.35)}
 @media(max-width:540px){.langs .lc{display:none}.nav .in a.back .bt{display:none}}
 </style>
+    <link rel="stylesheet" href="/the-last-echo/testing.css" />
 </head>
   <body>
     <!-- ============ NAV ============ -->
@@ -914,11 +899,9 @@
           <a href="/the-last-echo/es/support.html">Soporte</a>
           <a
             class="btn btn--green"
-            href="https://apps.apple.com/app/id6788888795"
-            target="_blank"
-            rel="noopener"
+            href="#download"
             onclick="closeMenu()"
-            >Descargar en iOS</a
+            >Juega ya</a
           >
         </nav>
         <!-- l10n:langs --><details class="langs"><summary aria-label="Idioma: Español">🌐<span class="lc">ES</span></summary><ul><li><a href="/the-last-echo/" hreflang="en" lang="en">English</a></li><li><a href="/the-last-echo/es/" hreflang="es" lang="es" aria-current="page">Español</a></li><li><a href="/the-last-echo/ko/" hreflang="ko" lang="ko">한국어</a></li><li><a href="/the-last-echo/ja/" hreflang="ja" lang="ja">日本語</a></li></ul></details><script>document.addEventListener('click',function(e){document.querySelectorAll('details.langs[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})});</script>
@@ -941,13 +924,16 @@
             mundo original y acogedor, creado para respetar tu tiempo y tu
             bolsillo.
           </p>
-          <a
-            class="btn btn--green hero-download"
-            href="https://apps.apple.com/app/id6788888795"
-            target="_blank"
-            rel="noopener"
-            >Descargar en el App Store</a
-          >
+          <div class="hero-actions">
+            <a
+              class="btn btn--green"
+              href="https://apps.apple.com/app/id6788888795"
+              target="_blank"
+              rel="noopener"
+              >Descargar en el App Store</a
+            >
+            <a class="btn" href="#android-testing">Únete a la prueba de Android</a>
+          </div>
           <div class="stores">
             <a
               class="store"
@@ -963,15 +949,18 @@
               </svg>
               <span><small>Disponible en</small><b>App Store</b></span>
             </a>
-            <span class="store"
-              ><span class="soon">Pronto</span>
+            <a
+              class="store"
+              href="#android-testing"
+              aria-label="Únete a la prueba de The Last Echo para Android en Google Play"
+              >
               <svg viewBox="0 0 512 512">
                 <path
                   d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"
                 />
               </svg>
-              <span><small>Próximamente en</small><b>Google Play</b></span>
-            </span>
+              <span><small>Prueba disponible</small><b>Google Play</b></span>
+            </a>
           </div>
           <div class="byline">
             <img src="/the-last-echo/img/icons/Heart.png" alt="" />Hecho a mano
@@ -1151,8 +1140,7 @@
         <div class="cta-box reveal">
           <h2>Juega a The Last Echo ya</h2>
           <p>
-            The Last Echo ya está disponible en el App Store. Descarga el juego
-            y empieza a formar tu grupo hoy mismo.
+            The Last Echo ya está disponible en iOS, y la prueba de Android está abierta en Google Play. Elige tu plataforma y empieza a formar tu grupo hoy mismo.
           </p>
           <a
             class="btn btn--green"
@@ -1176,15 +1164,39 @@
               </svg>
               <span><small>Disponible en</small><b>App Store</b></span>
             </a>
-            <span class="store"
-              ><span class="soon">Pronto</span>
+            <a
+              class="store"
+              href="#android-testing"
+              aria-label="Únete a la prueba de The Last Echo para Android en Google Play"
+              >
               <svg viewBox="0 0 512 512">
                 <path
                   d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"
                 />
               </svg>
-              <span><small>Próximamente en</small><b>Google Play</b></span>
-            </span>
+              <span><small>Prueba disponible</small><b>Google Play</b></span>
+            </a>
+          </div>
+          <div class="android-testing" id="android-testing">
+            <h3>La prueba de Android ya está abierta</h3>
+            <p>Sigue estos pasos en orden y usa la misma cuenta de Google en los tres.</p>
+            <ol class="testing-steps" role="list">
+              <li>
+                <h4><span aria-hidden="true">1.</span> Únete al Grupo de Google</h4>
+                <p>Únete al grupo The Last Echo Testers para acceder a la prueba de Android.</p>
+                <a class="btn" href="https://groups.google.com/g/the-last-echo-testers" target="_blank" rel="noopener">Únete al grupo</a>
+              </li>
+              <li>
+                <h4><span aria-hidden="true">2.</span> Conviértete en tester</h4>
+                <p>Abre la página de inscripción web y selecciona «Become a tester» (Conviértete en tester).</p>
+                <a class="btn" href="https://play.google.com/apps/testing/com.runsit.thelastecho" target="_blank" rel="noopener">Conviértete en tester</a>
+              </li>
+              <li>
+                <h4><span aria-hidden="true">3.</span> Descarga en Google Play</h4>
+                <p>Después de inscribirte, instala The Last Echo desde Google Play.</p>
+                <a class="btn btn--green" href="https://play.google.com/store/apps/details?id=com.runsit.thelastecho" target="_blank" rel="noopener">Descargar en Google Play</a>
+              </li>
+            </ol>
           </div>
         </div>
       </div>
@@ -1203,8 +1215,7 @@
             <p>
               Un acogedor RPG idle de combate automático con un gacha justo y
               transparente, y una progresión tan profunda que podrás
-              optimizarla durante semanas. Ya disponible en iOS; pronto en
-              Android.
+              optimizarla durante semanas. Ya disponible en iOS; prueba de Android disponible en Google Play.
             </p>
           </div>
           <div class="fcol">
@@ -1217,6 +1228,7 @@
               rel="noopener"
               >Descargar en el App Store</a
             >
+            <a href="#android-testing">Prueba de Android</a>
             <a href="/the-last-echo/es/redeem/">Canjear un código</a>
             <a href="/the-last-echo/guides/" hreflang="en">Guías (en inglés)</a>
             <a href="/the-last-echo/gallery.html" hreflang="en">Galería (en inglés)</a>

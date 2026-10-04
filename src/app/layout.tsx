@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { Figtree, Gochi_Hand, Inter, Pixelify_Sans, Sora } from "next/font/google";
 import "./globals.css";
+import "./theme.css";
 import { SiteFrame } from "@/components/layout/SiteFrame";
 import { ConsentManager } from "@/components/consent/ConsentManager";
 import { site, siteOpenGraph } from "@/lib/site";
 import { siteSocialImage } from "@/lib/social";
 import { organizationJsonLd } from "@/lib/structured-data";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { themeInitScript } from "@/components/theme/theme";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -84,7 +87,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#ede4d3",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ede4d3" },
+    { media: "(prefers-color-scheme: dark)", color: "#17181c" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -95,7 +101,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${sora.variable} ${figtree.variable} ${pixelify.variable} ${gochiHand.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${sora.variable} ${figtree.variable} ${pixelify.variable} ${gochiHand.variable}`}>
+      <head><script dangerouslySetInnerHTML={{ __html: themeInitScript }} /></head>
       {/* Browser tooling can add body attributes (for example, vc-init) before hydration.
           Limit suppression to this element; descendants retain hydration checks. */}
       <body className="min-h-screen font-sans" suppressHydrationWarning>
@@ -105,8 +112,10 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <SiteFrame>{children}</SiteFrame>
-        <ConsentManager />
+        <ThemeProvider>
+          <SiteFrame>{children}</SiteFrame>
+          <ConsentManager />
+        </ThemeProvider>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
