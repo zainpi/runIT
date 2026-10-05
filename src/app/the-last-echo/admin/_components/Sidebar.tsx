@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { createClient, adminSessionStore } from "../_lib/client";
 import { Badge } from "./ui";
 
 const BASE = "/the-last-echo/admin";
@@ -30,7 +30,10 @@ export default function Sidebar({
   const router = useRouter();
 
   async function signOut() {
+    adminSessionStore.clear();
+    const generation = adminSessionStore.generation();
     await createClient().auth.signOut();
+    if (adminSessionStore.generation() !== generation) return;
     router.replace(`${BASE}/login`);
     router.refresh();
   }

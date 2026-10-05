@@ -1,4 +1,5 @@
-import { createClient } from "@/utils/supabase/client";
+import { createClient, adminSessionStore } from "./client";
+import { adminRpc } from "./release-contract";
 
 /** Calls a Postgres RPC and throws a readable Error on failure.
  *  Authorization is enforced in the database: every admin_* function
@@ -7,12 +8,7 @@ export async function rpc<T = unknown>(
   fn: string,
   args?: Record<string, unknown>
 ): Promise<T> {
-  const supabase = createClient();
-  const { data, error } = await supabase.rpc(fn, args ?? {});
-  if (error) {
-    throw new Error(error.message || "Request failed");
-  }
-  return data as T;
+  return await adminRpc<T>(createClient(), adminSessionStore, fn, args ?? {});
 }
 
 export function fmtDate(v: string | null | undefined): string {

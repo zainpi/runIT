@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { createClient, adminSessionStore } from "../_lib/client";
+import { beginAdminLogin, establishAdminSession, isAdminLoginCurrent } from "../_lib/release-contract";
 import { Btn, Input, ErrorNote } from "../_components/ui";
 
 export default function AdminLoginPage() {
@@ -11,29 +12,39 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const signInPending = useRef(false);
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
+    if (signInPending.current) return;
+    signInPending.current = true;
+    const attempt = beginAdminLogin(adminSessionStore);
     setBusy(true);
     setError(null);
-    const supabase = createClient();
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) {
-      setError(err.message);
-      setBusy(false);
-      return;
+    try {
+      const supabase = createClient();
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (!isAdminLoginCurrent(adminSessionStore, attempt)) return;
+      if (err) {
+        setError(err.message);
+        adminSessionStore.clear();
+        setBusy(false);
+        return;
+      }
+      await establishAdminSession(supabase, adminSessionStore, attempt);
+      if (!isAdminLoginCurrent(adminSessionStore, attempt)) return;
+      router.replace("/the-last-echo/admin");
+      router.refresh();
+    } catch (e) {
+      if (isAdminLoginCurrent(adminSessionStore, attempt)) {
+        setError(e instanceof Error ? e.message : "Sign-in could not be completed. Try again.");
+        setBusy(false);
+        adminSessionStore.clear();
+      }
+    } finally {
+      signInPending.current = false;
+      if (isAdminLoginCurrent(adminSessionStore, attempt)) setBusy(false);
     }
-    // The DB is the real gate — a non-admin session gets "not authorized"
-    // from every admin RPC. This check just gives a clean early message.
-    const { data } = await supabase.rpc("get_app_status");
-    if (!data?.is_admin) {
-      await supabase.auth.signOut();
-      setError("This account is not an admin.");
-      setBusy(false);
-      return;
-    }
-    router.replace("/the-last-echo/admin");
-    router.refresh();
   }
 
   return (
@@ -59,8 +70,9 @@ export default function AdminLoginPage() {
         </div>
         <div className="space-y-4 p-6">
           <div>
-            <label className="pixel mb-1.5 block text-base text-[#5a3a1c]">Email</label>
+            <label htmlFor="admin-email" className="pixel mb-1.5 block text-base text-[#5a3a1c]">Email</label>
             <Input
+              id="admin-email"
               type="email"
               required
               autoComplete="username"
@@ -70,8 +82,9 @@ export default function AdminLoginPage() {
             />
           </div>
           <div>
-            <label className="pixel mb-1.5 block text-base text-[#5a3a1c]">Password</label>
+            <label htmlFor="admin-password" className="pixel mb-1.5 block text-base text-[#5a3a1c]">Password</label>
             <Input
+              id="admin-password"
               type="password"
               required
               autoComplete="current-password"

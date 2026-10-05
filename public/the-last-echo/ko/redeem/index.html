@@ -171,6 +171,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
    The anon key is public BY DESIGN (Row-Level-Security gated; same key shipped in the
    app bundle / secrets.gd). It is NOT a secret. Edit these two values to repoint. */
 const CFG = {
+  epoch: 2,
   url:  "https://tkkuncbgyslnaukzhlgr.supabase.co",
   anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRra3VuY2JneXNsbmF1a3pobGdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDMwMjAsImV4cCI6MjA5Njc3OTAyMH0.M2fADneTmoeSD0URAg_RiogUHtI5TRiA7pX6JlIS04M"
 };
@@ -187,13 +188,15 @@ function busy(btn,on,label){btn.disabled=on;btn.dataset.label=btn.dataset.label|
   btn.innerHTML=on?'<span class="spinner"></span>'+(label||"처리 중"):btn.dataset.label;}
 
 async function api(path,body){
-  const headers={"Content-Type":"application/json","apikey":CFG.anon,"Authorization":"Bearer "+CFG.anon};
-  const res=await fetch(CFG.url+path,{method:"POST",headers,body:JSON.stringify(body)});
+  const headers={"Content-Type":"application/json","X-Game-Epoch":String(CFG.epoch),"apikey":CFG.anon,"Authorization":"Bearer "+CFG.anon};
+  let res;try{res=await fetch(CFG.url+path,{method:"POST",headers,body:JSON.stringify(body)});}catch(_){return{ok:false,status:0,data:null};}
   let data=null;try{data=await res.json();}catch(_){}
   return{ok:res.ok,status:res.status,data};
 }
 
 const REDEEM_ERRORS={
+  maintenance:'게임 점검 중입니다. 점검이 끝난 후 다시 시도해 주세요.',
+  update_required:'이 페이지는 해당 게임 버전이 필요합니다. 나중에 새로고침해 주세요.',
   invalid_player:"해당 플레이어 ID를 찾을 수 없습니다. 게임의 설정 > 플레이어 ID에서 번호를 확인해 주세요.",
   invalid_code:"유효하지 않은 쿠폰 코드입니다. 다시 확인한 뒤 시도해 주세요.",
   expired:"사용 기간이 만료된 쿠폰입니다.",
@@ -235,6 +238,7 @@ function renderReward(reward){
 }
 
 async function redeem(){
+  if($("redeem-btn").disabled)return;
   clearMsg("redeem-msg");$("reward-box").classList.remove("show");
   // Player ID is the public 7-digit account number; strip a leading # or any stray
   // non-digits the player may paste from the in-game Copy button.
@@ -247,11 +251,11 @@ async function redeem(){
   busy(btn,false);
   if(!r.ok){ // RAISE → non-2xx (rate limit / unexpected server error)
     const d=r.data||{};const m=(d.message||"")+" "+(d.details||"");
-    // Log the real Postgres error for diagnosis (devtools only — never shown to users,
-    // avoids leaking internals per §5.3). e.g. a missing check_rate_limit() (migration
-    // 015 not applied) surfaces here as "function ... does not exist".
-    console.error("redeem_code_by_number failed",{status:r.status,error:d});
-    if(/rate_limited/i.test(m))msg("redeem-msg","이 플레이어 ID로 시도한 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+    // Log only HTTP status; backend details may include private context.
+    console.error("redeem_code_by_number failed",{status:r.status});
+    if(/maintenance/i.test(m))msg("redeem-msg",REDEEM_ERRORS.maintenance);
+    else if(/update_required/i.test(m))msg("redeem-msg",REDEEM_ERRORS.update_required);
+    else if(/rate_limited/i.test(m))msg("redeem-msg","이 플레이어 ID로 시도한 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
     else msg("redeem-msg","쿠폰을 사용하는 중 문제가 발생했습니다. 다시 시도해 주세요.");
     return;
   }

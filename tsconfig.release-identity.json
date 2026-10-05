@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.json","include":["src/app/the-last-echo/admin/**/*.ts","src/app/the-last-echo/admin/**/*.tsx","src/utils/supabase/server.ts","next-env.d.ts"],"compilerOptions":{"incremental":false},"exclude":["node_modules"]}
