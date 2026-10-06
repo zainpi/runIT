@@ -11,6 +11,8 @@ import { AppIconGenerator } from "./app-icon-generator";
 import { ManagedLaunch, hasManagedLaunch } from "../managed-launch";
 import { sameBrief, type AppPlan, type AiProject } from "@/lib/templates/ai-contract";
 import { BuildGuide } from "./build-guide";
+import { PurchaseOverview } from "./purchase-overview";
+import type { IconSnapshot } from "@/lib/templates/icon-contract";
 import { usePlanLoading } from "../plan-loading";
 import styles from "../templates.module.css";
 import dashboard from "../trial/dashboard.module.css";
@@ -26,7 +28,8 @@ export function TemplateLibrary() {
   const [subagentInstructions, setSubagentInstructions] = useState<string | undefined>();
   const [skillTreeInstructions, setSkillTreeInstructions] = useState<string | undefined>();
   const [appIconPurchased, setAppIconPurchased] = useState(false);
-  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("plan");
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("overview");
+  const [icon, setIcon] = useState<IconSnapshot | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -42,7 +45,8 @@ export function TemplateLibrary() {
   }, []);
 
   async function openOrder(receipt: Receipt) {
-    setWorkspaceTab("plan");
+    setWorkspaceTab("overview");
+    setIcon(null);
     setApplied({});
     setProjects({});
     const requestId = ++orderRequest.current.generation;
@@ -133,6 +137,7 @@ export function TemplateLibrary() {
   const project = selected ? projects[selected] : undefined;
   const currentGuide = project?.guide && project.guide.sourceRevision === project.revision && project.appliedRevision === project.revision && sameBrief(project.guide.brief, details) ? project.guide : undefined;
   const prompt = current ? composePrompt(title, current.foundation, details, mode, subagentInstructions, skillTreeInstructions, appPlan, currentGuide) : "";
+  const accessFile = `YOUR PRIVATE TEMPLATE PURCHASE LINK\n\n${purchaseUrl}\n\nSave this file. Open the full URL to return to the templates and add-ons in this order, including on another device or after clearing browser storage. Payment must be complete to access the prompts.\n\nKeep this URL private: anyone with it can access your purchase. Manual edits stay in your browser. AI plans and chats are saved with this purchase when you use AI editing; download your personalized prompts to keep a copy.\n\nLost access? Contact ${site.email} with your Stripe receipt. Never send passwords or API keys.\n`;
   const setupPrompt = skillTreeInstructions ? composeSkillSetupPrompt(skillTreeInstructions, details, mode) : "";
   function updateDetails(value: Personalization) {
     setDetails(value);
@@ -167,9 +172,10 @@ export function TemplateLibrary() {
         </article>}
       </section>}
       {!subagentInstructions && !skillTreeInstructions && !appIconPurchased && <section className={library.extras} aria-label="Your purchased extras"><div className={dashboard.paneHeading}><div><p className={dashboard.kicker}>Add-ons</p><h2>Your add-ons</h2></div></div><p className={library.extrasIntro}>This purchase includes the full template. No add-ons were included.</p></section>}
-      {appIconPurchased && active && current && <AppIconGenerator key={`${active.sessionId}:${active.accessToken}`} receipt={active} templateId={current.id} details={details} />}
+      {appIconPurchased && active && current && <AppIconGenerator key={`${active.sessionId}:${active.accessToken}`} receipt={active} templateId={current.id} details={details} onState={setIcon} />}
       {selected && hasManagedLaunch(selected) && <ManagedLaunch templateId={selected} projectName={details.name} />}
   </>;
+  const overview = active && current ? <PurchaseOverview receipt={active} templateId={current.id} title={title} foundation={current.foundation} details={details} mode={mode} prompt={prompt} setupPrompt={setupPrompt} subagents={subagentInstructions} skillTree={skillTreeInstructions} appIcon={appIconPurchased} icon={icon} project={project} accessFile={accessFile} onOpenTab={setWorkspaceTab} onCopy={(text, message) => void copy(text, message)} onStatus={setStatus} /> : null;
   return <div className={`${dashboard.dashboard} ${library.library}`} data-paid-dashboard>
     <div className={dashboard.breadcrumb}><Link href="/templates/">Templates</Link><span aria-hidden="true">/</span><span>Project dashboard</span>{!!templates.length && <span className={dashboard.trialBadge}>Purchased</span>}</div>
     <header className={dashboard.projectHeader}>
@@ -180,7 +186,7 @@ export function TemplateLibrary() {
           <h2>Save your purchase link</h2><p>This link opens every template, add-on and saved AI conversation in this order on any device. Keep it private.</p>
           <label htmlFor="purchase-url">Your private purchase URL</label><input id="purchase-url" type="text" readOnly value={purchaseUrl} spellCheck={false} autoComplete="off" onFocus={(event) => event.currentTarget.select()} />
           <button onClick={() => void copy(purchaseUrl, "Purchase link copied. Save it somewhere safe so you can return to this order.")}>Copy purchase link</button>
-          <button onClick={() => downloadText(`YOUR PRIVATE TEMPLATE PURCHASE LINK\n\n${purchaseUrl}\n\nSave this file. Open the full URL to return to the templates and add-ons in this order, including on another device or after clearing browser storage. Payment must be complete to access the prompts.\n\nKeep this URL private: anyone with it can access your purchase. Manual edits stay in your browser. AI plans and chats are saved with this purchase when you use AI editing; download your personalized prompts to keep a copy.\n\nLost access? Contact ${site.email} with your Stripe receipt. Never send passwords or API keys.\n`, "template-order-access.txt")}>Download access file</button>
+          <button onClick={() => downloadText(accessFile, "template-order-access.txt")}>Download access file</button>
           <p>You can also bookmark this page. Manual edits stay in this browser; AI plans and chats are saved to your purchase.</p>
         </div></details>}
         {current && <button className={dashboard.downloadPlan} onClick={() => downloadText(prompt, `${selected}-prompt.txt`)}>Download prompt <span aria-hidden="true">↓</span></button>}
@@ -191,8 +197,8 @@ export function TemplateLibrary() {
     {loaded && !receipts.length && !active && !error && <div className={styles.empty}><h2>Your templates will live here.</h2><p>After checkout, come back here to copy or download. If you purchased on another device, open your saved private access link.</p><Link className={styles.primary} href="/templates/">Explore templates →</Link><p className={styles.small}>Lost your link? Email <a href={`mailto:${site.email}`}>{site.email}</a> with your payment receipt for help.</p></div>}
     <p className={`${styles.status} ${library.status}`} role="status" aria-label="Template library status" aria-live="polite">{status}</p>
     {templates.length > 0 && <>
-      {templates.length > 1 && <section className={styles.libraryTemplates}><p className={styles.eyebrow}>Your purchased foundations</p><div className={styles.libraryTabs} role="group" aria-label="Choose a purchased template">{templates.map((t) => <button key={t.id} aria-pressed={selected === t.id} onClick={() => { setSelected(t.id); setWorkspaceTab("plan"); }}>{templateCatalog.find((item) => item.id === t.id)?.title}</button>)}</div></section>}
-      {active && current && <AiEditor key={`${active.sessionId}:${active.accessToken}:${current.id}`} receipt={active} templateId={current.id} details={details} activeTab={workspaceTab} onTabChange={setWorkspaceTab} buildFiles={buildFiles} addons={addons} purchasedAddons={{ subagents: !!subagentInstructions, skillTree: !!skillTreeInstructions, appIcon: appIconPurchased }} briefEditor={<Personalize compact details={details} mode={mode} onDetails={updateDetails} onMode={updateMode} />} onRestoreBrief={updateDetails} onCleared={() => { setApplied({}); setProjects({}); }} onProject={(value) => setProjects((previous) => ({ ...previous, [current.id]: value ?? undefined }))} onApplied={(plan, brief) => setApplied((previous) => ({ ...previous, [current.id]: plan && brief ? { plan, brief } : undefined }))} />}
+      {templates.length > 1 && <section className={styles.libraryTemplates}><p className={styles.eyebrow}>Your purchased foundations</p><div className={styles.libraryTabs} role="group" aria-label="Choose a purchased template">{templates.map((t) => <button key={t.id} aria-pressed={selected === t.id} onClick={() => { setSelected(t.id); setWorkspaceTab("overview"); }}>{templateCatalog.find((item) => item.id === t.id)?.title}</button>)}</div></section>}
+      {active && current && <AiEditor key={`${active.sessionId}:${active.accessToken}:${current.id}`} receipt={active} templateId={current.id} details={details} activeTab={workspaceTab} onTabChange={setWorkspaceTab} overview={overview} buildFiles={buildFiles} addons={addons} purchasedAddons={{ subagents: !!subagentInstructions, skillTree: !!skillTreeInstructions, appIcon: appIconPurchased }} briefEditor={<Personalize compact details={details} mode={mode} onDetails={updateDetails} onMode={updateMode} />} onRestoreBrief={updateDetails} onCleared={() => { setApplied({}); setProjects({}); }} onProject={(value) => setProjects((previous) => ({ ...previous, [current.id]: value ?? undefined }))} onApplied={(plan, brief) => setApplied((previous) => ({ ...previous, [current.id]: plan && brief ? { plan, brief } : undefined }))} />}
 
     </>}
     <p className={styles.libraryBack}><Link href="/templates/">← Back to all templates</Link></p>

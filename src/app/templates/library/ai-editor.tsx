@@ -19,6 +19,7 @@ function hasDecisionAnswer(message: string, question: string) {
 }
 
 const workspaceTabs = [
+  { id: "overview", label: "Overview" },
   { id: "plan", label: "Plan" },
   { id: "build", label: "Build files" },
   { id: "addons", label: "Add-ons" },
@@ -27,7 +28,7 @@ export type WorkspaceTab = typeof workspaceTabs[number]["id"];
 
 type Props = {
   receipt: Pick<Receipt, "sessionId" | "accessToken">; trial?: boolean; templateId: TemplateId; details: Personalization;
-  briefEditor: ReactNode; buildFiles: ReactNode; addons: ReactNode;
+  briefEditor: ReactNode; overview: ReactNode; buildFiles: ReactNode; addons: ReactNode;
   purchasedAddons: { subagents: boolean; skillTree: boolean; appIcon: boolean };
   activeTab: WorkspaceTab; onTabChange(tab: WorkspaceTab): void;
   onApplied(plan: AppPlan | null, brief: Personalization | null): void;
@@ -35,7 +36,7 @@ type Props = {
   onCleared(): void;
   onProject?(project: AiProject | null): void;
 };
-export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBrief, onCleared, onProject, briefEditor, buildFiles, addons, purchasedAddons, activeTab, onTabChange, trial = false }: Props) {
+export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBrief, onCleared, onProject, briefEditor, overview, buildFiles, addons, purchasedAddons, activeTab, onTabChange, trial = false }: Props) {
   const [state, setState] = useState<AiSnapshot | null>(null);
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -193,6 +194,7 @@ export function AiEditor({ receipt, templateId, details, onApplied, onRestoreBri
     }}>{tab.label}</button>)}</div>
     <div ref={workspace} className={`${dashboard.workspace} ${styles.workspaceLayout} ${chatCollapsed ? styles.workspaceCollapsed : ""}`}>
       <div className={`${styles.mainPane} ${view !== "plan" ? dashboard.mobileHidden : ""}`}>
+      <section id="workspace-panel-overview" role="tabpanel" aria-labelledby="workspace-tab-overview" tabIndex={0} hidden={activeTab !== "overview"} className={styles.tabPanel}>{overview}</section>
       <section id="workspace-panel-plan" role="tabpanel" aria-labelledby="workspace-tab-plan" tabIndex={0} hidden={activeTab !== "plan"} className={`${dashboard.planPane} ${styles.tabPanel}`}>
         <div className={dashboard.paneHeading}><div><p className={dashboard.kicker}>The big picture</p><h2>Your app plan</h2></div><span className={dashboard.version}>{project ? `v${project.revision}` : "Draft"}</span></div>
         {!project && appSettings}
