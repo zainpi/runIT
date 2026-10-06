@@ -8,7 +8,7 @@ import type { Receipt } from "../browser-storage";
 import shared from "../templates.module.css";
 import styles from "./app-icon-generator.module.css";
 
-export function AppIconGenerator({ receipt, templateId, details }: { receipt: Pick<Receipt, "sessionId" | "accessToken">; templateId: TemplateId; details: Personalization }) {
+export function AppIconGenerator({ receipt, templateId, details, onState }: { receipt: Pick<Receipt, "sessionId" | "accessToken">; templateId: TemplateId; details: Personalization; onState?(state: IconSnapshot | null): void }) {
   const [state, setState] = useState<IconSnapshot | null>(null);
   const [available, setAvailable] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -48,6 +48,9 @@ export function AppIconGenerator({ receipt, templateId, details }: { receipt: Pi
     } finally { if (!controller.signal.aborted) setBusy(false); }
   }, [sessionId, accessToken]);
   useEffect(() => { void act("load"); return () => pendingRequest.current?.abort(); }, [act]);
+  const reportState = useRef(onState);
+  reportState.current = onState;
+  useEffect(() => { reportState.current?.(state); }, [state]);
   useEffect(() => {
     if (state?.status !== "pending" || busy || error) return;
     const timer = setTimeout(() => void act("load"), 5000);

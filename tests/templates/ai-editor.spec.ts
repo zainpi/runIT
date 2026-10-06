@@ -35,6 +35,8 @@ async function setup(page: Page, initial = emptyState()) {
 test("free overview, feature list, reviewed application, chat and saved-link restoration", async ({ page }) => {
   const harness = await setup(page);
   await expect(page.getByRole("tab", { name: "Brief", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Overview", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
   await page.getByLabel("App name").fill(brief.name);
   await page.getByLabel("What do you want to make?").fill(brief.idea);
   await page.getByLabel("Features & platforms").fill(brief.features);
@@ -68,6 +70,7 @@ test("free overview, feature list, reviewed application, chat and saved-link res
   await expect(page.locator("#full-prompt")).toContainText("Invite another climber to a session.");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
   await expect(page.getByLabel("App name")).toHaveValue("BoulderMe");
   await expect(page.getByText("19 of 20 messages left")).toBeVisible();
   await expect(page.locator("#full-prompt")).toContainText("Invite another climber to a session.");
@@ -87,6 +90,7 @@ test("free overview, feature list, reviewed application, chat and saved-link res
 test("exhausted quota preserves downloads and applying; deleting content keeps usage", async ({ page }) => {
   await setup(page, { ...emptyState(), used: 20, remaining: 0, projects: { "mobile-app": structuredClone(project) }, overviewUsed: ["mobile-app"] });
   await expect(page.getByRole("button", { name: "Send message", exact: true })).toBeDisabled();
+  await page.getByRole("tab", { name: "Plan", exact: true }).click();
   await expect(page.getByRole("button", { name: "Use this plan" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Download prompt", exact: false })).toBeEnabled();
   await page.getByText("Manage saved content", { exact: true }).click();

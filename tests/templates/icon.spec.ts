@@ -132,3 +132,40 @@ test("a saved icon add-on can be removed when image generation is unavailable", 
   await expect(page.getByRole("button", { name: "Try test checkout" })).toBeEnabled();
   await expect(page.getByLabel("Create app icon", { exact: true })).toBeDisabled();
 });
+
+test("overview is the default tab and bundles the prompt, icons and access link in one download", async ({ page }) => {
+  const png = await readFile("tests/templates/fixtures/icon.png");
+  const versions = [1, 2].map((number) => ({ id: `0000000${number}-0000-4000-8000-000000000000`, number, fileName: `climb-icon-v${number}.png`, createdAt: "2026-10-01T00:00:00.000Z", templateId: "mobile-app", brief }));
+  const loads: (string | undefined)[] = [];
+  await page.route("**/api/templates/library/**", (route) => route.fulfill({ json: { templates: [{ id: "mobile-app", foundation: "FOUNDATION" }], appIcon: true, subagents: true, subagentInstructions: "SUBAGENT WORKFLOW" } }));
+  await page.route("**/api/templates/ai/**", (route) => route.fulfill({ json: { available: false, state: null } }));
+  await page.route("**/api/templates/icon/**", (route) => {
+    const body = route.request().postDataJSON();
+    loads.push(body.versionId);
+    const version = versions.find((item) => item.id === body.versionId) ?? versions.at(-1)!;
+    return route.fulfill({ json: { available: true, state: { status: "complete", updatesRemaining: 2, canGenerate: true, versions, image: { ...version, base64: png.toString("base64") } } } });
+  });
+  await page.goto(`/templates/library/#session_id=${sessionId}&access=${token}`);
+  await expect(page.getByRole("tab", { name: "Overview", exact: true })).toHaveAttribute("aria-selected", "true");
+  const overview = page.getByRole("tabpanel", { name: "Overview" });
+  await expect(overview.getByRole("img", { name: /app icon, version 2/ })).toBeVisible();
+  await expect(overview.getByLabel("Prompt preview")).toContainText("BUILD MY MOBILE APP");
+  await expect(overview.getByRole("region", { name: "Everything in this purchase" })).toContainText("Subagent workflow");
+  await expect(overview.getByRole("region", { name: "Everything in this purchase" })).toContainText("2 versions · 2 updates left");
+  await overview.screenshot({ path: "/tmp/runit-templates-overview.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await overview.screenshot({ path: "/tmp/runit-templates-overview-mobile.png" });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const download = page.waitForEvent("download");
+  await overview.getByRole("button", { name: "Download all" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("mobile-app-files.zip");
+  const zip = await readFile(await file.path());
+  const text = zip.toString("latin1");
+  for (const name of ["mobile-app-prompt.txt", "subagent-workflow.txt", "app-icon/app-icon-v1.png", "app-icon/app-icon-v2.png", "template-order-access.txt"]) expect(text).toContain(name);
+  expect(text).toContain(`access=${token}`);
+  expect(loads).toContain(versions[0].id);
+  await overview.getByRole("button", { name: "Manage icon →" }).click();
+  await expect(page.getByRole("tab", { name: "Add-ons", exact: true })).toHaveAttribute("aria-selected", "true");
+});
