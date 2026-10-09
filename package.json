@@ -16,7 +16,7 @@
     "test:neutronium": "tsx --test tests/neutronium/*.test.ts",
     "test:neutronium:browser": "playwright test --config tests/neutronium/playwright.config.ts",
     "test:local-lore": "node --test tests/local-lore/*.test.mjs",
-    "test:the-last-echo": "node --test tests/the-last-echo/*.test.mjs",
+    "test:the-last-echo": "node --test tests/the-last-echo/*.test.mjs && tsx --test tests/the-last-echo/*.test.ts",
     "test:contact": "tsx --test tests/contact/*.test.ts",
     "higgsfield": "node marketing/ai-templates/higgsfield/higgsfield.mjs",
     "test:higgsfield": "node --test tests/higgsfield.test.mjs",
