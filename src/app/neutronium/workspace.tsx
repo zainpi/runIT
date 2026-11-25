@@ -325,7 +325,7 @@ export function Neutronium() {
       openedRecord.current = key;
     }
   }, [w]);
-  const org = useRef<string>();
+  const org = useRef<string | undefined>(undefined);
   const refresh = useCallback(async () => {
     const sequence = ++refreshSequence.current;
     const workspaceId = org.current;

@@ -15,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -37,7 +37,8 @@
     ".next-neutronium-release/types/**/*.ts",
     ".next-templates-test/types/**/*.ts",
     ".next-aeo-test/types/**/*.ts",
-    ".next-aeo-build/types/**/*.ts"
+    ".next-aeo-build/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
