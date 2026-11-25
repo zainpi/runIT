@@ -30,7 +30,7 @@ export function OnboardingInvite({
   manual: () => void;
   reviews: () => void;
 }) {
-  const pending = useRef<Promise<LinkInfo>>();
+  const pending = useRef<Promise<LinkInfo> | undefined>(undefined);
   const field = useRef<HTMLInputElement>(null);
   const [link, setLink] = useState<LinkInfo>();
   const [error, setError] = useState("");
