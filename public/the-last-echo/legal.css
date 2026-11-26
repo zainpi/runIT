@@ -1,0 +1,279 @@
+/* The Last Echo — Deep Forest theme for policy, support and redeem pages. */
+:root {
+  --parch: #10231a;
+  --parch2: #0c1b13;
+  --parch3: #132b1d;
+  --wood: #122b1d;
+  --wood2: #183827;
+  --wood-dark: #07120d;
+  --ink: #f2ecd9;
+  --ink2: #c9d3c4;
+  --gold: #e6b85c;
+  --gold2: #f0c66e;
+  --gold-lt: #ffd98a;
+  --green: #5fd08a;
+  --green2: #79e0a0;
+  --green-dk: #1d5c3c;
+  --green-lt: #a5f0c0;
+  --red: #e06a56;
+  --red-dk: #6e2418;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  color: var(--ink);
+  background-color: #08140e;
+  background-image:
+    radial-gradient(900px 420px at 12% -10%, rgba(95, 208, 138, 0.15), transparent 62%),
+    radial-gradient(720px 380px at 96% 0, rgba(230, 184, 92, 0.09), transparent 58%),
+    linear-gradient(180deg, #0b1a12 0%, #08140e 55%, #060f0a 100%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(95, 208, 138, 0.35);
+  color: #fff;
+}
+
+a {
+  color: #f0c66e;
+}
+
+.nav {
+  background: rgba(6, 15, 10, 0.94);
+  border-bottom: 1px solid #2e5740;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.brand {
+  color: var(--ink);
+}
+
+.brand img {
+  border-color: #2e5740;
+  background: #0b1a12;
+}
+
+.nav .in a.back {
+  color: var(--ink);
+  border-color: #2e5740;
+  background: linear-gradient(#16382a, #0e2419);
+}
+
+.page {
+  margin-top: 34px;
+}
+
+.card {
+  background: linear-gradient(180deg, #10231a, #0c1b13);
+  border: 1px solid #2e5740;
+  box-shadow:
+    inset 0 0 0 1px rgba(230, 184, 92, 0.1),
+    0 26px 60px rgba(0, 0, 0, 0.45);
+}
+
+.content h1,
+.content h2 {
+  color: var(--ink);
+}
+
+.content h1 {
+  text-shadow: 0 2px 0 #000;
+}
+
+.content h2 {
+  border-bottom-color: #2e5740;
+}
+
+.content h3 {
+  color: #dbe5d8;
+}
+
+.content .lead {
+  color: var(--ink2);
+}
+
+.content a {
+  color: var(--gold);
+}
+
+.content blockquote {
+  border-left-color: var(--green);
+  background: rgba(95, 208, 138, 0.1);
+  color: #d3e0ce;
+}
+
+.content hr {
+  border-top-color: #2e5740;
+}
+
+.content code {
+  background: #0b1c12;
+  border-color: #2e5740;
+  color: #d8e6d4;
+}
+
+.content table {
+  background: #10271b;
+}
+
+.content th {
+  background: #173a28;
+  color: var(--ink);
+}
+
+.content td {
+  border-top-color: #234434;
+}
+
+.content tr:nth-child(even) td {
+  background: #0e2015;
+}
+
+details {
+  background: #10271b;
+  border-color: #2e5740;
+}
+
+details[open] {
+  border-color: var(--gold);
+}
+
+summary {
+  color: var(--ink);
+}
+
+summary::after {
+  color: var(--gold);
+}
+
+details .body {
+  color: var(--ink2);
+}
+
+.contact-box a {
+  color: var(--ink);
+  border-color: #2e5740;
+  background: linear-gradient(#16382a, #0e2419);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.contact-box a:hover {
+  border-color: #4b8a63;
+}
+
+.chead {
+  background: linear-gradient(#173a28, #10271b);
+  border-bottom: 1px solid #2e5740;
+  color: var(--ink);
+}
+
+.chead h1 {
+  text-shadow: 2px 2px 0 #000;
+}
+
+.hint,
+.footnote {
+  color: var(--muted, #b8c6b3);
+}
+
+.hint b,
+.tip b {
+  color: var(--ink);
+}
+
+input {
+  color: var(--ink);
+  background: #0b1c12;
+  border-color: #2e5740;
+}
+
+input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(230, 184, 92, 0.18);
+}
+
+.btn {
+  color: #062013;
+  border-color: #2b7d52;
+  background: linear-gradient(#79e0a0, #3fae72);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    0 6px 16px rgba(0, 0, 0, 0.38);
+}
+
+.btn:hover {
+  filter: brightness(1.06);
+}
+
+.msg.ok {
+  background: rgba(95, 208, 138, 0.12);
+  border-color: var(--green);
+  color: #b9f0c9;
+}
+
+.msg.err {
+  background: rgba(224, 106, 86, 0.12);
+  border-color: var(--red);
+  color: #ffc4b8;
+}
+
+.tip {
+  background: rgba(230, 184, 92, 0.08);
+  border-color: var(--gold);
+  color: #c9d3c4;
+}
+
+.rewardbox {
+  background: linear-gradient(180deg, #10271b, #0c1b13);
+  border-color: #2e5740;
+  box-shadow:
+    inset 0 0 0 1px rgba(230, 184, 92, 0.12),
+    0 18px 36px rgba(0, 0, 0, 0.4);
+}
+
+.rewardbox h3 {
+  color: var(--gold);
+}
+
+.reward {
+  color: var(--ink2);
+}
+
+footer {
+  color: #93a58f;
+}
+
+footer a {
+  color: var(--gold);
+}
+
+.langs summary {
+  color: var(--ink);
+  border-color: rgba(242, 236, 217, 0.3);
+}
+
+.langs ul {
+  background: linear-gradient(#13291d, #0e2015);
+  border-color: #2e5740;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+
+.langs ul a {
+  color: #e9f0e6;
+}
+
+.langs ul a:hover {
+  background: rgba(95, 208, 138, 0.14);
+}
+
+.langs ul a[aria-current] {
+  background: rgba(230, 184, 92, 0.18);
+}

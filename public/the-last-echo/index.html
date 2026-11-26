@@ -14,9 +14,9 @@
     <meta property="og:url" content="https://runs-it.com/the-last-echo/" />
     <meta
       name="description"
-      content="The Last Echo is a charming idle auto-battle RPG. Your party keeps fighting even while you're away. Fair, transparent gacha with visible pity, deep progression, prestige, dungeons and world bosses. Available on iOS and through Google Play testing on Android."
+      content="The Last Echo is a charming idle auto-battle RPG. Your party keeps fighting even while you're away. Fair, transparent gacha with visible pity, deep progression, prestige, dungeons and world bosses. Available now on the App Store and Google Play."
     />
-    <meta name="theme-color" content="#6b4423" />
+    <meta name="theme-color" content="#08140e" />
     <meta name="author" content="The Last Echo development team" />
     <link rel="icon" type="image/png" href="/the-last-echo/img/app-icon.png" />
     <link
@@ -31,7 +31,7 @@
     />
     <meta
       property="og:description"
-      content="Your party keeps fighting even while you're away. Fair gacha, deep progression, real offline progress. Available on iOS and through Google Play testing on Android."
+      content="Your party keeps fighting even while you're away. Fair gacha, deep progression, real offline progress. Available now on the App Store and Google Play."
     />
     <meta
       property="og:image"
@@ -893,7 +893,8 @@
 .langs ul a[aria-current]{font-weight:700;background:rgba(201,160,89,.35)}
 @media(max-width:540px){.langs .lc{display:none}.nav .in a.back .bt{display:none}}
 </style>
-    <link rel="stylesheet" href="/the-last-echo/testing.css" />
+    <link rel="stylesheet" href="/the-last-echo/store.css" />
+    <link rel="stylesheet" href="/the-last-echo/theme.css" />
 </head>
   <body>
     <!-- ============ NAV ============ -->
@@ -913,7 +914,6 @@
           <span></span><span></span><span></span>
         </button>
         <nav id="menu">
-          <a href="/local-lore/">Play Local Lore</a>
           <a href="/the-last-echo/guides/">Guides</a>
           <a href="/the-last-echo/guides/game-systems-reference.html"
             >Systems</a
@@ -952,41 +952,19 @@
           </p>
           <div class="hero-actions">
             <a
-              class="btn btn--green"
-              href="https://apps.apple.com/us/app/the-last-echo-idle-rpg/id6788888795"
+              class="btn btn--apple"
+              href="https://apps.apple.com/app/apple-store/id6788888795?pt=129143685&amp;ct=x-launch&amp;mt=8"
               target="_blank"
               rel="noopener"
-              >Download on the App Store</a
+              ><svg class="btn-logo" viewBox="0 0 384 512" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>Download on the App Store</a
             >
-            <a class="btn" href="#android-testing">Join the Android test</a>
-          </div>
-          <div class="stores">
             <a
-              class="store"
-              href="https://apps.apple.com/us/app/the-last-echo-idle-rpg/id6788888795"
+              class="btn btn--google"
+              href="https://play.google.com/store/apps/details?id=com.runsit.thelastecho&amp;referrer=utm_source%3Dig%26utm_campaign%3Dig-bio"
               target="_blank"
               rel="noopener"
-              aria-label="Download The Last Echo on the App Store"
-              >
-              <svg viewBox="0 0 384 512">
-                <path
-                  d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"
-                />
-              </svg>
-              <span><small>Available on</small><b>App Store</b></span>
-            </a>
-            <a
-              class="store"
-              href="#android-testing"
-              aria-label="Join The Last Echo Android test on Google Play"
-              >
-              <svg viewBox="0 0 512 512">
-                <path
-                  d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"
-                />
-              </svg>
-              <span><small>Testing now on</small><b>Google Play</b></span>
-            </a>
+              ><svg class="btn-logo" viewBox="0 0 512 512" aria-hidden="true"><path d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"/></svg>Get it on Google Play</a
+            >
           </div>
           <div class="byline">
             <img src="/the-last-echo/img/icons/Heart.png" alt="" />Hand-built by
@@ -997,10 +975,10 @@
           <img class="float m1" src="/the-last-echo/img/mushroom.png" alt="" />
           <div class="frame">
             <img
-              src="/the-last-echo/screenshots/hero.png"
-              alt="The Last Echo hell world-boss battle"
-              width="1280"
-              height="720"
+              src="/the-last-echo/screenshots/new/05-world-boss-battle.png"
+              alt="The Last Echo world-boss battle against The Mother in the hell world"
+              width="2814"
+              height="1582"
             />
           </div>
         </div>
@@ -1055,8 +1033,8 @@
           </div>
           <div class="shot">
             <img
-              src="/the-last-echo/screenshots/summon.png"
-              alt="Summon banner showing real odds and a visible pity counter"
+              src="/the-last-echo/screenshots/new/11-summon-banner.png"
+              alt="Summon banner showing the featured Divine Mallet, pool tiers, and guaranteed rarity"
             />
           </div>
         </div>
@@ -1078,56 +1056,36 @@
           <div
             class="shot-card reveal"
             onclick="
-              lightbox('/the-last-echo/screenshots/new/03-early-battle.png')
+              lightbox('/the-last-echo/screenshots/new/15-home-hub.png')
             "
           >
             <img
-              src="/the-last-echo/screenshots/new/03-early-battle.png"
-              alt="An early forest battle with the complete combat interface visible"
+              src="/the-last-echo/screenshots/new/15-home-hub.png"
+              alt="The Last Echo town hub with the Golden Lady, forge, battle pass, world raid and fishing dock"
               loading="lazy"
               width="2814"
               height="1582"
             />
             <div class="cap">
-              <b>Auto-Battle</b><span>Forest world, live HUD</span
-              ><span class="tag">Combat</span>
+              <b>Town Hub</b><span>Shops, quests &amp; activities</span
+              ><span class="tag">World</span>
             </div>
           </div>
           <div
             class="shot-card reveal"
             onclick="
-              lightbox('/the-last-echo/screenshots/new/11-summon-banner.png')
+              lightbox('/the-last-echo/screenshots/new/16-inventory-rarities.png')
             "
           >
             <img
-              src="/the-last-echo/screenshots/new/11-summon-banner.png"
-              alt="Summon banner showing available rewards, probabilities, currency cost, and pity progress"
+              src="/the-last-echo/screenshots/new/16-inventory-rarities.png"
+              alt="Weapon inventory showing common through divine rarities, set tiers and upgrade paths"
               loading="lazy"
               width="2814"
               height="1582"
             />
             <div class="cap">
-              <b>Summon</b><span>Odds &amp; pity, up front</span
-              ><span class="tag">Gacha</span>
-            </div>
-          </div>
-          <div
-            class="shot-card reveal"
-            onclick="
-              lightbox(
-                '/the-last-echo/screenshots/new/07-equipment-overview.png',
-              )
-            "
-          >
-            <img
-              src="/the-last-echo/screenshots/new/07-equipment-overview.png"
-              alt="Equipment overview showing the hero, equipped slots, inventory, and statistics"
-              loading="lazy"
-              width="2814"
-              height="1582"
-            />
-            <div class="cap">
-              <b>Equipment</b><span>Paper-doll &amp; inventory</span
+              <b>Inventory</b><span>Rarities, sets &amp; upgrades</span
               ><span class="tag">Loot</span>
             </div>
           </div>
@@ -1145,8 +1103,26 @@
               height="1582"
             />
             <div class="cap">
-              <b>Upgrade</b><span>Hero, tower &amp; idle stats</span
-              ><span class="tag">Progress</span>
+              <b>Skill Tree</b><span>Branching builds</span
+              ><span class="tag">Build</span>
+            </div>
+          </div>
+          <div
+            class="shot-card reveal"
+            onclick="
+              lightbox('/the-last-echo/screenshots/new/04-late-boss-battle.png')
+            "
+          >
+            <img
+              src="/the-last-echo/screenshots/new/04-late-boss-battle.png"
+              alt="Late-game boss battle against Commander The Mother with a fully equipped hero"
+              loading="lazy"
+              width="2814"
+              height="1582"
+            />
+            <div class="cap">
+              <b>Boss Fight</b><span>Late-game encounters</span
+              ><span class="tag">Combat</span>
             </div>
           </div>
         </div>
@@ -1169,82 +1145,24 @@
         <div class="cta-box reveal">
           <h2>Play The Last Echo now</h2>
           <p>
-            The Last Echo is available on the App Store and through Google Play
-            testing on Android. Download on iOS or join the Android test below.
+            The Last Echo is available now on the App Store and Google Play.
+            Pick your platform and start building your party today.
           </p>
-          <a
-            class="btn btn--green"
-            href="https://apps.apple.com/us/app/the-last-echo-idle-rpg/id6788888795"
-            target="_blank"
-            rel="noopener"
-            >Download on the App Store</a
-          >
-          <div class="stores">
+          <div class="cta-actions">
             <a
-              class="store"
-              href="https://apps.apple.com/us/app/the-last-echo-idle-rpg/id6788888795"
+              class="btn btn--apple"
+              href="https://apps.apple.com/app/apple-store/id6788888795?pt=129143685&amp;ct=x-launch&amp;mt=8"
               target="_blank"
               rel="noopener"
-              aria-label="Download The Last Echo on the App Store"
-              >
-              <svg viewBox="0 0 384 512">
-                <path
-                  d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"
-                />
-              </svg>
-              <span><small>Available on</small><b>App Store</b></span>
-            </a>
+              ><svg class="btn-logo" viewBox="0 0 384 512" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>Download on the App Store</a
+            >
             <a
-              class="store"
-              href="#android-testing"
-              aria-label="Join The Last Echo Android test on Google Play"
-              >
-              <svg viewBox="0 0 512 512">
-                <path
-                  d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"
-                />
-              </svg>
-              <span><small>Testing now on</small><b>Google Play</b></span>
-            </a>
-          </div>
-          <div class="android-testing" id="android-testing">
-            <h3>Android testing is now open</h3>
-            <p>Follow these steps in order, using the same Google account for all three.</p>
-            <ol class="testing-steps" role="list">
-              <li>
-                <h4><span aria-hidden="true">1.</span> Join the Google Group</h4>
-                <p>Join The Last Echo Testers group to get access to the Android test.</p>
-                <a
-                  class="btn"
-                  href="https://groups.google.com/g/the-last-echo-testers"
-                  target="_blank"
-                  rel="noopener"
-                  >Join the group</a
-                >
-              </li>
-              <li>
-                <h4><span aria-hidden="true">2.</span> Become a tester</h4>
-                <p>Open the web opt-in page and select “Become a tester.”</p>
-                <a
-                  class="btn"
-                  href="https://play.google.com/apps/testing/com.runsit.thelastecho"
-                  target="_blank"
-                  rel="noopener"
-                  >Become a tester</a
-                >
-              </li>
-              <li>
-                <h4><span aria-hidden="true">3.</span> Download on Google Play</h4>
-                <p>Once you’ve opted in, install The Last Echo from Google Play.</p>
-                <a
-                  class="btn btn--green"
-                  href="https://play.google.com/store/apps/details?id=com.runsit.thelastecho"
-                  target="_blank"
-                  rel="noopener"
-                  >Get it on Google Play</a
-                >
-              </li>
-            </ol>
+              class="btn btn--google"
+              href="https://play.google.com/store/apps/details?id=com.runsit.thelastecho&amp;referrer=utm_source%3Dig%26utm_campaign%3Dig-bio"
+              target="_blank"
+              rel="noopener"
+              ><svg class="btn-logo" viewBox="0 0 512 512" aria-hidden="true"><path d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6-78.5-45.2-65.5 65.6 65.5 65.5 79.7-45.9c23.4-15.4 23.4-39.6-1.2-39.6zM104.6 499l220.7-221.3 60.1 60.1L104.6 499z"/></svg>Get it on Google Play</a
+            >
           </div>
         </div>
       </div>
@@ -1262,8 +1180,8 @@
             >
             <p>
               A cosy idle auto-battle RPG with fair, transparent gacha and
-              progression deep enough to optimise for weeks. Available on
-              iOS and through Google Play testing on Android.
+              progression deep enough to optimise for weeks. Available now on
+              the App Store and Google Play.
             </p>
           </div>
           <div class="fcol">
@@ -1279,13 +1197,18 @@
             <a href="#fair">Fair Play</a>
             <a href="#screens">Screenshots</a>
             <a
-              href="https://apps.apple.com/us/app/the-last-echo-idle-rpg/id6788888795"
+              href="https://apps.apple.com/app/apple-store/id6788888795?pt=129143685&amp;ct=x-launch&amp;mt=8"
               target="_blank"
               rel="noopener"
               >Download on the App Store</a
             >
             <a href="/the-last-echo/redeem/">Redeem a Code</a>
-            <a href="#android-testing">Android testing</a>
+            <a
+              href="https://play.google.com/store/apps/details?id=com.runsit.thelastecho&amp;referrer=utm_source%3Dig%26utm_campaign%3Dig-bio"
+              target="_blank"
+              rel="noopener"
+              >Google Play</a
+            >
           </div>
           <div class="fcol">
             <h4>Legal</h4>

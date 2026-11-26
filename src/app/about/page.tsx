@@ -49,7 +49,7 @@ const productDetails: Record<ProductId, { platform: string; status?: string; bod
   },
   "the-last-echo": {
     platform: "Mobile game · iOS & Android",
-    status: "On the App Store · Google Play testing",
+    status: "On the App Store · Google Play",
     body: [
       "The Last Echo is an idle auto-battle RPG: your party keeps fighting while you’re away, and you choose the gear, skills and upgrades.",
       "It’s built for players who like RPG decisions without constant check-ins. Odds are published, pity is visible, and free players can clear the core game.",
@@ -91,7 +91,7 @@ const reviewedOn = new Intl.DateTimeFormat("en-CA", { dateStyle: "long", timeZon
 const differentiators = [
   {
     title: "We make our own products",
-    body: `runsIT isn’t only a template shop. Our ${inWords(products.length)} products cover an iPhone app, an iOS game, a browser game, a Roblox game and business software for company IT, and each has its own page where you can see the work for yourself.`,
+    body: `runsIT isn’t only a template shop. Our ${inWords(products.length)} products cover an iPhone app, a mobile game, a browser game, a Roblox game and business software for company IT, and each has its own page where you can see the work for yourself.`,
   },
   {
     title: "Templates that share our products’ foundations",
@@ -119,7 +119,7 @@ const faqs = [
   },
   {
     question: "What products does runsIT build?",
-    answer: "PulseDeals, an iPhone app for Amazon price drops; The Last Echo, an idle RPG on iOS; Local Lore, a free browser geography game; Build Your Room, a Roblox game; and Neutronium, a workspace for company IT onboarding and access. Each product page links to its own terms and support where they’re published.",
+    answer: "PulseDeals, an iPhone app for Amazon price drops; The Last Echo, an idle RPG on iOS and Android; Local Lore, a free browser geography game; Build Your Room, a Roblox game; and Neutronium, a workspace for company IT onboarding and access. Each product page links to its own terms and support where they’re published.",
   },
   {
     question: "Who founded runsIT?",
@@ -334,7 +334,7 @@ export default function AboutPage() {
                 <h3>Explore or use a product</h3>
                 <div className={styles.howBody}>
                   <p>
-                    Start from the <a href="#products">product’s own page</a>. PulseDeals runs on iPhone, The Last Echo on iOS, Local Lore in your browser, Build Your Room on Roblox, and Neutronium on the web, where a company can sign in or create a workspace.
+                    Start from the <a href="#products">product’s own page</a>. PulseDeals runs on iPhone, The Last Echo on iOS and Android, Local Lore in your browser, Build Your Room on Roblox, and Neutronium on the web, where a company can sign in or create a workspace.
                   </p>
                   <p>Pricing, terms and support differ by product and are published with each one:</p>
                   <ul className={styles.linkList} role="list">

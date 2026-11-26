@@ -511,3 +511,152 @@ footer a {
     box-shadow: none;
   }
 }
+
+/* ---------- Deep Forest theme (2026 refresh) ---------- */
+:root {
+  --paper: #10231a;
+  --paper2: #0c1b13;
+  --ink: #f2ecd9;
+  --muted: #b8c6b3;
+  --wood: #2e5740;
+  --dark: #07110c;
+  --gold: #e6b85c;
+  --green: #5fd08a;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  color: var(--ink);
+  background-color: #08140e;
+  background-image:
+    radial-gradient(1000px 460px at 12% -10%, rgba(95, 208, 138, 0.15), transparent 62%),
+    radial-gradient(800px 420px at 96% 0, rgba(230, 184, 92, 0.09), transparent 58%),
+    linear-gradient(180deg, #0b1a12 0%, #08140e 55%, #060f0a 100%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(95, 208, 138, 0.35);
+  color: #fff;
+}
+
+a {
+  color: #f0c66e;
+}
+
+.site-head {
+  background: rgba(6, 15, 10, 0.94);
+  border-bottom: 1px solid #2e5740;
+  color: var(--ink);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.brand,
+.links a {
+  color: var(--ink);
+}
+
+.links a:hover {
+  color: #fff;
+}
+
+.hero {
+  background:
+    linear-gradient(95deg, rgba(5, 13, 9, 0.96) 0%, rgba(5, 13, 9, 0.72) 60%, rgba(5, 13, 9, 0.45) 100%),
+    url("/the-last-echo/img/forest_bg.png") center / cover;
+  color: var(--ink);
+  border-bottom: 1px solid #2e5740;
+}
+
+.eyebrow {
+  color: var(--gold);
+}
+
+.dek {
+  color: #c8d5c6;
+}
+
+.page {
+  background: linear-gradient(180deg, #10231a, #0c1b13);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.45);
+}
+
+.meta {
+  border-bottom-color: #2e5740;
+  color: var(--muted);
+}
+
+.meta a {
+  color: var(--gold);
+}
+
+.toc {
+  background: #10271b;
+  border-color: #2e5740;
+}
+
+.toc strong {
+  color: var(--gold);
+}
+
+.reference-table {
+  background: #10271b;
+  border-color: #2e5740;
+}
+
+.reference-table th {
+  background: #173a28;
+  color: var(--ink);
+}
+
+.reference-table td {
+  border-top-color: #234434;
+}
+
+.reference-table tr:nth-child(even) td {
+  background: #0e2015;
+}
+
+.callout {
+  border-left-color: var(--green);
+  background: #0d2116;
+}
+
+.card,
+.gallery-grid figure {
+  background: #10271b;
+  border-color: #2e5740;
+}
+
+.card:hover,
+.gallery-grid figure:hover {
+  border-color: #4b8a63;
+}
+
+.card p,
+.gallery-grid figcaption {
+  color: var(--muted);
+}
+
+.card h2,
+.gallery-grid strong {
+  color: var(--ink);
+}
+
+.shot {
+  border-color: #2e5740;
+}
+
+footer {
+  background: #060f0a;
+  color: #a9b9a7;
+  border-top: 1px solid #2e5740;
+}
+
+footer a {
+  color: var(--gold);
+}

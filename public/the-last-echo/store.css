@@ -1,0 +1,39 @@
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 26px;
+}
+
+#download {
+  scroll-margin-top: 110px;
+}
+
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.hero-actions .btn:focus-visible,
+.cta-actions .btn:focus-visible,
+.btn--apple:focus-visible,
+.btn--google:focus-visible {
+  outline: 3px solid var(--gold-lt);
+  outline-offset: 5px;
+}
+
+@media (max-width: 540px) {
+  .cta-box {
+    padding: 32px 18px;
+  }
+
+  .hero-actions .btn,
+  .cta-actions .btn {
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+  }
+}

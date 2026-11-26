@@ -45,7 +45,7 @@ export const templatePages: Record<TemplateId, {
       { title: "Optional online features", description: "Choose whether players need accounts or cloud saves, and whether purchases or ads fit the game. Include those decisions before your AI implements them." },
     ],
     planningQuestion: "Does the mobile game template cover iOS and Android?",
-    planningAnswer: "The template includes guidance for iOS and Android release. You choose your target platforms and still need to build, test and satisfy each store’s requirements using your own developer accounts. The Last Echo example is available on iOS and through Google Play testing on Android.",
+    planningAnswer: "The template includes guidance for iOS and Android release. You choose your target platforms and still need to build, test and satisfy each store’s requirements using your own developer accounts. The Last Echo example is available on the App Store and Google Play.",
   },
   "mobile-app": {
     title: "AI iPhone app template — SwiftUI, onboarding and subscriptions",
